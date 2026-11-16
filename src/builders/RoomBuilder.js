@@ -63,8 +63,44 @@ export function buildFloorFinishes(zones = [], materials, floorY = 0, floorName 
     const [x, z] = zone.pos;
     const mat = materials[zone.material] || materials.woodFloor;
 
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, thickness, d), mat);
-    mesh.position.set(x, floorY + thickness / 2, z);
+    let mesh;
+    if (Array.isArray(zone.holes) && zone.holes.length > 0) {
+      const hw = w / 2;
+      const hd = d / 2;
+      const shape = new THREE.Shape();
+      shape.moveTo(-hw, -hd);
+      shape.lineTo(hw, -hd);
+      shape.lineTo(hw, hd);
+      shape.lineTo(-hw, hd);
+      shape.closePath();
+
+      // In Shape plane rotated by -PI/2 around X: Shape Y maps to -Z in 3D
+      for (const hole of zone.holes) {
+        const hx1 = hole.x1 - x;
+        const hx2 = hole.x2 - x;
+        const hz1 = hole.z1 - z;
+        const hz2 = hole.z2 - z;
+        const path = new THREE.Path();
+        path.moveTo(hx1, -hz1);
+        path.lineTo(hx2, -hz1);
+        path.lineTo(hx2, -hz2);
+        path.lineTo(hx1, -hz2);
+        path.closePath();
+        shape.holes.push(path);
+      }
+
+      const geo = new THREE.ExtrudeGeometry(shape, {
+        depth: thickness,
+        bevelEnabled: false,
+      });
+      geo.rotateX(-Math.PI / 2);
+
+      mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, floorY, z);
+    } else {
+      mesh = new THREE.Mesh(new THREE.BoxGeometry(w, thickness, d), mat);
+      mesh.position.set(x, floorY + thickness / 2, z);
+    }
     mesh.receiveShadow = true;
     mesh.userData.bim = {
       type: 'IfcCovering (Podlaha)',
