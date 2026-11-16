@@ -24,6 +24,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
+
+// House Floor Slicing / Clipping Plane
+const houseClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
@@ -380,58 +384,534 @@ let currentModel = null;
 let currentIfcModel = null;
 
 // ==========================================
-// 5. Main House (8x12m, 2 Full Floors, Gable Roof)
+// 5. Room Data & Concept Floor Plan Generator
 // ==========================================
+const ROOMS_1NP = [
+  { id: '1.01', name: 'Zádveří / Vstup', area: '7.2 m²', pos: [2.3, 1.1, -2.4], desc: 'Vstupní hala s vestavěnými skříněmi a krytým loubím k parkování' },
+  { id: '1.02', name: 'Technická m. / TČ', area: '5.4 m²', pos: [2.3, 1.1, -4.7], desc: 'TČ, rekuperace + přímé venkovní dveře do severního dvora k dílně' },
+  { id: '1.03', name: 'Koupelna s WC', area: '4.1 m²', pos: [0.2, 1.1, -2.4], desc: 'Bezbariérová koupelna se sprchovým koutem a WC (pro budoucí ložnici v 1.NP)' },
+  { id: '1.04', name: 'Budoucí ložnice / Pracovna', area: '12.0 m²', pos: [-2.2, 1.1, -3.8], desc: 'Nyní pracovna/host, v budoucnu bezbariérová ložnice rodičů s oknem do zahrady' },
+  { id: '1.05', name: 'Spíž & schodiště', area: '5.8 m²', pos: [0.2, 1.4, 0.5], desc: 'Spíž pod schody + nástup na schodiště' },
+  { id: '1.06', name: 'Kuchyňský kout + Jídelna', area: '14.5 m²', pos: [2.1, 1.1, 3.2], desc: 'Kuchyň s ostrůvkem a novým pásovým oknem na východ nad linkou' },
+  { id: '1.07', name: 'Obývací pokoj', area: '25.0 m²', pos: [-2.0, 1.1, 3.2], desc: 'Klidová denní část s krbem a velkým HS portálem na terasu' },
+  { id: '1.08', name: 'Zahradní terasa (JZ)', area: '28.0 m²', pos: [-6.0, 0.35, 3.2], desc: 'Krytá venkovní terasa s jihozápadním sluncem a pergolou' },
+];
+
+const ROOMS_2NP = [
+  { id: '2.01', name: 'Schodišťová hala', area: '6.8 m²', pos: [0.2, 3.9, 0.2], desc: 'Centrální chodba propojující všechny 4 pokoje a hygienické zázemí' },
+  { id: '2.02', name: 'Pokoj 1 / Ložnice (SZ)', area: '14.6 m²', pos: [-2.2, 3.9, -3.8], desc: 'Prostorná ložnice s výhledem na západ do zahrady' },
+  { id: '2.03', name: 'Pokoj 4 / Pracovna (SV)', area: '10.5 m²', pos: [2.3, 3.9, -4.4], desc: 'Nová 4. samostatná místnost v patře (dětský pokoj 3 / pracovna / host)' },
+  { id: '2.04', name: 'Rodinná koupelna', area: '6.2 m²', pos: [2.3, 3.9, -2.0], desc: 'Vana, sprchový kout, 2 umyvadla, okno na východ' },
+  { id: '2.05', name: 'Samostatné WC', area: '1.8 m²', pos: [2.3, 3.9, -0.4], desc: 'Závěsná toaleta s umývátkem a vlastním oknem' },
+  { id: '2.06', name: 'Prádelna / Úklid', area: '2.2 m²', pos: [1.1, 3.9, -0.4], desc: 'Vyhrazené místo pro pračku a sušičku přímo v patře' },
+  { id: '2.07', name: 'Dětský pokoj 2 (JZ)', area: '14.8 m²', pos: [-2.2, 3.9, 3.5], desc: 'Slunný jihozápadní dětský pokoj' },
+  { id: '2.08', name: 'Dětský pokoj 3 (JV)', area: '14.8 m²', pos: [2.1, 3.9, 3.5], desc: 'Světlý jihovýchodní dětský pokoj' },
+];
+
+function createRoomBadge(name, area, color = '#ffffff') {
+  const cvs = document.createElement('canvas');
+  cvs.width = 256;
+  cvs.height = 110;
+  const ctx = cvs.getContext('2d');
+
+  // Semi-transparent rounded background badge
+  ctx.fillStyle = 'rgba(17, 24, 39, 0.88)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+  ctx.lineWidth = 3;
+
+  const r = 14;
+  const x = 4, y = 4, w = 248, h = 102;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Room Name
+  ctx.fillStyle = color;
+  ctx.font = 'bold 23px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(name, 128, 40);
+
+  // Room Area
+  ctx.fillStyle = '#60a5fa';
+  ctx.font = '600 21px monospace';
+  ctx.fillText(area, 128, 76);
+
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    depthTest: false,
+    transparent: true,
+  });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(2.4, 1.05, 1);
+  return sprite;
+}
+
 function createConceptModel() {
   const group = new THREE.Group();
+  group.name = 'concept-house';
 
-  const HOUSE_WIDTH = 8;   // X axis
-  const HOUSE_LENGTH = 12; // Z axis
-  const FLOOR_HEIGHT = 2.8;
-  const ROOF_HEIGHT = 2.8;
+  const HOUSE_WIDTH = 8.0;   // X axis (-4.0 to +4.0)
+  const HOUSE_LENGTH = 12.0; // Z axis (-6.0 to +6.0)
+  const FLOOR_HEIGHT = 2.80;
+  const WALL_THICKNESS = 0.38;
+  const PART_THICKNESS = 0.16;
 
-  // Materials: Simple, clean architectural volumes
-  const wallMat1 = new THREE.MeshStandardMaterial({
-    color: 0xf0f2f5,
-    roughness: 0.6,
+  // Architectural Materials (all respecting house clipping plane)
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0xf1f3f5,
+    roughness: 0.65,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
   });
-  const wallMat2 = new THREE.MeshStandardMaterial({
-    color: 0xe5e7eb,
-    roughness: 0.6,
+  const partitionMat = new THREE.MeshStandardMaterial({
+    color: 0xe2e8f0,
+    roughness: 0.7,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
   });
-  const floorJointMat = new THREE.MeshStandardMaterial({
-    color: 0x9ca3af,
-    roughness: 0.8,
+  const wallCapMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    roughness: 0.5,
+    clippingPlanes: [houseClipPlane],
+  });
+  const woodFloorMat = new THREE.MeshStandardMaterial({
+    color: 0xc4a47c, // warm natural oak
+    roughness: 0.5,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
+  });
+  const tileFloorMat = new THREE.MeshStandardMaterial({
+    color: 0xd2d7dc, // modern light stone tile
+    roughness: 0.4,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
+  });
+  const terraceMat = new THREE.MeshStandardMaterial({
+    color: 0x7c5e42, // thermo-wood deck
+    roughness: 0.75,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
+  });
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0x93c5fd,
+    transparent: true,
+    opacity: 0.4,
+    roughness: 0.1,
+    metalness: 0.1,
+    clippingPlanes: [houseClipPlane],
+  });
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b, // dark anthracite frames
+    roughness: 0.5,
+    clippingPlanes: [houseClipPlane],
   });
   const roofMat = new THREE.MeshStandardMaterial({
-    color: 0x2b2f38, // Anthracite roof
+    color: 0x2b2f38, // dark roof
     roughness: 0.45,
     metalness: 0.1,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
+  });
+  const stairMat = new THREE.MeshStandardMaterial({
+    color: 0x96744e,
+    roughness: 0.5,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
+  });
+  const furnitureMat = new THREE.MeshStandardMaterial({
+    color: 0xdbe2ea,
+    roughness: 0.65,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
+  });
+  const kitchenCounterMat = new THREE.MeshStandardMaterial({
+    color: 0x334155, // anthracite slate counter
+    roughness: 0.4,
+    clippingPlanes: [houseClipPlane],
+    clipShadows: true,
   });
 
-  // 1.NP - Přízemí (8 x 2.8 x 12 m)
-  const floor1Geo = new THREE.BoxGeometry(HOUSE_WIDTH, FLOOR_HEIGHT, HOUSE_LENGTH);
-  const floor1 = new THREE.Mesh(floor1Geo, wallMat1);
-  floor1.position.y = FLOOR_HEIGHT / 2;
-  floor1.castShadow = true;
-  floor1.receiveShadow = true;
-  group.add(floor1);
+  // Wall helper
+  function makeWall(w, h, d, x, y, z, mat = wallMat) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(x, y + h / 2, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
 
-  // Subtle floor dividing joint / line (spára mezi podlažími)
-  const jointGeo = new THREE.BoxGeometry(HOUSE_WIDTH + 0.05, 0.06, HOUSE_LENGTH + 0.05);
-  const joint = new THREE.Mesh(jointGeo, floorJointMat);
-  joint.position.y = FLOOR_HEIGHT;
-  group.add(joint);
+  // Window helper
+  function makeWindow(w, h, d, x, y, z) {
+    const winGroup = new THREE.Group();
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat);
+    frame.position.set(x, y + h / 2, z);
+    winGroup.add(frame);
 
-  // 2.NP - Plnohodnotné patro (8 x 2.8 x 12 m)
-  const floor2Geo = new THREE.BoxGeometry(HOUSE_WIDTH, FLOOR_HEIGHT, HOUSE_LENGTH);
-  const floor2 = new THREE.Mesh(floor2Geo, wallMat2);
-  floor2.position.y = FLOOR_HEIGHT + FLOOR_HEIGHT / 2;
-  floor2.castShadow = true;
-  floor2.receiveShadow = true;
-  group.add(floor2);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(w - 0.12, h - 0.12, 0.04), glassMat);
+    glass.position.set(x, y + h / 2, z);
+    winGroup.add(glass);
+    return winGroup;
+  }
 
-  // Sedlová střecha (Gable roof along 12m length - Z axis)
+  // ----------------------------------------------------
+  // SUB-GROUP 1: 1.NP (Přízemí)
+  // ----------------------------------------------------
+  const floor1Group = new THREE.Group();
+  floor1Group.name = 'floor1-group';
+  group.add(floor1Group);
+
+  // 1.NP Floors
+  // Wood floor in Living Room / Kitchen / Study
+  const woodFloor1 = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.12, 6.4), woodFloorMat);
+  woodFloor1.position.set(0, 0.06, 2.6);
+  woodFloor1.receiveShadow = true;
+  floor1Group.add(woodFloor1);
+
+  const studyFloor = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.12, 4.4), woodFloorMat);
+  studyFloor.position.set(-2.05, 0.06, -3.6);
+  studyFloor.receiveShadow = true;
+  floor1Group.add(studyFloor);
+
+  // Tile floor in Hallway / Tech / Bath / Under stairs
+  const tileFloor1 = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.12, 4.4), tileFloorMat);
+  tileFloor1.position.set(1.75, 0.06, -3.6);
+  tileFloor1.receiveShadow = true;
+  floor1Group.add(tileFloor1);
+
+  // Garden Terrace (Adjacent to West wall, X = -4 to -8, Z = 0 to 6.5)
+  const terrace = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.14, 6.8), terraceMat);
+  terrace.position.set(-6.0, 0.07, 3.2);
+  terrace.receiveShadow = true;
+  floor1Group.add(terrace);
+
+  // Pergola posts on terrace
+  const postGeo = new THREE.BoxGeometry(0.14, 2.8, 0.14);
+  const pergolaPosts = [
+    [-7.9, 3.2 + 3.2],
+    [-7.9, 3.2 - 3.2],
+    [-4.15, 3.2 + 3.2],
+    [-4.15, 3.2 - 3.2],
+  ];
+  pergolaPosts.forEach(([px, pz]) => {
+    const post = new THREE.Mesh(postGeo, frameMat);
+    post.position.set(px, 1.4, pz);
+    post.castShadow = true;
+    floor1Group.add(post);
+  });
+
+  // 1.NP Exterior Perimeter Walls (Height 2.75 m)
+  const H1 = 2.75;
+  // North Wall (Z = -5.81)
+  floor1Group.add(makeWall(1.1, H1, WALL_THICKNESS, -3.45, 0, -5.81));
+  floor1Group.add(makeWindow(1.4, 1.4, WALL_THICKNESS + 0.02, -2.2, 0.9, -5.81)); // Study/Bedroom North window
+  floor1Group.add(makeWall(1.4, H1, WALL_THICKNESS, -0.8, 0, -5.81));
+  floor1Group.add(makeWall(1.8, H1, WALL_THICKNESS, 0.8, 0, -5.81));
+  // Tech room exterior door to north yard (leads to carport & workshop)
+  const techDoor = makeWindow(1.0, 2.15, WALL_THICKNESS + 0.02, 2.2, 0.05, -5.81);
+  floor1Group.add(techDoor);
+  floor1Group.add(makeWall(1.0, H1 - 2.2, WALL_THICKNESS, 2.2, 2.2, -5.81)); // Lintel
+  floor1Group.add(makeWall(1.3, H1, WALL_THICKNESS, 3.35, 0, -5.81));
+
+  // South Wall (Z = +5.81, facing garden)
+  floor1Group.add(makeWall(1.8, H1, WALL_THICKNESS, -3.1, 0, 5.81));
+  floor1Group.add(makeWindow(3.2, 2.2, WALL_THICKNESS + 0.02, -0.6, 0.15, 5.81)); // Big Living Room French Window
+  floor1Group.add(makeWall(3.0, H1, WALL_THICKNESS, 2.5, 0, 5.81));
+
+  // East Wall (X = +3.81, arrival & parking side)
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 3.2, 3.81, 0, -4.4));
+  // Main Entry Door
+  const entryDoor = makeWindow(WALL_THICKNESS + 0.02, 2.15, 1.1, 3.81, 0.05, -2.2);
+  floor1Group.add(entryDoor);
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 2.5, 3.81, 0, -0.4));
+  // Kitchen East Ribbon Window (above worktop)
+  const kitchenWin = makeWindow(WALL_THICKNESS + 0.02, 0.8, 2.2, 3.81, 1.05, 1.95);
+  floor1Group.add(kitchenWin);
+  floor1Group.add(makeWall(WALL_THICKNESS, 1.05, 2.2, 3.81, 0, 1.95)); // Wall under kitchen window
+  floor1Group.add(makeWall(WALL_THICKNESS, H1 - 1.85, 2.2, 3.81, 1.85, 1.95)); // Wall above kitchen window
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 2.9, 3.81, 0, 4.45));
+
+  // West Wall (X = -3.81, terrace & southwest garden sun)
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.5, -3.81, 0, -5.05));
+  // Study/Bedroom West Window into garden
+  const studyWestWin = makeWindow(WALL_THICKNESS + 0.02, 1.4, 1.4, -3.81, 0.9, -3.6);
+  floor1Group.add(studyWestWin);
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.5, -3.81, 0, -2.15));
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.6, -3.81, 0, -0.6));
+  // Sliding HS Portal to Terrace (Z: +0.2 to +4.8)
+  floor1Group.add(makeWindow(WALL_THICKNESS + 0.02, 2.35, 4.6, -3.81, 0.05, 2.5));
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.2, -3.81, 0, 5.4));
+
+  // 1.NP Interior Partition Walls (Height 2.65 m)
+  const HP = 2.65;
+  // Full acoustic wall separating Study/Bedroom from Living Room (Z = -1.4)
+  floor1Group.add(makeWall(3.5, HP, PART_THICKNESS, -2.05, 0, -1.4, partitionMat));
+  // Longitudinal spine separating Study/Bedroom from central hallway (X = -0.3)
+  floor1Group.add(makeWall(PART_THICKNESS, HP, 3.4, -0.3, 0, -4.1, partitionMat));
+  floor1Group.add(makeWall(PART_THICKNESS, HP - 2.1, 1.0, -0.3, 2.1, -1.9, partitionMat)); // Door lintel to hallway
+  // Wall separating Tech room from Vestibule (Z = -3.6)
+  floor1Group.add(makeWall(2.8, HP, PART_THICKNESS, 2.4, 0, -3.6, partitionMat));
+  // Wall separating Vestibule from Bathroom (X = +1.1)
+  floor1Group.add(makeWall(PART_THICKNESS, HP, 2.2, 1.1, 0, -2.5, partitionMat));
+  // Wall separating Hall from Kitchen/Dining (Z = -0.3)
+  floor1Group.add(makeWall(2.6, HP, PART_THICKNESS, 2.5, 0, -0.3, partitionMat));
+
+  // 1.NP Staircase (Ascending from Z = -0.2 to +2.4 at X = +0.4)
+  const stepCount = 14;
+  for (let s = 0; s < stepCount; s++) {
+    const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.26), stairMat);
+    stepMesh.position.set(0.4, (s + 0.5) * (FLOOR_HEIGHT / stepCount), -0.2 + s * 0.18);
+    stepMesh.castShadow = true;
+    stepMesh.receiveShadow = true;
+    floor1Group.add(stepMesh);
+  }
+
+  // 1.NP Architectural Furniture Masses
+  // Budoucí ložnice / Pracovna (1.04): Dvoulůžko + pracovní stůl + skříň
+  const studyBed = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.52, 2.0), furnitureMat);
+  studyBed.position.set(-2.5, 0.26, -4.5);
+  studyBed.castShadow = true;
+  floor1Group.add(studyBed);
+
+  const studyDesk = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.75, 0.7), furnitureMat);
+  studyDesk.position.set(-1.4, 0.37, -2.2);
+  studyDesk.castShadow = true;
+  floor1Group.add(studyDesk);
+
+  const studyWardrobe = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.1, 1.6), frameMat);
+  studyWardrobe.position.set(-3.45, 1.05, -2.3);
+  studyWardrobe.castShadow = true;
+  floor1Group.add(studyWardrobe);
+
+  // Koupelna 1.NP (1.03): sprchový kout
+  const shower1 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.0, 0.9), glassMat);
+  shower1.position.set(0.4, 1.0, -3.1);
+  floor1Group.add(shower1);
+
+  // Kitchen Island (2.2 x 0.9 x 0.9 m)
+  const island = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 2.2), kitchenCounterMat);
+  island.position.set(2.0, 0.45, 1.8);
+  island.castShadow = true;
+  floor1Group.add(island);
+
+  // Kitchen Back Counter along East Wall
+  const kitchenCounter = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.9, 3.4), kitchenCounterMat);
+  kitchenCounter.position.set(3.4, 0.45, 1.8);
+  kitchenCounter.castShadow = true;
+  floor1Group.add(kitchenCounter);
+
+  // Dining Table + Chairs
+  const diningTable = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.76, 2.0), furnitureMat);
+  diningTable.position.set(2.0, 0.38, 4.5);
+  diningTable.castShadow = true;
+  floor1Group.add(diningTable);
+
+  // Living Room L-Sofa
+  const sofaBase1 = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.45, 1.0), furnitureMat);
+  sofaBase1.position.set(-2.2, 0.22, 4.4);
+  const sofaBase2 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.45, 1.8), furnitureMat);
+  sofaBase2.position.set(-3.0, 0.22, 3.0);
+  floor1Group.add(sofaBase1);
+  floor1Group.add(sofaBase2);
+
+  // Coffee Table
+  const coffeeTable = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 1.2), furnitureMat);
+  coffeeTable.position.set(-1.8, 0.17, 3.2);
+  floor1Group.add(coffeeTable);
+
+  // Tech Room Heat Pump unit
+  const hvac = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.8), frameMat);
+  hvac.position.set(2.8, 0.9, -5.0);
+  hvac.castShadow = true;
+  floor1Group.add(hvac);
+
+  // ----------------------------------------------------
+  // SUB-GROUP 2: Intermediate Ceiling Slab (Between 1.NP & 2.NP)
+  // ----------------------------------------------------
+  const ceiling1Group = new THREE.Group();
+  ceiling1Group.name = 'ceiling1-group';
+  group.add(ceiling1Group);
+
+  // Slab with Staircase Hole
+  const slabShape = new THREE.Shape();
+  slabShape.moveTo(-HOUSE_WIDTH / 2, -HOUSE_LENGTH / 2);
+  slabShape.lineTo(HOUSE_WIDTH / 2, -HOUSE_LENGTH / 2);
+  slabShape.lineTo(HOUSE_WIDTH / 2, HOUSE_LENGTH / 2);
+  slabShape.lineTo(-HOUSE_WIDTH / 2, HOUSE_LENGTH / 2);
+  slabShape.closePath();
+
+  // Staircase hole (X: -0.15 to +0.95, Z: -0.4 to +2.5)
+  // Shape coordinates: X is X, Y is -Z
+  const stairHole = new THREE.Path();
+  stairHole.moveTo(-0.15, -(-0.4));
+  stairHole.lineTo(0.95, -(-0.4));
+  stairHole.lineTo(0.95, -(2.5));
+  stairHole.lineTo(-0.15, -(2.5));
+  stairHole.closePath();
+  slabShape.holes.push(stairHole);
+
+  const slabGeo = new THREE.ExtrudeGeometry(slabShape, {
+    depth: 0.22,
+    bevelEnabled: false,
+  });
+  slabGeo.rotateX(-Math.PI / 2);
+  const ceilingSlab = new THREE.Mesh(slabGeo, wallMat);
+  ceilingSlab.position.y = FLOOR_HEIGHT;
+  ceilingSlab.receiveShadow = true;
+  ceiling1Group.add(ceilingSlab);
+
+  // ----------------------------------------------------
+  // SUB-GROUP 3: 2.NP (Patro)
+  // ----------------------------------------------------
+  const floor2Group = new THREE.Group();
+  floor2Group.name = 'floor2-group';
+  group.add(floor2Group);
+
+  const Y2 = FLOOR_HEIGHT + 0.22;
+  const H2 = 2.65;
+
+  // 2.NP Flooring
+  const floor2Mesh = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.08, 11.6), woodFloorMat);
+  floor2Mesh.position.set(0, Y2 + 0.04, 0);
+  floor2Mesh.receiveShadow = true;
+  floor2Group.add(floor2Mesh);
+
+  // 2.NP Exterior Walls
+  // North Wall
+  floor2Group.add(makeWall(1.1, H2, WALL_THICKNESS, -3.45, Y2, -5.81));
+  floor2Group.add(makeWindow(1.4, 1.3, WALL_THICKNESS + 0.02, -2.2, Y2 + 0.9, -5.81)); // Pokoj 1 (SZ) window
+  floor2Group.add(makeWall(2.8, H2, WALL_THICKNESS, -0.1, Y2, -5.81));
+  floor2Group.add(makeWindow(1.4, 1.3, WALL_THICKNESS + 0.02, 2.0, Y2 + 0.9, -5.81));  // Pokoj 4 (SV - nová místnost!) window
+  floor2Group.add(makeWall(1.3, H2, WALL_THICKNESS, 3.35, Y2, -5.81));
+
+  // South Wall
+  floor2Group.add(makeWall(1.8, H2, WALL_THICKNESS, -3.1, Y2, 5.81));
+  floor2Group.add(makeWindow(1.8, 1.5, WALL_THICKNESS + 0.02, -1.8, Y2 + 0.8, 5.81)); // Dětský pokoj 2 (JZ)
+  floor2Group.add(makeWall(1.2, H2, WALL_THICKNESS, 0, Y2, 5.81));
+  floor2Group.add(makeWindow(1.8, 1.5, WALL_THICKNESS + 0.02, 1.8, Y2 + 0.8, 5.81));  // Dětský pokoj 3 (JV)
+  floor2Group.add(makeWall(1.8, H2, WALL_THICKNESS, 3.1, Y2, 5.81));
+
+  // East Wall
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.5, 3.81, Y2, -5.05));
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.2, 1.3, 3.81, Y2 + 0.9, -3.7)); // Pokoj 4 East window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.0, 3.81, Y2, -2.6));
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.2, 1.2, 3.81, Y2 + 1.0, -1.5)); // Bathroom window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 0.8, 3.81, Y2, -0.5));
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 0.8, 0.8, 3.81, Y2 + 1.2, 0.3));  // WC window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 0.6, 3.81, Y2, 1.0));
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 4.4, 3.81, Y2, 3.6));                   // Dětský pokoj 3 East wall
+
+  // West Wall
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.5, -3.81, Y2, -5.05));
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.5, 1.8, -3.81, Y2 + 0.8, -3.8)); // Pokoj 1 (SZ) West window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 3.8, -3.81, Y2, -1.2));
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 4.4, -3.81, Y2, 3.6));                  // Dětský pokoj 2 West wall
+
+  // 2.NP Partitions
+  // Longitudinal spine separating Pokoj 1 from central hallway (X = -0.3)
+  floor2Group.add(makeWall(PART_THICKNESS, H2, 3.4, -0.3, Y2, -4.1, partitionMat));
+  floor2Group.add(makeWall(PART_THICKNESS, H2 - 2.1, 1.0, -0.3, Y2 + 2.1, -1.9, partitionMat)); // Doorway lintel
+  // Wall separating Dětský pokoj 2 & 3 (X = 0.0)
+  floor2Group.add(makeWall(PART_THICKNESS, H2, 4.4, 0.0, Y2, 3.6, partitionMat));
+  // Separator between North rooms and South rooms (Z = +1.4)
+  floor2Group.add(makeWall(3.5, H2, PART_THICKNESS, -2.05, Y2, 1.4, partitionMat)); // West
+  floor2Group.add(makeWall(3.0, H2, PART_THICKNESS, 2.3, Y2, 1.4, partitionMat));   // East
+  // Wall separating Pokoj 4 (SV) from Bathroom (Z = -3.0)
+  floor2Group.add(makeWall(3.0, H2, PART_THICKNESS, 2.3, Y2, -3.0, partitionMat));
+  // Wall separating Bathroom from WC / Laundry (Z = -0.9)
+  floor2Group.add(makeWall(3.0, H2, PART_THICKNESS, 2.3, Y2, -0.9, partitionMat));
+  // Wall separating WC from Laundry (X = +2.2, Z: -0.9 to +1.4)
+  floor2Group.add(makeWall(PART_THICKNESS, H2, 2.3, 2.2, Y2, 0.25, partitionMat));
+  // Hallway partition on East side (X = +0.8) with doorways
+  floor2Group.add(makeWall(PART_THICKNESS, H2, 2.0, 0.8, Y2, -4.8, partitionMat));
+  floor2Group.add(makeWall(PART_THICKNESS, H2 - 2.1, 0.9, 0.8, Y2 + 2.1, -3.35, partitionMat)); // Door Pokoj 4
+  floor2Group.add(makeWall(PART_THICKNESS, H2, 0.4, 0.8, Y2, -2.7, partitionMat));
+  floor2Group.add(makeWall(PART_THICKNESS, H2 - 2.1, 0.9, 0.8, Y2 + 2.1, -2.05, partitionMat)); // Door Bath
+  floor2Group.add(makeWall(PART_THICKNESS, H2, 0.4, 0.8, Y2, -1.4, partitionMat));
+  floor2Group.add(makeWall(PART_THICKNESS, H2 - 2.1, 1.6, 0.8, Y2 + 2.1, -0.4, partitionMat));  // Door WC & Laundry
+  floor2Group.add(makeWall(PART_THICKNESS, H2, 0.8, 0.8, Y2, 1.0, partitionMat));
+
+  // 2.NP Furniture Masses
+  // Pokoj 1 (SZ): Master bed + desk + wardrobe
+  const masterBed = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.55, 2.0), furnitureMat);
+  masterBed.position.set(-2.4, Y2 + 0.28, -3.8);
+  masterBed.castShadow = true;
+  floor2Group.add(masterBed);
+
+  const desk1 = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.75, 0.7), furnitureMat);
+  desk1.position.set(-1.4, Y2 + 0.37, -2.1);
+  floor2Group.add(desk1);
+
+  const wardrobe1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.1, 1.8), frameMat);
+  wardrobe1.position.set(-3.45, Y2 + 1.05, -2.1);
+  floor2Group.add(wardrobe1);
+
+  // Pokoj 4 (SV - NOVÁ MÍSTNOST): Bed + desk + wardrobe
+  const bed4 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 2.0), furnitureMat);
+  bed4.position.set(2.8, Y2 + 0.25, -4.6);
+  bed4.castShadow = true;
+  floor2Group.add(bed4);
+
+  const desk4 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.75, 0.65), furnitureMat);
+  desk4.position.set(1.7, Y2 + 0.37, -3.6);
+  floor2Group.add(desk4);
+
+  const wardrobe4 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.1, 1.2), frameMat);
+  wardrobe4.position.set(3.45, Y2 + 1.05, -3.6);
+  floor2Group.add(wardrobe4);
+
+  // Dětské pokoje
+  const kidBed1 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 2.0), furnitureMat);
+  kidBed1.position.set(-2.8, Y2 + 0.25, 4.5);
+  floor2Group.add(kidBed1);
+
+  const kidDesk1 = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.75, 0.7), furnitureMat);
+  kidDesk1.position.set(-1.6, Y2 + 0.37, 5.2);
+  floor2Group.add(kidDesk1);
+
+  const kidBed2 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 2.0), furnitureMat);
+  kidBed2.position.set(2.8, Y2 + 0.25, 4.5);
+  floor2Group.add(kidBed2);
+
+  const kidDesk2 = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.75, 0.7), furnitureMat);
+  kidDesk2.position.set(1.6, Y2 + 0.37, 5.2);
+  floor2Group.add(kidDesk2);
+
+  // Bathroom Bathtub & Vanity
+  const tub = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.6, 1.7), frameMat);
+  tub.position.set(3.2, Y2 + 0.3, -2.0);
+  floor2Group.add(tub);
+
+  const bathVanity = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.85, 1.2), furnitureMat);
+  bathVanity.position.set(2.0, Y2 + 0.42, -2.0);
+  floor2Group.add(bathVanity);
+
+  // WC Toilet
+  const wcMesh = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.65), frameMat);
+  wcMesh.position.set(3.3, Y2 + 0.23, 0.25);
+  floor2Group.add(wcMesh);
+
+  // Laundry: Washer / Dryer stack in 2.NP
+  const laundryStack = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.7, 0.65), frameMat);
+  laundryStack.position.set(1.4, Y2 + 0.85, 0.25);
+  floor2Group.add(laundryStack);
+
+  // ----------------------------------------------------
+  // SUB-GROUP 4: Roof Structure (Sedlová střecha)
+  // ----------------------------------------------------
+  const roofGroup = new THREE.Group();
+  roofGroup.name = 'roof-group';
+  group.add(roofGroup);
+
+  const ROOF_HEIGHT = 2.8;
   const roofShape = new THREE.Shape();
   const halfW = HOUSE_WIDTH / 2;
   roofShape.moveTo(-halfW, 0);
@@ -439,19 +919,46 @@ function createConceptModel() {
   roofShape.lineTo(0, ROOF_HEIGHT);
   roofShape.closePath();
 
-  const extrudeSettings = {
+  const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
     depth: HOUSE_LENGTH,
     bevelEnabled: false,
-  };
-  const roofGeo = new THREE.ExtrudeGeometry(roofShape, extrudeSettings);
-  // Center extrusion along Z axis
+  });
   roofGeo.translate(0, 0, -HOUSE_LENGTH / 2);
 
-  const roof = new THREE.Mesh(roofGeo, roofMat);
-  roof.position.y = FLOOR_HEIGHT * 2; // Sits on top of 2nd floor
-  roof.castShadow = true;
-  roof.receiveShadow = true;
-  group.add(roof);
+  const roofMesh = new THREE.Mesh(roofGeo, roofMat);
+  roofMesh.position.y = FLOOR_HEIGHT * 2;
+  roofMesh.castShadow = true;
+  roofMesh.receiveShadow = true;
+  roofGroup.add(roofMesh);
+
+  // ----------------------------------------------------
+  // SUB-GROUP 5: 3D Room Badges / Labels
+  // ----------------------------------------------------
+  const labels1np = new THREE.Group();
+  labels1np.name = 'labels-1np';
+  ROOMS_1NP.forEach((r) => {
+    const badge = createRoomBadge(r.name, r.area);
+    badge.position.set(r.pos[0], r.pos[1], r.pos[2]);
+    labels1np.add(badge);
+  });
+  group.add(labels1np);
+
+  const labels2np = new THREE.Group();
+  labels2np.name = 'labels-2np';
+  ROOMS_2NP.forEach((r) => {
+    const badge = createRoomBadge(r.name, r.area);
+    badge.position.set(r.pos[0], r.pos[1], r.pos[2]);
+    labels2np.add(badge);
+  });
+  group.add(labels2np);
+
+  // Save references on the group for floor controllers
+  group.floor1Group = floor1Group;
+  group.ceiling1Group = ceiling1Group;
+  group.floor2Group = floor2Group;
+  group.roofGroup = roofGroup;
+  group.labels1np = labels1np;
+  group.labels2np = labels2np;
 
   return group;
 }
@@ -555,6 +1062,36 @@ function createAuxiliaryBuilding() {
   roof.castShadow = true;
   roof.receiveShadow = true;
   group.add(roof);
+
+  // 4. Kryté loubí / zastřešený přechod mezi stáním a domem (4m mezera)
+  const canopyGeo = new THREE.BoxGeometry(1.9, 0.12, 4.2);
+  const canopy = new THREE.Mesh(canopyGeo, roofMat);
+  canopy.position.set(4.45, 2.55, 5.5);
+  canopy.castShadow = true;
+  canopy.receiveShadow = true;
+  group.add(canopy);
+
+  // Chodník pod loubím
+  const walkGeo = new THREE.BoxGeometry(1.8, 0.04, 4.2);
+  const walkway = new THREE.Mesh(walkGeo, floorMat);
+  walkway.position.set(4.45, 0.02, 5.5);
+  walkway.receiveShadow = true;
+  group.add(walkway);
+
+  // Sloupy loubí
+  const canopyPillarGeo = new THREE.BoxGeometry(0.14, 2.5, 0.14);
+  const canopyPillars = [
+    [5.3, 5.5],
+    [5.3, 7.4],
+    [3.6, 5.5],
+    [3.6, 7.4],
+  ];
+  canopyPillars.forEach(([px, pz]) => {
+    const pMesh = new THREE.Mesh(canopyPillarGeo, pillarMat);
+    pMesh.position.set(px, 1.25, pz);
+    pMesh.castShadow = true;
+    group.add(pMesh);
+  });
 
   // Pozice na pozemku:
   // X = 3.0 (pravá hrana je v 3.0 + 5.5 = 8.5m, tedy přesně 5m od pravé ulice 13.5m, stejně jako dům)
@@ -689,6 +1226,12 @@ function displayBimProperties(props) {
 
   panel.classList.add('visible');
 
+  // Switch to BIM tab and open sidebar
+  switchSidebarTab('bim');
+  toggleSidebar(true);
+  const bimDot = document.getElementById('bim-badge-dot');
+  if (bimDot) bimDot.style.display = 'block';
+
   const typeName = props.__proto__?.constructor?.name || props.type || 'IFC Element';
   const nameVal = props.Name?.value || props.ObjectType?.value || 'Unnamed';
   const idVal = props.GlobalId?.value || props.expressID || '—';
@@ -753,11 +1296,22 @@ async function loadIfcFromBuffer(buffer, fileName) {
     currentIfcModel = ifcModel;
     currentModel = ifcModel;
 
-    // Enable shadows on loaded geometries
+    // Enable shadows & clipping on loaded geometries
     ifcModel.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => {
+              m.clippingPlanes = [houseClipPlane];
+              m.clipShadows = true;
+            });
+          } else {
+            child.material.clippingPlanes = [houseClipPlane];
+            child.material.clipShadows = true;
+          }
+        }
       }
     });
 
@@ -867,7 +1421,9 @@ canvas.addEventListener('click', pickBimElement);
 
 // Close inspector
 document.getElementById('btn-close-inspector')?.addEventListener('click', () => {
-  document.getElementById('inspector-panel').classList.remove('visible');
+  document.getElementById('inspector-panel')?.classList.remove('visible');
+  const bimDot = document.getElementById('bim-badge-dot');
+  if (bimDot) bimDot.style.display = 'none';
   if (currentIfcModel) {
     ifcLoader.ifcManager.removeSubset(currentIfcModel.modelID);
   }
@@ -972,6 +1528,217 @@ document.getElementById('btn-fit').addEventListener('click', () => {
   fitCameraToObject(siteContainer);
 });
 
+// ==========================================
+// 9. Floor Plan & Dynamic Slicing Controller
+// ==========================================
+let currentFloorMode = 'all'; // 'all', '1np', '2np'
+let labelsVisible = true;
+
+const btnFloorAll = document.getElementById('btn-floor-all');
+const btnFloor1np = document.getElementById('btn-floor-1np');
+const btnFloor2np = document.getElementById('btn-floor-2np');
+const btnFloorTopdown = document.getElementById('btn-floor-topdown');
+const btnToggleLabels = document.getElementById('btn-toggle-labels');
+
+const tabFloor1np = document.getElementById('tab-floor-1np');
+const tabFloor2np = document.getElementById('tab-floor-2np');
+const activeFloorBadge = document.getElementById('active-floor-badge');
+const sliceSlider = document.getElementById('slice-slider');
+const sliceVal = document.getElementById('slice-val');
+const roomScheduleContainer = document.getElementById('room-schedule-container');
+
+function updateRoomScheduleUI(mode) {
+  const rooms = mode === '2np' ? ROOMS_2NP : ROOMS_1NP;
+  if (roomScheduleContainer) {
+    roomScheduleContainer.innerHTML = rooms
+      .map(
+        (r) => `
+        <div class="room-item" data-id="${r.id}" title="${r.desc}">
+          <span class="room-item-name">
+            <span class="room-item-id">${r.id}</span>
+            ${r.name}
+          </span>
+          <span class="room-item-area">${r.area}</span>
+        </div>`
+      )
+      .join('');
+  }
+}
+
+function setFloorMode(mode) {
+  currentFloorMode = mode;
+
+  // Update Toolbar Buttons
+  [btnFloorAll, btnFloor1np, btnFloor2np].forEach((b) => b?.classList.remove('btn-primary'));
+  if (mode === 'all') btnFloorAll?.classList.add('btn-primary');
+  if (mode === '1np') btnFloor1np?.classList.add('btn-primary');
+  if (mode === '2np') btnFloor2np?.classList.add('btn-primary');
+
+  // Update Sidebar Buttons
+  const btnSidebarAll = document.getElementById('btn-sidebar-all');
+  const btnSidebar1np = document.getElementById('btn-sidebar-1np');
+  const btnSidebar2np = document.getElementById('btn-sidebar-2np');
+  [btnSidebarAll, btnSidebar1np, btnSidebar2np].forEach((b) => b?.classList.remove('btn-primary'));
+  if (mode === 'all') btnSidebarAll?.classList.add('btn-primary');
+  if (mode === '1np') btnSidebar1np?.classList.add('btn-primary');
+  if (mode === '2np') btnSidebar2np?.classList.add('btn-primary');
+
+  // Update Sidebar Tabs
+  [tabFloor1np, tabFloor2np].forEach((t) => t?.classList.remove('btn-primary'));
+  if (mode === '2np') {
+    tabFloor2np?.classList.add('btn-primary');
+  } else {
+    tabFloor1np?.classList.add('btn-primary');
+  }
+
+  // Update Badge
+  if (activeFloorBadge) {
+    if (mode === 'all') activeFloorBadge.textContent = 'Celý dům';
+    if (mode === '1np') activeFloorBadge.textContent = '1.NP Přízemí (74.5 m²)';
+    if (mode === '2np') activeFloorBadge.textContent = '2.NP Patro (74.2 m²)';
+  }
+
+  updateRoomScheduleUI(mode);
+
+  // Update 3D Model Visibility & Slicing Plane
+  if (currentModel && currentModel.floor1Group) {
+    if (mode === 'all') {
+      currentModel.floor1Group.visible = true;
+      currentModel.ceiling1Group.visible = true;
+      currentModel.floor2Group.visible = true;
+      currentModel.roofGroup.visible = true;
+      currentModel.labels1np.visible = labelsVisible;
+      currentModel.labels2np.visible = false;
+      houseClipPlane.constant = 100.0;
+      if (sliceSlider) sliceSlider.value = 8.5;
+      if (sliceVal) sliceVal.textContent = 'Vše (bez řezu)';
+    } else if (mode === '1np') {
+      currentModel.floor1Group.visible = true;
+      currentModel.ceiling1Group.visible = false;
+      currentModel.floor2Group.visible = false;
+      currentModel.roofGroup.visible = false;
+      currentModel.labels1np.visible = labelsVisible;
+      currentModel.labels2np.visible = false;
+      houseClipPlane.constant = 2.75;
+      if (sliceSlider) sliceSlider.value = 2.75;
+      if (sliceVal) sliceVal.textContent = '2.75 m';
+    } else if (mode === '2np') {
+      currentModel.floor1Group.visible = true;
+      currentModel.ceiling1Group.visible = true;
+      currentModel.floor2Group.visible = true;
+      currentModel.roofGroup.visible = false;
+      currentModel.labels1np.visible = false;
+      currentModel.labels2np.visible = labelsVisible;
+      houseClipPlane.constant = 5.55;
+      if (sliceSlider) sliceSlider.value = 5.55;
+      if (sliceVal) sliceVal.textContent = '5.55 m';
+    }
+  } else {
+    // Loaded IFC Model slicing
+    if (mode === 'all') {
+      houseClipPlane.constant = 100.0;
+      if (sliceSlider) sliceSlider.value = 8.5;
+      if (sliceVal) sliceVal.textContent = 'Vše (bez řezu)';
+    } else if (mode === '1np') {
+      houseClipPlane.constant = 2.75;
+      if (sliceSlider) sliceSlider.value = 2.75;
+      if (sliceVal) sliceVal.textContent = '2.75 m';
+    } else if (mode === '2np') {
+      houseClipPlane.constant = 5.55;
+      if (sliceSlider) sliceSlider.value = 5.55;
+      if (sliceVal) sliceVal.textContent = '5.55 m';
+    }
+  }
+}
+
+// Button Events
+btnFloorAll?.addEventListener('click', () => setFloorMode('all'));
+btnFloor1np?.addEventListener('click', () => setFloorMode('1np'));
+btnFloor2np?.addEventListener('click', () => setFloorMode('2np'));
+
+// Sidebar floor buttons sync
+document.getElementById('btn-sidebar-all')?.addEventListener('click', () => setFloorMode('all'));
+document.getElementById('btn-sidebar-1np')?.addEventListener('click', () => setFloorMode('1np'));
+document.getElementById('btn-sidebar-2np')?.addEventListener('click', () => setFloorMode('2np'));
+document.getElementById('btn-sidebar-topdown')?.addEventListener('click', () => btnFloorTopdown?.click());
+
+// Sidebar fit button
+document.getElementById('btn-fit-sidebar')?.addEventListener('click', () => {
+  fitCameraToObject(siteContainer);
+});
+
+// Quick Sun button in top toolbar opens Sun tab in sidebar
+document.getElementById('btn-quick-sun')?.addEventListener('click', () => {
+  switchSidebarTab('sun');
+  toggleSidebar(true);
+});
+
+tabFloor1np?.addEventListener('click', () => setFloorMode('1np'));
+tabFloor2np?.addEventListener('click', () => setFloorMode('2np'));
+
+btnToggleLabels?.addEventListener('click', () => {
+  labelsVisible = !labelsVisible;
+  btnToggleLabels.textContent = `🏷️ Místnosti: ${labelsVisible ? 'ON' : 'OFF'}`;
+  btnToggleLabels.classList.toggle('btn-primary', labelsVisible);
+  if (currentModel && currentModel.labels1np) {
+    if (currentFloorMode === '2np') {
+      currentModel.labels1np.visible = false;
+      currentModel.labels2np.visible = labelsVisible;
+    } else {
+      currentModel.labels1np.visible = labelsVisible;
+      currentModel.labels2np.visible = false;
+    }
+  }
+});
+
+btnFloorTopdown?.addEventListener('click', () => {
+  if (currentFloorMode === 'all') {
+    setFloorMode('1np');
+  }
+  const houseWorldPos = new THREE.Vector3();
+  houseContainer.getWorldPosition(houseWorldPos);
+
+  // Position camera directly overhead looking straight down
+  camera.position.set(houseWorldPos.x, 26, houseWorldPos.z + 0.001);
+  controls.target.copy(houseWorldPos);
+  controls.update();
+});
+
+sliceSlider?.addEventListener('input', (e) => {
+  const h = parseFloat(e.target.value);
+  houseClipPlane.constant = h;
+  if (sliceVal) sliceVal.textContent = `${h.toFixed(2)} m`;
+
+  if (currentModel && currentModel.floor1Group) {
+    if (h < 2.8) {
+      currentModel.floor1Group.visible = true;
+      currentModel.ceiling1Group.visible = false;
+      currentModel.floor2Group.visible = false;
+      currentModel.roofGroup.visible = false;
+      currentModel.labels1np.visible = labelsVisible;
+      currentModel.labels2np.visible = false;
+      if (activeFloorBadge) activeFloorBadge.textContent = 'Řez 1.NP';
+    } else if (h < 5.6) {
+      currentModel.floor1Group.visible = true;
+      currentModel.ceiling1Group.visible = true;
+      currentModel.floor2Group.visible = true;
+      currentModel.roofGroup.visible = false;
+      currentModel.labels1np.visible = false;
+      currentModel.labels2np.visible = labelsVisible;
+      if (activeFloorBadge) activeFloorBadge.textContent = 'Řez 2.NP';
+    } else {
+      currentModel.floor1Group.visible = true;
+      currentModel.ceiling1Group.visible = true;
+      currentModel.floor2Group.visible = true;
+      currentModel.roofGroup.visible = true;
+      if (activeFloorBadge) activeFloorBadge.textContent = 'Řez střechou';
+    }
+  }
+});
+
+// Initial Floor setup
+setFloorMode('all');
+
 let gridVisible = true;
 document.getElementById('btn-toggle-grid').addEventListener('click', (e) => {
   gridVisible = !gridVisible;
@@ -984,6 +1751,49 @@ document.getElementById('btn-toggle-plot').addEventListener('click', (e) => {
   plotVisible = !plotVisible;
   plotGroup.visible = plotVisible;
   e.target.textContent = `Plot: ${plotVisible ? 'ON' : 'OFF'}`;
+});
+
+// ==========================================
+// 10. Sidebar & Tab Navigation Controller
+// ==========================================
+const appSidebar = document.getElementById('app-sidebar');
+const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+const btnCloseSidebar = document.getElementById('btn-close-sidebar');
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+const sidebarNavTabs = document.querySelectorAll('.sidebar-nav-tab');
+const tabPanes = document.querySelectorAll('.tab-pane');
+
+function toggleSidebar(forceState) {
+  if (!appSidebar) return;
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : !appSidebar.classList.contains('open');
+  appSidebar.classList.toggle('open', shouldOpen);
+  sidebarBackdrop?.classList.toggle('open', shouldOpen);
+  btnToggleSidebar?.classList.toggle('active', shouldOpen);
+}
+
+function switchSidebarTab(tabName) {
+  sidebarNavTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.tab === tabName);
+  });
+  tabPanes.forEach((pane) => {
+    pane.classList.toggle('active', pane.id === `tab-pane-${tabName}`);
+  });
+}
+
+btnToggleSidebar?.addEventListener('click', () => toggleSidebar());
+btnCloseSidebar?.addEventListener('click', () => toggleSidebar(false));
+sidebarBackdrop?.addEventListener('click', () => toggleSidebar(false));
+
+sidebarNavTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    switchSidebarTab(tab.dataset.tab);
+  });
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && appSidebar?.classList.contains('open')) {
+    toggleSidebar(false);
+  }
 });
 
 // Resize

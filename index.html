@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="cs">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Dream House - IFC 3D Viewer</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -10,211 +10,376 @@
     <!-- 3D Canvas -->
     <canvas id="three-canvas"></canvas>
 
-    <!-- Top Navigation / Controls -->
-    <header class="header-bar">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <!-- Brand Badge -->
       <div class="brand-badge">
-        <h1>🏡 Dream House IFC Viewer</h1>
-        <p>BIM & Site Visualization (40 × 27 m)</p>
+        <h1>🏡 Dream House</h1>
+        <p>40 × 27 m (1 080 m²) · BIM Viewer</p>
       </div>
 
-      <div class="toolbar-controls">
-        <!-- Sun & Season Simulator -->
-        <div class="glass-panel sun-widget">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <button id="season-summer" class="btn btn-sm btn-primary" title="Letní slunovrat (21. června) - max výška 63.5°">☀️ Léto (21.6.)</button>
-            <button id="season-equinox" class="btn btn-sm" title="Jarní/podzimní rovnodennost (21. března / 23. září) - výška 40°">🍂 Jaro/Podzim</button>
-            <button id="season-winter" class="btn btn-sm" title="Zimní slunovrat (21. prosince) - nízké slunce 16.5°">❄️ Zima (21.12.)</button>
+      <!-- Quick Floating Toolbar for Primary 1-Click Floor & View Actions -->
+      <div class="quick-toolbar glass-panel">
+        <button id="btn-fit" class="btn btn-sm" title="Vycentrovat pohled na dům">🎯 Fit</button>
+        <div class="toolbar-divider"></div>
+        <button id="btn-floor-all" class="btn btn-sm btn-primary" title="Celý dům (exteriér včetně střechy)">🏢 Dům</button>
+        <button id="btn-floor-1np" class="btn btn-sm" title="1.NP Přízemí (řez v přízemí)">🏠 1.NP</button>
+        <button id="btn-floor-2np" class="btn btn-sm" title="2.NP Patro (řez v patře)">🛏️ 2.NP</button>
+        <button id="btn-floor-topdown" class="btn btn-sm" title="Půdorysný 2D pohled shora">📐 Půdorys</button>
+        <div class="toolbar-divider"></div>
+        <button id="btn-quick-sun" class="btn btn-sm" title="Rychlé nastavení slunce a stínů">☀️ Slunce</button>
+      </div>
 
-            <select id="month-select" class="select-custom" style="padding: 4px 6px; font-size: 11.5px; border-radius: 6px;">
-              <option value="15">Leden</option>
-              <option value="45">Únor</option>
-              <option value="80">Březen (21.3.)</option>
-              <option value="105">Duben</option>
-              <option value="135">Květen</option>
-              <option value="172" selected>Červen (21.6.)</option>
-              <option value="198">Červenec</option>
-              <option value="228">Srpen</option>
-              <option value="266">Září (23.9.)</option>
-              <option value="295">Říjen</option>
-              <option value="320">Listopad</option>
-              <option value="355">Prosinec (21.12.)</option>
-            </select>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 6px; border-left: 1px solid rgba(255,255,255,0.12); padding-left: 8px; flex-shrink: 0;">
-            <label for="sun-slider" style="font-size: 12px; color: var(--text-muted);">Čas:</label>
-            <input type="range" id="sun-slider" min="5" max="21" step="0.25" value="14" style="width: 90px; cursor: pointer; flex-shrink: 0;" />
-            <span id="sun-time-val">14:00</span>
-          </div>
-
-          <!-- Solar Telemetry (Fixed rigid width to prevent layout shifts while dragging) -->
-          <div id="solar-stats-pill">
-            <span id="sun-elevation-badge">Výška: 57.0°</span>
-            <span style="opacity: 0.3;">|</span>
-            <span id="sun-azimuth-badge">Azimut: 218° (JZ)</span>
+      <!-- Header Right: Compass & Sidebar Drawer Toggle -->
+      <div class="header-actions">
+        <!-- Floating Compass HUD (North Indicator) -->
+        <div id="compass-badge" title="Klikněte pro zarovnání pohledu na Sever">
+          <div class="compass-dial" id="compass-dial">
+            <div class="compass-arrow"></div>
+            <div class="compass-arrow-south"></div>
+            <span class="compass-letter-n">N</span>
           </div>
         </div>
 
-        <div class="glass-panel btn-group">
-          <label for="version-select" style="font-size: 12px; color: var(--text-muted); margin-left: 6px;">Version:</label>
-          <select id="version-select" class="select-custom">
-            <option value="concept">Concept Massing (Built-in)</option>
-            <option value="upload" disabled>-- Drop or load .ifc --</option>
-          </select>
-
-          <input type="file" id="file-input" accept=".ifc" style="display: none;" />
-          <button id="btn-upload" class="btn btn-primary">
-            📁 Load IFC
-          </button>
-        </div>
-
-        <div class="glass-panel btn-group">
-          <button id="btn-fit" class="btn" title="Focus Camera">🎯 Fit</button>
-          <button id="btn-toggle-grid" class="btn" title="Toggle 1m Grid">Grid: ON</button>
-          <button id="btn-toggle-plot" class="btn" title="Toggle Plot">Plot: ON</button>
-        </div>
+        <!-- Sidebar Toggle Button -->
+        <button id="btn-toggle-sidebar" class="btn-panel-toggle" title="Zobrazit / skrýt ovládací panel">
+          <span class="toggle-icon">🎛️</span>
+          <span class="toggle-text">Ovládání</span>
+        </button>
       </div>
     </header>
 
-    <!-- Floating Compass HUD (North Indicator) -->
-    <div id="compass-badge" title="Klikněte pro zarovnání pohledu na Sever">
-      <div class="compass-dial" id="compass-dial">
-        <div class="compass-arrow"></div>
-        <div class="compass-arrow-south"></div>
-        <span class="compass-letter-n">N</span>
-      </div>
-    </div>
+    <!-- Collapsible App Sidebar / Drawer -->
+    <aside id="app-sidebar" class="app-sidebar">
+      <!-- Mobile Drag Handle -->
+      <div class="sidebar-drag-handle"></div>
 
-    <!-- Sidebar: Site & BIM Inspector -->
-    <div class="left-sidebar">
-      <!-- Plot Specification -->
-      <div class="glass-panel card">
-        <div class="card-title">
-          <span>Objekty & Odstupy</span>
-          <span style="font-size: 11px; opacity: 0.7;">1:1</span>
-        </div>
-        <ul class="info-list">
-          <li>
-            <span class="info-label">Pozemek:</span>
-            <span class="info-val">40 × 27 m (1 080 m²)</span>
-          </li>
-          <li>
-            <span class="info-label">Natočení parcely:</span>
-            <span class="info-val" style="color: #fbbf24;">+26.5° od Severu</span>
-          </li>
-          <li>
-            <span class="info-label">Nároží křižovatky:</span>
-            <span class="info-val">Zkoseno 3.5 m</span>
-          </li>
-          <li>
-            <span class="info-label">Zahrada (u souseda 172):</span>
-            <span class="info-val" style="color: #34d399; font-weight:600;">Jihozápadní slunce</span>
-          </li>
-          <li style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 4px; padding-top: 4px;">
-            <span class="info-label">Hlavní dům:</span>
-            <span class="info-val" style="color: #60a5fa;">8 × 12 m (2.NP)</span>
-          </li>
-          <li>
-            <span class="info-label">Parkování:</span>
-            <span class="info-val">5 × 7 m (kryté)</span>
-          </li>
-          <li>
-            <span class="info-label">Dílna:</span>
-            <span class="info-val">6 × 7 m (navazující)</span>
-          </li>
-          <li>
-            <span class="info-label">Hřeben střech:</span>
-            <span class="info-val">Kolmo k sobě</span>
-          </li>
-          <li style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 4px; padding-top: 4px;">
-            <span class="info-label">Odstup od ulice (vpravo):</span>
-            <span class="info-val" style="color: #ef4444; font-weight:600;">5.0 m</span>
-          </li>
-          <li>
-            <span class="info-label">Mezera dům – dílna:</span>
-            <span class="info-val" style="color: #3b82f6; font-weight:600;">4.0 m</span>
-          </li>
-          <li>
-            <span class="info-label">Dům od vrchu pozemku:</span>
-            <span class="info-val">15.0 m</span>
-          </li>
-          <li>
-            <span class="info-label">Dílna od vrchu pozemku:</span>
-            <span class="info-val">4.0 m</span>
-          </li>
-          <li>
-            <span class="info-label">Dům od přední ulice:</span>
-            <span class="info-val">13.0 m</span>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Solar Analysis Card -->
-      <div class="glass-panel card">
-        <div class="card-title">
-          <span>Celoroční oslunění (50° s.š.)</span>
-        </div>
-        <ul class="info-list" style="font-size: 11.5px;">
-          <li>
-            <span class="info-label">☀️ Léto (21.6.):</span>
-            <span class="info-val">Max 63.5° | Krátké stíny</span>
-          </li>
-          <li>
-            <span class="info-label">🍂 Jaro / Podzim:</span>
-            <span class="info-val">Max 40.0° | 12h den</span>
-          </li>
-          <li>
-            <span class="info-label">❄️ Zima (21.12.):</span>
-            <span class="info-val" style="color: #60a5fa;">Max 16.5° | Stíny 28+ m</span>
-          </li>
-          <li style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 3px; margin-top: 3px;">
-            <span class="info-label">Aktuální stav:</span>
-            <span id="solar-analysis-text" class="info-val" style="color: #fbbf24;">Odpolední oslunění zahrady</span>
-          </li>
-        </ul>
-      </div>
-
-      <!-- House Placement / Transform Adjustments -->
-      <div class="glass-panel card" id="transform-card">
-        <div class="card-title">Umístění domu na pozemku</div>
-        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; margin-top: 6px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label>Pozice X:</label>
-            <input type="range" id="pos-x" min="-12" max="12" step="0.5" value="4.5" style="width: 130px;" />
-            <span id="val-pos-x" style="width: 32px; text-align: right;">4.5m</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label>Pozice Z:</label>
-            <input type="range" id="pos-z" min="-18" max="18" step="0.5" value="1.0" style="width: 130px;" />
-            <span id="val-pos-z" style="width: 32px; text-align: right;">1.0m</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label>Otočení Y:</label>
-            <input type="range" id="rot-y" min="0" max="360" step="5" value="0" style="width: 130px;" />
-            <span id="val-rot-y" style="width: 32px; text-align: right;">0°</span>
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <div class="sidebar-title-group">
+          <span class="sidebar-title-icon">🎛️</span>
+          <div>
+            <h2 class="sidebar-title">Ovládací panel</h2>
+            <p class="sidebar-subtitle">Nastavení zobrazení, oslunění a modelu</p>
           </div>
         </div>
+        <button id="btn-close-sidebar" class="btn-icon" title="Zavřít panel (Esc)">✕</button>
       </div>
 
-      <!-- BIM Element Inspector -->
-      <div class="glass-panel card" id="inspector-panel">
-        <div class="card-title">
-          <span>BIM Properties</span>
-          <button id="btn-close-inspector" style="background:none;border:none;color:#aaa;cursor:pointer;">✕</button>
+      <!-- Segmented Nav Tabs -->
+      <nav class="sidebar-nav">
+        <button class="sidebar-nav-tab active" data-tab="floors" title="Podlaží a místnosti">
+          <span class="nav-tab-icon">🏢</span>
+          <span class="nav-tab-label">Podlaží</span>
+        </button>
+        <button class="sidebar-nav-tab" data-tab="sun" title="Slunce a denní čas">
+          <span class="nav-tab-icon">☀️</span>
+          <span class="nav-tab-label">Slunce</span>
+        </button>
+        <button class="sidebar-nav-tab" data-tab="site" title="Pozemek a odstupy">
+          <span class="nav-tab-icon">📐</span>
+          <span class="nav-tab-label">Pozemek</span>
+        </button>
+        <button class="sidebar-nav-tab" data-tab="model" title="IFC Model & zobrazení">
+          <span class="nav-tab-icon">⚙️</span>
+          <span class="nav-tab-label">Model</span>
+        </button>
+        <button class="sidebar-nav-tab" data-tab="bim" title="BIM vlastnosti prvku">
+          <span class="nav-tab-icon">ℹ️</span>
+          <span class="nav-tab-label">BIM</span>
+          <span id="bim-badge-dot" class="badge-dot" style="display: none;"></span>
+        </button>
+      </nav>
+
+      <!-- Scrollable Tab Content Body -->
+      <div class="sidebar-body">
+        <!-- ==================== TAB 1: PODLAŽÍ & MÍSTNOSTI ==================== -->
+        <div id="tab-pane-floors" class="tab-pane active">
+          <!-- Floor Switcher Grid inside Sidebar -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Zobrazení domu</span>
+              <span class="card-badge" id="active-floor-badge">1.NP Přízemí</span>
+            </div>
+            <div class="floor-button-grid">
+              <button id="btn-sidebar-all" class="btn btn-sm">🏢 Celý dům</button>
+              <button id="btn-sidebar-1np" class="btn btn-sm">🏠 1.NP Přízemí</button>
+              <button id="btn-sidebar-2np" class="btn btn-sm">🛏️ 2.NP Patro</button>
+              <button id="btn-sidebar-topdown" class="btn btn-sm">📐 Půdorys shora</button>
+            </div>
+            <button id="btn-toggle-labels" class="btn btn-sm btn-full" title="Zobrazit / skrýt 3D popisky místností">
+              🏷️ Popisky místností: ON
+            </button>
+          </div>
+
+          <!-- Floor Plan & Room Schedule Card -->
+          <div class="glass-panel card" id="floorplan-card">
+            <div class="card-title">
+              <span>Místnosti & Plochy</span>
+            </div>
+
+            <!-- Floor Switcher Tabs -->
+            <div class="floor-tabs">
+              <button id="tab-floor-1np" class="btn btn-sm btn-primary" style="flex: 1;">1.NP (74.5 m²)</button>
+              <button id="tab-floor-2np" class="btn btn-sm" style="flex: 1;">2.NP (74.2 m²)</button>
+            </div>
+
+            <!-- Room Schedule List (Dynamic) -->
+            <div id="room-schedule-container" class="room-schedule-scroll">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Dynamic Height Slicing Slider -->
+            <div class="slice-control-group">
+              <div class="slice-header">
+                <label for="slice-slider" class="field-label">Plynulý řez (výška Y):</label>
+                <span id="slice-val" class="field-val-highlight">2.75 m</span>
+              </div>
+              <input type="range" id="slice-slider" min="0.2" max="8.5" step="0.05" value="2.75" class="range-slider" />
+            </div>
+          </div>
         </div>
-        <div id="inspector-content">
-          <p style="font-size: 12px; color: var(--text-muted);">Click on any element in the model to inspect its IFC BIM properties.</p>
+
+        <!-- ==================== TAB 2: SLUNCE & OSLUNĚNÍ ==================== -->
+        <div id="tab-pane-sun" class="tab-pane">
+          <!-- Sun & Season Simulator Card -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Simulace slunce & stínů</span>
+            </div>
+
+            <div class="form-stack">
+              <!-- Season presets -->
+              <div class="season-button-group">
+                <button id="season-summer" class="btn btn-sm btn-primary" title="Letní slunovrat (21. června) - max výška 63.5°">☀️ Léto (21.6.)</button>
+                <button id="season-equinox" class="btn btn-sm" title="Rovnodennost (21.3. / 23.9.) - výška 40°">🍂 Jaro/Podzim</button>
+                <button id="season-winter" class="btn btn-sm" title="Zimní slunovrat (21. prosince) - nízké slunce 16.5°">❄️ Zima (21.12.)</button>
+              </div>
+
+              <!-- Month Dropdown -->
+              <div class="form-row">
+                <label for="month-select" class="field-label">Měsíc v roce:</label>
+                <select id="month-select" class="select-custom" style="width: 100%;">
+                  <option value="15">Leden</option>
+                  <option value="45">Únor</option>
+                  <option value="80">Březen (21.3.)</option>
+                  <option value="105">Duben</option>
+                  <option value="135">Květen</option>
+                  <option value="172" selected>Červen (21.6. - slunovrat)</option>
+                  <option value="198">Červenec</option>
+                  <option value="228">Srpen</option>
+                  <option value="266">Září (23.9. - rovnodennost)</option>
+                  <option value="295">Říjen</option>
+                  <option value="320">Listopad</option>
+                  <option value="355">Prosinec (21.12. - slunovrat)</option>
+                </select>
+              </div>
+
+              <!-- Time of Day Slider -->
+              <div class="form-row">
+                <div class="slider-header">
+                  <label for="sun-slider" class="field-label">Denní čas (sluneční hodina):</label>
+                  <span id="sun-time-val" class="time-badge">14:00</span>
+                </div>
+                <input type="range" id="sun-slider" min="5" max="21" step="0.25" value="14" class="range-slider" />
+              </div>
+
+              <!-- Solar Telemetry -->
+              <div id="solar-stats-pill">
+                <span id="sun-elevation-badge">Výška: 57.0°</span>
+                <span style="opacity: 0.3;">|</span>
+                <span id="sun-azimuth-badge">Azimut: 218° (JZ)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solar Analysis Card -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Celoroční oslunění (50° s.š.)</span>
+            </div>
+            <ul class="info-list" style="font-size: 11.5px;">
+              <li>
+                <span class="info-label">☀️ Léto (21.6.):</span>
+                <span class="info-val">Max 63.5° | Krátké stíny</span>
+              </li>
+              <li>
+                <span class="info-label">🍂 Jaro / Podzim:</span>
+                <span class="info-val">Max 40.0° | 12h den</span>
+              </li>
+              <li>
+                <span class="info-label">❄️ Zima (21.12.):</span>
+                <span class="info-val" style="color: #60a5fa;">Max 16.5° | Stíny 28+ m</span>
+              </li>
+              <li style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px; margin-top: 4px;">
+                <span class="info-label">Aktuální stav:</span>
+                <span id="solar-analysis-text" class="info-val" style="color: #fbbf24;">Odpolední oslunění zahrady</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 3: POZEMEK & ODSTUPY ==================== -->
+        <div id="tab-pane-site" class="tab-pane">
+          <!-- Plot Specification -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Objekty & Odstupy</span>
+              <span class="card-badge">Měřítko 1:1</span>
+            </div>
+            <ul class="info-list">
+              <li>
+                <span class="info-label">Pozemek:</span>
+                <span class="info-val">40 × 27 m (1 080 m²)</span>
+              </li>
+              <li>
+                <span class="info-label">Natočení parcely:</span>
+                <span class="info-val" style="color: #fbbf24;">+26.5° od Severu</span>
+              </li>
+              <li>
+                <span class="info-label">Nároží křižovatky:</span>
+                <span class="info-val">Zkoseno 3.5 m</span>
+              </li>
+              <li>
+                <span class="info-label">Zahrada (u souseda 172):</span>
+                <span class="info-val" style="color: #34d399; font-weight:600;">Jihozápadní slunce</span>
+              </li>
+              <li style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 4px; padding-top: 4px;">
+                <span class="info-label">Hlavní dům:</span>
+                <span class="info-val" style="color: #60a5fa;">8 × 12 m (6+kk / 5 ložnic)</span>
+              </li>
+              <li>
+                <span class="info-label">Přízemí (1.NP):</span>
+                <span class="info-val">Obývák+KK + budoucí ložnice + koupelna</span>
+              </li>
+              <li>
+                <span class="info-label">Patro (2.NP):</span>
+                <span class="info-val">4 samostatné pokoje + koupelna + WC + prádelna</span>
+              </li>
+              <li>
+                <span class="info-label">Parkování:</span>
+                <span class="info-val">5 × 7 m (kryté) + loubí k domu</span>
+              </li>
+              <li>
+                <span class="info-label">Dílna:</span>
+                <span class="info-val">6 × 7 m (navazující)</span>
+              </li>
+              <li>
+                <span class="info-label">Hřeben střech:</span>
+                <span class="info-val">Kolmo k sobě</span>
+              </li>
+              <li style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 4px; padding-top: 4px;">
+                <span class="info-label">Odstup od ulice (vpravo):</span>
+                <span class="info-val" style="color: #ef4444; font-weight:600;">5.0 m</span>
+              </li>
+              <li>
+                <span class="info-label">Mezera dům – dílna:</span>
+                <span class="info-val" style="color: #3b82f6; font-weight:600;">4.0 m</span>
+              </li>
+              <li>
+                <span class="info-label">Dům od vrchu pozemku:</span>
+                <span class="info-val">15.0 m</span>
+              </li>
+              <li>
+                <span class="info-label">Dílna od vrchu pozemku:</span>
+                <span class="info-val">4.0 m</span>
+              </li>
+              <li>
+                <span class="info-label">Dům od přední ulice:</span>
+                <span class="info-val">13.0 m</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- House Placement / Transform Adjustments -->
+          <div class="glass-panel card" id="transform-card">
+            <div class="card-title">Umístění domu na pozemku</div>
+            <div class="form-stack" style="margin-top: 6px;">
+              <div class="slider-control-row">
+                <label class="field-label">Pozice X:</label>
+                <input type="range" id="pos-x" min="-12" max="12" step="0.5" value="4.5" class="range-slider" />
+                <span id="val-pos-x" class="slider-val-badge">4.5m</span>
+              </div>
+              <div class="slider-control-row">
+                <label class="field-label">Pozice Z:</label>
+                <input type="range" id="pos-z" min="-18" max="18" step="0.5" value="1.0" class="range-slider" />
+                <span id="val-pos-z" class="slider-val-badge">1.0m</span>
+              </div>
+              <div class="slider-control-row">
+                <label class="field-label">Otočení Y:</label>
+                <input type="range" id="rot-y" min="0" max="360" step="5" value="0" class="range-slider" />
+                <span id="val-rot-y" class="slider-val-badge">0°</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 4: IFC MODEL & ZOBRAZENÍ ==================== -->
+        <div id="tab-pane-model" class="tab-pane">
+          <!-- Model Selection & Upload Card -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>IFC Model & Verze</span>
+              <span id="model-status" class="card-badge" style="color: #60a5fa;">Concept massing</span>
+            </div>
+
+            <div class="form-stack" style="margin-top: 6px;">
+              <div class="form-row">
+                <label for="version-select" class="field-label">Zvolený model:</label>
+                <select id="version-select" class="select-custom" style="width: 100%;">
+                  <option value="concept">Concept Massing (Built-in)</option>
+                  <option value="upload" disabled>-- Drop or load .ifc --</option>
+                </select>
+              </div>
+
+              <div>
+                <input type="file" id="file-input" accept=".ifc" style="display: none;" />
+                <button id="btn-upload" class="btn btn-primary btn-full">
+                  📁 Nahrát vlastní .IFC soubor
+                </button>
+              </div>
+
+              <div class="hint-card">
+                💡 <strong>Drag & Drop:</strong> Můžete také přetáhnout libovolný soubor <strong>.ifc</strong> myší odkudkoliv do okna prohlížeče.
+              </div>
+            </div>
+          </div>
+
+          <!-- Scene View Helpers -->
+          <div class="glass-panel card">
+            <div class="card-title">Pomocné prvky scény</div>
+            <div class="helper-buttons-grid">
+              <button id="btn-fit-sidebar" class="btn btn-sm" style="justify-content: center;">🎯 Fit kamera</button>
+              <button id="btn-toggle-grid" class="btn btn-sm" style="justify-content: center;">Grid: ON</button>
+              <button id="btn-toggle-plot" class="btn btn-sm" style="justify-content: center;">Plot: ON</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 5: BIM INSPEKTOR ==================== -->
+        <div id="tab-pane-bim" class="tab-pane">
+          <div class="glass-panel card" id="inspector-panel" style="display: block;">
+            <div class="card-title">
+              <span>BIM Properties</span>
+              <button id="btn-close-inspector" class="btn-icon-subtle" title="Vyčistit výběr">✕</button>
+            </div>
+            <div id="inspector-content">
+              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                Kliknutím na jakýkoliv prvek v načteném IFC modelu zobrazíte jeho BIM vlastnosti, typ a parametry.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <!-- Status Bar / Hints -->
+    <!-- Backdrop Overlay for Mobile Drawer Dismissal -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+    <!-- Status Bar / Desktop Hints -->
     <footer class="status-bar">
       <div class="hint-badge">
-        🖱️ <strong>Controls:</strong> Left-drag = Orbit | Right-drag = Pan | Scroll = Zoom | Left-click = Inspect BIM Element
-      </div>
-      <div class="hint-badge">
-        💡 Drag & Drop any <strong>.ifc</strong> file anywhere on the window
+        🖱️ <strong>Ovládání:</strong> Levé tlačítko = Otáčení | Pravé = Posun | Kolečko = Zoom | Klik = BIM Prvek
       </div>
     </footer>
 
