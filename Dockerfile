@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies based on lockfile
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy application source and build production bundle
 COPY . .
