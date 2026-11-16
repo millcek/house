@@ -391,7 +391,7 @@ const ROOMS_1NP = [
   { id: '1.02', name: 'Technická m. / TČ', area: '5.4 m²', pos: [2.3, 1.1, -4.7], desc: 'TČ, rekuperace + přímé venkovní dveře do severního dvora k dílně' },
   { id: '1.03', name: 'Koupelna s WC', area: '4.1 m²', pos: [0.2, 1.1, -2.4], desc: 'Bezbariérová koupelna se sprchovým koutem a WC (pro budoucí ložnici v 1.NP)' },
   { id: '1.04', name: 'Budoucí ložnice / Pracovna', area: '12.0 m²', pos: [-2.2, 1.1, -3.8], desc: 'Nyní pracovna/host, v budoucnu bezbariérová ložnice rodičů s oknem do zahrady' },
-  { id: '1.05', name: 'Spíž & schodiště', area: '5.8 m²', pos: [0.2, 1.4, 0.5], desc: 'Spíž pod schody + nástup na schodiště' },
+  { id: '1.05', name: 'Spíž & schodiště', area: '5.8 m²', pos: [0.38, 1.4, -0.6], desc: 'Spíž pod schody + nástup na schodiště' },
   { id: '1.06', name: 'Kuchyňský kout + Jídelna', area: '14.5 m²', pos: [2.1, 1.1, 3.2], desc: 'Kuchyň s ostrůvkem a novým pásovým oknem na východ nad linkou' },
   { id: '1.07', name: 'Obývací pokoj', area: '25.0 m²', pos: [-2.0, 1.1, 3.2], desc: 'Klidová denní část s krbem a velkým HS portálem na terasu' },
   { id: '1.08', name: 'Zahradní terasa (JZ)', area: '28.0 m²', pos: [-6.0, 0.35, 3.2], desc: 'Krytá venkovní terasa s jihozápadním sluncem a pergolou' },
@@ -610,44 +610,44 @@ function createConceptModel() {
 
   // 1.NP Exterior Perimeter Walls (Height 2.75 m)
   const H1 = 2.75;
-  // North Wall (Z = -5.81)
-  floor1Group.add(makeWall(1.1, H1, WALL_THICKNESS, -3.45, 0, -5.81));
-  floor1Group.add(makeWindow(1.4, 1.4, WALL_THICKNESS + 0.02, -2.2, 0.9, -5.81)); // Study/Bedroom North window
-  floor1Group.add(makeWall(1.4, H1, WALL_THICKNESS, -0.8, 0, -5.81));
-  floor1Group.add(makeWall(1.8, H1, WALL_THICKNESS, 0.8, 0, -5.81));
-  // Tech room exterior door to north yard (leads to carport & workshop)
-  const techDoor = makeWindow(1.0, 2.15, WALL_THICKNESS + 0.02, 2.2, 0.05, -5.81);
-  floor1Group.add(techDoor);
-  floor1Group.add(makeWall(1.0, H1 - 2.2, WALL_THICKNESS, 2.2, 2.2, -5.81)); // Lintel
-  floor1Group.add(makeWall(1.3, H1, WALL_THICKNESS, 3.35, 0, -5.81));
 
-  // South Wall (Z = +5.81, facing garden)
+  // North Wall (Z = -5.81, X: -4.0 to +4.0)
+  floor1Group.add(makeWall(1.1, H1, WALL_THICKNESS, -3.45, 0, -5.81));
+  floor1Group.add(makeWall(1.4, 0.9, WALL_THICKNESS, -2.2, 0, -5.81));                  // Parapet under Study/Bed window
+  floor1Group.add(makeWindow(1.4, 1.3, WALL_THICKNESS + 0.02, -2.2, 0.9, -5.81));       // Study/Bedroom North window
+  floor1Group.add(makeWall(1.4, H1 - 2.2, WALL_THICKNESS, -2.2, 2.2, -5.81));          // Lintel above Study/Bed window
+  floor1Group.add(makeWall(3.4, H1, WALL_THICKNESS, 0.2, 0, -5.81));                    // Wall between window and TM door
+  floor1Group.add(makeWindow(1.0, 2.15, WALL_THICKNESS + 0.02, 2.4, 0.0, -5.81));       // Tech room exterior door
+  floor1Group.add(makeWall(1.0, H1 - 2.15, WALL_THICKNESS, 2.4, 2.15, -5.81));         // Lintel above TM door
+  floor1Group.add(makeWall(1.1, H1, WALL_THICKNESS, 3.45, 0, -5.81));
+
+  // South Wall (Z = +5.81, X: -4.0 to +4.0)
   floor1Group.add(makeWall(1.8, H1, WALL_THICKNESS, -3.1, 0, 5.81));
-  floor1Group.add(makeWindow(3.2, 2.2, WALL_THICKNESS + 0.02, -0.6, 0.15, 5.81)); // Big Living Room French Window
+  floor1Group.add(makeWall(3.2, 0.05, WALL_THICKNESS, -0.6, 0, 5.81));                  // Threshold under French window
+  floor1Group.add(makeWindow(3.2, 2.2, WALL_THICKNESS + 0.02, -0.6, 0.05, 5.81));       // Big Living Room French Window
+  floor1Group.add(makeWall(3.2, H1 - 2.25, WALL_THICKNESS, -0.6, 2.25, 5.81));          // Lintel above French window
   floor1Group.add(makeWall(3.0, H1, WALL_THICKNESS, 2.5, 0, 5.81));
 
-  // East Wall (X = +3.81, arrival & parking side)
-  floor1Group.add(makeWall(WALL_THICKNESS, H1, 3.2, 3.81, 0, -4.4));
-  // Main Entry Door
-  const entryDoor = makeWindow(WALL_THICKNESS + 0.02, 2.15, 1.1, 3.81, 0.05, -2.2);
-  floor1Group.add(entryDoor);
-  floor1Group.add(makeWall(WALL_THICKNESS, H1, 2.5, 3.81, 0, -0.4));
-  // Kitchen East Ribbon Window (above worktop)
-  const kitchenWin = makeWindow(WALL_THICKNESS + 0.02, 0.8, 2.2, 3.81, 1.05, 1.95);
-  floor1Group.add(kitchenWin);
-  floor1Group.add(makeWall(WALL_THICKNESS, 1.05, 2.2, 3.81, 0, 1.95)); // Wall under kitchen window
-  floor1Group.add(makeWall(WALL_THICKNESS, H1 - 1.85, 2.2, 3.81, 1.85, 1.95)); // Wall above kitchen window
-  floor1Group.add(makeWall(WALL_THICKNESS, H1, 2.9, 3.81, 0, 4.45));
+  // East Wall (X = +3.81, Z: -6.0 to +6.0)
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 3.25, 3.81, 0, -4.375));
+  floor1Group.add(makeWall(WALL_THICKNESS, 0.05, 1.1, 3.81, 0, -2.2));                  // Threshold under entry door
+  floor1Group.add(makeWindow(WALL_THICKNESS + 0.02, 2.15, 1.1, 3.81, 0.05, -2.2));      // Main Entry Door
+  floor1Group.add(makeWall(WALL_THICKNESS, H1 - 2.20, 1.1, 3.81, 2.20, -2.2));         // Lintel above entry door
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 2.45, 3.81, 0, -0.425));                 // Wall between door and kitchen window
+  floor1Group.add(makeWall(WALL_THICKNESS, 1.05, 2.2, 3.81, 0, 1.9));                   // Parapet under kitchen window
+  floor1Group.add(makeWindow(WALL_THICKNESS + 0.02, 0.8, 2.2, 3.81, 1.05, 1.9));        // Kitchen East Ribbon Window
+  floor1Group.add(makeWall(WALL_THICKNESS, H1 - 1.85, 2.2, 3.81, 1.85, 1.9));          // Lintel above kitchen window
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 3.0, 3.81, 0, 4.5));
 
-  // West Wall (X = -3.81, terrace & southwest garden sun)
-  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.5, -3.81, 0, -5.05));
-  // Study/Bedroom West Window into garden
-  const studyWestWin = makeWindow(WALL_THICKNESS + 0.02, 1.4, 1.4, -3.81, 0.9, -3.6);
-  floor1Group.add(studyWestWin);
-  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.5, -3.81, 0, -2.15));
-  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.6, -3.81, 0, -0.6));
-  // Sliding HS Portal to Terrace (Z: +0.2 to +4.8)
-  floor1Group.add(makeWindow(WALL_THICKNESS + 0.02, 2.35, 4.6, -3.81, 0.05, 2.5));
+  // West Wall (X = -3.81, Z: -6.0 to +6.0)
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.7, -3.81, 0, -5.15));
+  floor1Group.add(makeWall(WALL_THICKNESS, 0.9, 1.4, -3.81, 0, -3.6));                   // Parapet under Study/Bed window
+  floor1Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.3, 1.4, -3.81, 0.9, -3.6));        // Study/Bedroom West Window
+  floor1Group.add(makeWall(WALL_THICKNESS, H1 - 2.20, 1.4, -3.81, 2.20, -3.6));         // Lintel above Study/Bed window
+  floor1Group.add(makeWall(WALL_THICKNESS, H1, 3.1, -3.81, 0, -1.35));                  // Wall between window and HS portal
+  floor1Group.add(makeWall(WALL_THICKNESS, 0.05, 4.6, -3.81, 0, 2.5));                   // Threshold under HS portal
+  floor1Group.add(makeWindow(WALL_THICKNESS + 0.02, 2.35, 4.6, -3.81, 0.05, 2.5));      // Sliding HS Portal to Terrace
+  floor1Group.add(makeWall(WALL_THICKNESS, H1 - 2.40, 4.6, -3.81, 2.40, 2.5));          // Lintel above HS portal
   floor1Group.add(makeWall(WALL_THICKNESS, H1, 1.2, -3.81, 0, 5.4));
 
   // 1.NP Interior Partition Walls (Height 2.65 m)
@@ -664,12 +664,12 @@ function createConceptModel() {
   // Wall separating Hall from Kitchen/Dining (Z = -0.3)
   floor1Group.add(makeWall(2.6, HP, PART_THICKNESS, 2.5, 0, -0.3, partitionMat));
 
-  // 1.NP Staircase (Ascending from Z = -0.2 to +2.35 at X = +0.4, reaching 2.NP floor level)
+  // 1.NP Staircase (Ascending from Z = -2.00 to +0.85 at X = +0.375, landing safely in central 2.NP hallway)
   const stepCount = 16;
   const stairHeight = FLOOR_HEIGHT + 0.22; // Rise all the way to 2.NP floor slab (3.02 m)
   for (let s = 0; s < stepCount; s++) {
-    const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.26), stairMat);
-    stepMesh.position.set(0.4, (s + 0.5) * (stairHeight / stepCount), -0.2 + s * 0.17);
+    const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.24), stairMat);
+    stepMesh.position.set(0.375, (s + 0.5) * (stairHeight / stepCount), -2.00 + s * 0.19);
     stepMesh.castShadow = true;
     stepMesh.receiveShadow = true;
     floor1Group.add(stepMesh);
@@ -749,13 +749,13 @@ function createConceptModel() {
   slabShape.lineTo(-HOUSE_WIDTH / 2, HOUSE_LENGTH / 2);
   slabShape.closePath();
 
-  // Staircase hole (X: -0.15 to +0.95, Z: -0.4 to +2.5)
+  // Staircase hole (X: -0.15 to +0.90, Z: -1.30 to +0.95, entirely inside central hall)
   // Shape coordinates: X is X, Y is -Z
   const stairHole = new THREE.Path();
-  stairHole.moveTo(-0.15, -(-0.4));
-  stairHole.lineTo(0.95, -(-0.4));
-  stairHole.lineTo(0.95, -(2.5));
-  stairHole.lineTo(-0.15, -(2.5));
+  stairHole.moveTo(-0.15, -(-1.30));
+  stairHole.lineTo(0.90, -(-1.30));
+  stairHole.lineTo(0.90, -(0.95));
+  stairHole.lineTo(-0.15, -(0.95));
   stairHole.closePath();
   slabShape.holes.push(stairHole);
 
@@ -789,13 +789,12 @@ function createConceptModel() {
   floor2Shape.lineTo(-halfW2, halfL2);
   floor2Shape.closePath();
 
-  // Staircase hole (X: -0.15 to +0.95, Z: -0.4 to +2.5)
-  // Shape coordinates: X is X, Y is -Z
+  // Staircase hole in 2.NP floor (strictly terminates before bedroom wall at Z = 1.4)
   const stairHole2 = new THREE.Path();
-  stairHole2.moveTo(-0.15, -(-0.4));
-  stairHole2.lineTo(0.95, -(-0.4));
-  stairHole2.lineTo(0.95, -(2.5));
-  stairHole2.lineTo(-0.15, -(2.5));
+  stairHole2.moveTo(-0.15, -(-1.30));
+  stairHole2.lineTo(0.90, -(-1.30));
+  stairHole2.lineTo(0.90, -(0.95));
+  stairHole2.lineTo(-0.15, -(0.95));
   stairHole2.closePath();
   floor2Shape.holes.push(stairHole2);
 
@@ -813,33 +812,33 @@ function createConceptModel() {
   const railingHeight = 1.0;
   const railingGroup = new THREE.Group();
 
-  // North segment along stair opening (Z = -0.4, X: -0.15 to 0.8 => length 0.95 m)
-  const northRailLength = 0.95;
+  // North segment along stair opening (Z = -1.30, X: -0.15 to 0.90 => length 1.05 m)
+  const northRailLength = 1.05;
   const northRailHand = new THREE.Mesh(new THREE.BoxGeometry(northRailLength, 0.05, 0.05), frameMat);
-  northRailHand.position.set(0.325, Y2 + railingHeight - 0.025, -0.4);
+  northRailHand.position.set(0.375, Y2 + railingHeight - 0.025, -1.30);
   railingGroup.add(northRailHand);
 
   const northRailGlass = new THREE.Mesh(new THREE.BoxGeometry(northRailLength - 0.04, railingHeight - 0.1, 0.02), glassMat);
-  northRailGlass.position.set(0.325, Y2 + (railingHeight - 0.1) / 2 + 0.05, -0.4);
+  northRailGlass.position.set(0.375, Y2 + (railingHeight - 0.1) / 2 + 0.05, -1.30);
   railingGroup.add(northRailGlass);
 
-  // West segment along stair opening (X = -0.15, Z: -0.4 to 2.1 => length 2.5 m)
-  const westRailLength = 2.5;
+  // West segment along stair opening (X = -0.15, Z: -1.30 to +0.95 => length 2.25 m)
+  const westRailLength = 2.25;
   const westRailHand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, westRailLength), frameMat);
-  westRailHand.position.set(-0.15, Y2 + railingHeight - 0.025, 0.85);
+  westRailHand.position.set(-0.15, Y2 + railingHeight - 0.025, -0.175);
   railingGroup.add(westRailHand);
 
   const westRailGlass = new THREE.Mesh(new THREE.BoxGeometry(0.02, railingHeight - 0.1, westRailLength - 0.04), glassMat);
-  westRailGlass.position.set(-0.15, Y2 + (railingHeight - 0.1) / 2 + 0.05, 0.85);
+  westRailGlass.position.set(-0.15, Y2 + (railingHeight - 0.1) / 2 + 0.05, -0.175);
   railingGroup.add(westRailGlass);
 
   // Railing corner & intermediate posts
   const railingPostGeo = new THREE.BoxGeometry(0.04, railingHeight, 0.04);
   const postCoords = [
-    [-0.15, -0.4],
-    [0.8, -0.4],
-    [-0.15, 0.85],
-    [-0.15, 2.1],
+    [-0.15, -1.30],
+    [0.90, -1.30],
+    [-0.15, -0.175],
+    [-0.15, 0.95],
   ];
   postCoords.forEach(([px, pz]) => {
     const post = new THREE.Mesh(railingPostGeo, frameMat);
@@ -849,46 +848,58 @@ function createConceptModel() {
   });
   floor2Group.add(railingGroup);
 
-  // 2.NP Exterior Walls
-  // North Wall
+  // 2.NP Exterior Walls (Height 2.65 m, all openings precisely bounded by parapets and lintels)
+  // North Wall (Z = -5.81, X: -4.0 to +4.0)
   floor2Group.add(makeWall(1.1, H2, WALL_THICKNESS, -3.45, Y2, -5.81));
+  floor2Group.add(makeWall(1.4, 0.9, WALL_THICKNESS, -2.2, Y2, -5.81));                  // Parapet under Pokoj 1 (SZ) window
   floor2Group.add(makeWindow(1.4, 1.3, WALL_THICKNESS + 0.02, -2.2, Y2 + 0.9, -5.81)); // Pokoj 1 (SZ) window
-  floor2Group.add(makeWall(2.8, H2, WALL_THICKNESS, -0.1, Y2, -5.81));
-  floor2Group.add(makeWindow(1.4, 1.3, WALL_THICKNESS + 0.02, 2.0, Y2 + 0.9, -5.81));  // Pokoj 4 (SV - nová místnost!) window
+  floor2Group.add(makeWall(1.4, H2 - 2.2, WALL_THICKNESS, -2.2, Y2 + 2.2, -5.81));     // Lintel above Pokoj 1 window
+  floor2Group.add(makeWall(2.8, H2, WALL_THICKNESS, -0.1, Y2, -5.81));                  // Wall between North windows
+  floor2Group.add(makeWall(1.4, 0.9, WALL_THICKNESS, 2.0, Y2, -5.81));                   // Parapet under Pokoj 4 (SV) window
+  floor2Group.add(makeWindow(1.4, 1.3, WALL_THICKNESS + 0.02, 2.0, Y2 + 0.9, -5.81));  // Pokoj 4 (SV) window
+  floor2Group.add(makeWall(1.4, H2 - 2.2, WALL_THICKNESS, 2.0, Y2 + 2.2, -5.81));      // Lintel above Pokoj 4 window
   floor2Group.add(makeWall(1.3, H2, WALL_THICKNESS, 3.35, Y2, -5.81));
 
-  // South Wall
-  floor2Group.add(makeWall(1.8, H2, WALL_THICKNESS, -3.1, Y2, 5.81));
+  // South Wall (Z = +5.81, X: -4.0 to +4.0)
+  floor2Group.add(makeWall(1.3, H2, WALL_THICKNESS, -3.35, Y2, 5.81));
+  floor2Group.add(makeWall(1.8, 0.8, WALL_THICKNESS, -1.8, Y2, 5.81));                  // Parapet under JZ Kid room window
   floor2Group.add(makeWindow(1.8, 1.5, WALL_THICKNESS + 0.02, -1.8, Y2 + 0.8, 5.81)); // Dětský pokoj 2 (JZ)
-  floor2Group.add(makeWall(1.2, H2, WALL_THICKNESS, 0, Y2, 5.81));
+  floor2Group.add(makeWall(1.8, H2 - 2.3, WALL_THICKNESS, -1.8, Y2 + 2.3, 5.81));      // Lintel above JZ window
+  floor2Group.add(makeWall(1.8, H2, WALL_THICKNESS, 0.0, Y2, 5.81));                    // Wall separating Kid room windows
+  floor2Group.add(makeWall(1.8, 0.8, WALL_THICKNESS, 1.8, Y2, 5.81));                   // Parapet under JV Kid room window
   floor2Group.add(makeWindow(1.8, 1.5, WALL_THICKNESS + 0.02, 1.8, Y2 + 0.8, 5.81));  // Dětský pokoj 3 (JV)
-  floor2Group.add(makeWall(1.8, H2, WALL_THICKNESS, 3.1, Y2, 5.81));
+  floor2Group.add(makeWall(1.8, H2 - 2.3, WALL_THICKNESS, 1.8, Y2 + 2.3, 5.81));       // Lintel above JV window
+  floor2Group.add(makeWall(1.3, H2, WALL_THICKNESS, 3.35, Y2, 5.81));
 
-  // East Wall
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.5, 3.81, Y2, -5.05));
-  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.2, 1.3, 3.81, Y2 + 0.9, -3.7)); // Pokoj 4 East window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.0, 3.81, Y2, -2.6));
-  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.2, 1.2, 3.81, Y2 + 1.0, -1.5)); // Bathroom window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 0.8, 3.81, Y2, -0.5));
-  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 0.8, 0.8, 3.81, Y2 + 1.2, 0.3));  // WC window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 0.6, 3.81, Y2, 1.0));
-  // Dětský pokoj 3 (JV) East Wall with Morning Sun Window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.6, 3.81, Y2, 2.2));
-  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.3, 1.2, 3.81, Y2 + 0.9, 3.6)); // East Window (JV Kid room)
-  floor2Group.add(makeWall(WALL_THICKNESS, 0.9, 1.2, 3.81, Y2, 3.6));                 // Parapet under window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.2, 1.2, 3.81, Y2 + 2.2, 3.6));     // Lintel above window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.61, 3.81, Y2, 5.0));
+  // East Wall (X = +3.81, Z: -6.0 to +6.0)
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.0, 3.81, Y2, -5.5));
+  floor2Group.add(makeWall(WALL_THICKNESS, 0.9, 1.2, 3.81, Y2, -4.4));                  // Parapet under Pokoj 4 East window
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.3, 1.2, 3.81, Y2 + 0.9, -4.4)); // Pokoj 4 East window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.2, 1.2, 3.81, Y2 + 2.2, -4.4));      // Lintel above Pokoj 4 window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.3, 3.81, Y2, -3.15));                  // Wall between Pokoj 4 and Bath
+  floor2Group.add(makeWall(WALL_THICKNESS, 1.0, 1.2, 3.81, Y2, -1.9));                  // Parapet under Bathroom window
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.2, 1.2, 3.81, Y2 + 1.0, -1.9)); // Bathroom window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.2, 1.2, 3.81, Y2 + 2.2, -1.9));      // Lintel above Bath window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.1, 3.81, Y2, -0.75));                  // Wall between Bath and WC
+  floor2Group.add(makeWall(WALL_THICKNESS, 1.3, 0.8, 3.81, Y2, 0.2));                   // Parapet under WC window
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 0.8, 0.8, 3.81, Y2 + 1.3, 0.2));  // WC window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.1, 0.8, 3.81, Y2 + 2.1, 0.2));       // Lintel above WC window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 2.4, 3.81, Y2, 1.8));                    // Wall between WC and Kid room 3
+  floor2Group.add(makeWall(WALL_THICKNESS, 0.9, 1.2, 3.81, Y2, 3.6));                   // Parapet under Kid room 3 East window
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.3, 1.2, 3.81, Y2 + 0.9, 3.6));  // East Window (JV Kid room)
+  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.2, 1.2, 3.81, Y2 + 2.2, 3.6));      // Lintel above Kid room 3 window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.8, 3.81, Y2, 5.1));
 
-  // West Wall
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.5, -3.81, Y2, -5.05));
-  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.5, 1.8, -3.81, Y2 + 0.8, -3.8)); // Pokoj 1 (SZ) West window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 3.8, -3.81, Y2, -1.2));
-  // Dětský pokoj 2 (JZ) West Wall with Garden Sunset Window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.6, -3.81, Y2, 2.2));
-  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.3, 1.2, -3.81, Y2 + 0.9, 3.6)); // West Window (JZ Kid room)
-  floor2Group.add(makeWall(WALL_THICKNESS, 0.9, 1.2, -3.81, Y2, 3.6));                 // Parapet under window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.2, 1.2, -3.81, Y2 + 2.2, 3.6));     // Lintel above window
-  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.61, -3.81, Y2, 5.0));
+  // West Wall (X = -3.81, Z: -6.0 to +6.0)
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.45, -3.81, Y2, -5.275));
+  floor2Group.add(makeWall(WALL_THICKNESS, 0.7, 1.5, -3.81, Y2, -3.8));                  // Parapet under Pokoj 1 West window
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.6, 1.5, -3.81, Y2 + 0.7, -3.8)); // Pokoj 1 (SZ) West window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.3, 1.5, -3.81, Y2 + 2.3, -3.8));      // Lintel above Pokoj 1 window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 6.05, -3.81, Y2, -0.025));               // Wall between Pokoj 1 and Kid room 2
+  floor2Group.add(makeWall(WALL_THICKNESS, 0.9, 1.2, -3.81, Y2, 3.6));                  // Parapet under Kid room 2 West window
+  floor2Group.add(makeWindow(WALL_THICKNESS + 0.02, 1.3, 1.2, -3.81, Y2 + 0.9, 3.6));  // West Window (JZ Kid room)
+  floor2Group.add(makeWall(WALL_THICKNESS, H2 - 2.2, 1.2, -3.81, Y2 + 2.2, 3.6));      // Lintel above Kid room 2 window
+  floor2Group.add(makeWall(WALL_THICKNESS, H2, 1.8, -3.81, Y2, 5.1));
 
   // 2.NP Partitions
   // Longitudinal spine separating Pokoj 1 from central hallway (X = -0.3)
