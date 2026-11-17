@@ -24,7 +24,7 @@ const Z_BATH_VEST = -1.90;
 const Z_SPINE = 0.30;
 const X_KITCHEN_SPLIT = 1.00;
 
-// 2.NP interior wall axes — Varianta A (6+kk: 4 pokoje + prádelna za schodištěm)
+// 2.NP interior wall axes — Varianta A (6+kk: pracovna/šatna + velká koupelna + centrální komora)
 const Z_NORTH_ROOMS = -1.86;
 const Z_STAIR_SOUTH = 0.26;
 const Z_SOUTH_ROOMS = 1.92;
@@ -32,7 +32,7 @@ const X_HALL2_EAST_A = 1.44;
 const X_NORTH_SEP_A = 0.46;
 const X_LAUNDRY_HALL_A = -0.82;
 const X_KIDS_SEP_A = 0.26;
-const Z_BATH_WC_A = 0.62;
+const Z_BATH_WC_A = 0.80;
 
 // 2.NP interior wall axes — Varianta B (5+kk: 3 pokoje + šatna + velká koupelna)
 const Z_CLOSET_BATH_B = -2.88;
@@ -64,7 +64,7 @@ const F1_NORTH_Z_MID = -2.8;
 
 export const dreamHouseV1 = {
   id: 'concept',
-  label: 'Varianta A: 6+kk (4 pokoje + prádelna za schodištěm)',
+  label: 'Varianta A: 6+kk (pracovna/šatna + velká koupelna + komora)',
   footprint: {
     width: W,
     length: L,
@@ -287,7 +287,7 @@ export const dreamHouseV1 = {
     ],
     rooms: [
       { id: '1.01', name: 'Zádveří / Vstup', areaSqm: 4.3, pos: [2.55, 1.1, -0.82], desc: 'Vstupní hala s 60cm nikou na vestavěnou skříň a venkovním přístřeškem' },
-      { id: '1.02', name: 'Technická m. / TČ', areaSqm: 7.2, pos: [1.60, 1.1, -4.73], desc: 'Technická místnost podél severní stěny: TČ, rekuperace, vstup z chodby i přímé dveře k dílně a stání' },
+      { id: '1.02', fixtures: ['hvac', 'pracka', 'susicka', 'vylevka'], name: 'Technická m. & Prádelna', areaSqm: 7.2, pos: [1.60, 1.1, -4.73], desc: 'Prostorná technická místnost (7,2 m²): TČ, rekuperace, pračka, sušička, výlevka, přímé dveře k parkování a shoz prádla z patra' },
       { id: '1.03', fixtures: ['wc', 'umyvadlo', 'sprcha'], name: 'Koupelna s WC', areaSqm: 3.6, pos: [2.55, 1.1, -2.83], desc: 'Koupelna (2,14 × 1,70 m) se vstupem z chodby, walk-in sprchovým koutem, WC, umyvadlem a východním oknem' },
       { id: '1.04', name: 'Budoucí ložnice / Pracovna', areaSqm: 11.2, pos: [-2.10, 1.1, -3.78], desc: 'Pracovna / budoucí bezbariérová ložnice s plnou severní stěnou pro manželskou postel' },
       { id: '1.05', name: 'Chodba & schodiště', areaSqm: 13.0, pos: [0.45, 1.4, -1.45], desc: 'Centrální chodba s přímými vstupy do všech místností, dvouramenným schodištěm a úložným prostorem' },
@@ -344,7 +344,7 @@ export const dreamHouseV1 = {
         pos: [Number(((X_HALL2_EAST_A + X_EAST_IN) / 2).toFixed(3)), Number(((Z_NORTH_ROOMS + Z_SOUTH_ROOMS) / 2).toFixed(3))],
       },
       {
-        name: 'Dlažba prádelna za schodištěm (2.NP)',
+        name: 'Dlažba komora za schodištěm (2.NP)',
         material: 'tileFloor',
         size: [Number((X_LAUNDRY_HALL_A - X_WEST_IN).toFixed(2)), Number((Z_SOUTH_ROOMS - Z_STAIR_SOUTH).toFixed(2))],
         thickness: 0.08,
@@ -386,8 +386,8 @@ export const dreamHouseV1 = {
         material: 'wall',
         openings: [
           { type: 'window', name: 'Okno Pokoj 4 (východ)', at: 1.84, width: 1.6, height: 1.4, sill: 0.88 },
-          { type: 'window', name: 'Okno koupelna (2.NP)', at: 5.00, width: 1.1, height: 1.1, sill: 1.18 },
-          { type: 'window', name: 'Okno WC (2.NP)', at: 6.89, width: 0.6, height: 0.9, sill: 1.38 },
+          { type: 'window', name: 'Okno koupelna (2.NP)', at: 5.05, width: 1.1, height: 1.1, sill: 1.18 },
+          { type: 'window', name: 'Okno WC (2.NP)', at: 6.98, width: 0.6, height: 0.9, sill: 1.38 },
           { type: 'window', name: 'Okno Dětský pokoj 3 (východ)', at: 9.43, width: 1.6, height: 1.4, sill: 0.88 },
         ],
       },
@@ -402,7 +402,7 @@ export const dreamHouseV1 = {
         openings: [
           { type: 'window', name: 'Okno Ložnice (západ)', at: 1.84, width: 1.8, height: 1.4, sill: 0.88 },
           { type: 'window', name: 'Okno schodiště (2.NP západ)', at: 4.82, width: 1.2, height: 1.6, sill: 0.35 },
-          { type: 'window', name: 'Okno prádelna (2.NP západ)', at: 6.71, width: 0.7, height: 0.9, sill: 1.38 },
+          { type: 'window', name: 'Okno komora (2.NP západ)', at: 6.71, width: 0.7, height: 0.9, sill: 1.38 },
           { type: 'window', name: 'Okno Dětský pokoj 2 (západ)', at: 9.43, width: 1.6, height: 1.4, sill: 0.88 },
         ],
       },
@@ -432,7 +432,7 @@ export const dreamHouseV1 = {
       },
       {
         id: 'part-2np-stair-south',
-        name: 'Příčka schodiště / prádelna',
+        name: 'Příčka schodiště / komora',
         from: [X_WEST_IN, Z_STAIR_SOUTH],
         to: [X_STAIR_HALL + T_PART / 2, Z_STAIR_SOUTH],
         height: 2.65,
@@ -441,14 +441,14 @@ export const dreamHouseV1 = {
       },
       {
         id: 'part-2np-laundry-hall',
-        name: 'Příčka prádelna / hala',
+        name: 'Příčka komora / hala',
         from: [X_LAUNDRY_HALL_A, Z_STAIR_SOUTH + T_PART / 2],
         to: [X_LAUNDRY_HALL_A, Z_SOUTH_ROOMS - T_PART / 2],
         height: 2.65,
         thickness: T_PART,
         material: 'partition',
         openings: [
-          { type: 'opening', name: 'Dveře prádelna (2.06)', at: 0.75, width: 0.80, height: 2.10, sill: 0.08, swing: { hinge: 'start', dir: 'west' } },
+          { type: 'opening', name: 'Dveře komora (2.06)', at: 0.75, width: 0.80, height: 2.10, sill: 0.08, swing: { hinge: 'start', dir: 'west' } },
         ],
       },
       {
@@ -461,8 +461,8 @@ export const dreamHouseV1 = {
         material: 'partition',
         structural: true,
         openings: [
-          { type: 'opening', name: 'Dveře koupelna 2.NP (2.04)', at: 1.16, width: 0.80, height: 2.10, sill: 0.08, swing: { hinge: 'start', dir: 'east' } },
-          { type: 'opening', name: 'Dveře samostatné WC (2.05)', at: 3.05, width: 0.75, height: 2.10, sill: 0.08, swing: { hinge: 'end', dir: 'east' } },
+          { type: 'opening', name: 'Dveře koupelna 2.NP (2.04)', at: 1.25, width: 0.80, height: 2.10, sill: 0.08, swing: { hinge: 'start', dir: 'east' } },
+          { type: 'opening', name: 'Dveře samostatné WC (2.05)', at: 3.14, width: 0.75, height: 2.10, sill: 0.08, swing: { hinge: 'end', dir: 'east' } },
         ],
       },
       {
@@ -510,10 +510,10 @@ export const dreamHouseV1 = {
     rooms: [
       { id: '2.01', name: 'Schodišťová hala', areaSqm: 6.9, pos: [0.35, 3.9, -0.10], desc: 'Kompaktní čtvercová hala (šířka 1,78 m) s přímými vstupy do všech místností bez dlouhých chodeb' },
       { id: '2.02', name: 'Ložnice / Pokoj 1 (SZ)', areaSqm: 14.7, pos: [-1.62, 3.9, -3.78], desc: 'Prostorná ložnice (4,00 × 3,68 m) s plnou severní stěnou pro manželskou postel a oknem do zahrady' },
-      { id: '2.03', name: 'Pokoj 4 / Pracovna (SV)', areaSqm: 11.3, pos: [2.08, 3.9, -3.78], desc: 'Čtvrtý samostatný pokoj v patře (3,08 × 3,68 m) s plnou severní stěnou pro nábytek a velkým východním oknem' },
-      { id: '2.04', fixtures: ['vana', 'sprcha', 'dvojumyvadlo'], name: 'Rodinná koupelna', areaSqm: 4.9, pos: [2.57, 3.9, -0.62], desc: 'Čtvercová rodinná koupelna (2,10 × 2,32 m) pro vanu, sprchový kout a dvojumyvadlo' },
-      { id: '2.05', fixtures: ['wc', 'umyvatko'], name: 'Samostatné WC', areaSqm: 2.4, pos: [2.57, 3.9, 1.27], desc: 'Samostatné WC s umývátkem a oknem na východ nad stoupačkami z 1.NP' },
-      { id: '2.06', fixtures: ['pracka', 'vylevka'], name: 'Prádelna / Komora', areaSqm: 4.1, pos: [-2.26, 3.9, 1.09], desc: 'Samostatná prádelna a úklidová komora (2,72 × 1,50 m) za schodištěm s vlastním západním oknem' },
+      { id: '2.03', name: 'Šatna & Pracovna (SV)', areaSqm: 11.3, pos: [2.08, 3.9, -3.78], desc: 'Multifunkční dámský pokoj a pracovna (3,08 × 3,68 m) s velkorysou sestavou vestavěných šatních skříní, pracovním stolem u okna a ranním východním sluncem' },
+      { id: '2.04', fixtures: ['vana', 'sprcha', 'dvojumyvadlo'], name: 'Rodinná koupelna', areaSqm: 5.5, pos: [2.57, 3.9, -0.53], desc: 'Zvětšená rodinná koupelna (2,18 × 2,66 m) pro vanu, velký sprchový kout, dvojumyvadlo a úložné skříňky' },
+      { id: '2.05', fixtures: ['wc', 'umyvatko'], name: 'Samostatné WC', areaSqm: 2.0, pos: [2.57, 3.9, 1.36], desc: 'Samostatné WC s umývátkem a východním oknem přímo nad instalační šachtou' },
+      { id: '2.06', fixtures: ['satna', 'regal'], name: 'Centrální šatna / Komora', areaSqm: 4.1, pos: [-2.26, 3.9, 1.09], desc: 'Centrální šatna a úložná komora (2,72 × 1,50 m) za schodištěm s vlastním oknem na západ: kufry, sezónní věci, úklid a shoz prádla do technické místnosti' },
       { id: '2.07', name: 'Dětský pokoj 2 (JZ)', areaSqm: 13.8, pos: [-1.72, 3.9, 3.81], desc: 'Slunný čtvercový jihozápadní dětský pokoj (3,80 × 3,62 m) bez úzkých výklenků' },
       { id: '2.08', name: 'Dětský pokoj 3 (JV)', areaSqm: 11.9, pos: [1.98, 3.9, 3.81], desc: 'Světlý čtvercový jihovýchodní dětský pokoj (3,28 × 3,62 m) s okny na jih a východ' },
     ],
@@ -626,7 +626,7 @@ export const dreamHouse5kk = {
         openings: [
           { type: 'window', name: 'Okno Rodičovská ložnice (západ)', at: 1.84, width: 1.8, height: 1.4, sill: 0.88 },
           { type: 'window', name: 'Okno schodiště (2.NP západ)', at: 4.82, width: 1.2, height: 1.6, sill: 0.35 },
-          { type: 'window', name: 'Okno prádelna (2.NP západ)', at: 6.71, width: 0.7, height: 0.9, sill: 1.38 },
+          { type: 'window', name: 'Okno komora (2.NP západ)', at: 6.71, width: 0.7, height: 0.9, sill: 1.38 },
           { type: 'window', name: 'Okno Dětský pokoj 1 (západ)', at: 9.43, width: 1.6, height: 1.4, sill: 0.88 },
         ],
       },
@@ -668,7 +668,7 @@ export const dreamHouse5kk = {
       },
       {
         id: 'part-2np-stair-south',
-        name: 'Příčka schodiště / prádelna',
+        name: 'Příčka schodiště / komora',
         from: [X_WEST_IN, Z_STAIR_SOUTH],
         to: [X_STAIR_HALL + T_PART / 2, Z_STAIR_SOUTH],
         height: 2.65,
@@ -677,14 +677,14 @@ export const dreamHouse5kk = {
       },
       {
         id: 'part-2np-laundry-hall',
-        name: 'Příčka prádelna / hala',
+        name: 'Příčka komora / hala',
         from: [X_LAUNDRY_HALL_B, Z_STAIR_SOUTH + T_PART / 2],
         to: [X_LAUNDRY_HALL_B, Z_SOUTH_ROOMS - T_PART / 2],
         height: 2.65,
         thickness: T_PART,
         material: 'partition',
         openings: [
-          { type: 'opening', name: 'Dveře prádelna (2.06)', at: 0.75, width: 0.80, height: 2.10, sill: 0.08, swing: { hinge: 'start', dir: 'west' } },
+          { type: 'opening', name: 'Dveře komora (2.06)', at: 0.75, width: 0.80, height: 2.10, sill: 0.08, swing: { hinge: 'start', dir: 'west' } },
         ],
       },
       {
@@ -749,7 +749,7 @@ export const dreamHouse5kk = {
       { id: '2.03', name: 'Rodičovská šatna (SV)', areaSqm: 6.5, pos: [2.39, 3.9, -4.29], desc: 'Samostatná čtvercová walk-in šatna (2,46 × 2,66 m) přístupná přímo z rodičovské ložnice' },
       { id: '2.04', fixtures: ['vana', 'sprcha', 'dvojumyvadlo'], name: 'Velká rodinná koupelna', areaSqm: 8.0, pos: [2.39, 3.9, -1.17], desc: 'Velkorysá rodinná koupelna (2,46 × 3,26 m) pro volně stojící vanu, velký walk-in sprchový kout a dvojumyvadlo' },
       { id: '2.05', fixtures: ['wc', 'umyvatko'], name: 'Samostatné WC', areaSqm: 3.0, pos: [2.39, 3.9, 1.23], desc: 'Prostorné samostatné WC s umývátkem a oknem na východ' },
-      { id: '2.06', fixtures: ['pracka', 'vylevka'], name: 'Prádelna / Komora', areaSqm: 3.9, pos: [-2.31, 3.9, 1.09], desc: 'Samostatná prádelna a komora (2,62 × 1,50 m) za schodištěm s vlastním západním oknem' },
+      { id: '2.06', fixtures: ['satna', 'regal'], name: 'Centrální komora / Sklad', areaSqm: 3.9, pos: [-2.31, 3.9, 1.09], desc: 'Centrální úložná komora a sklad (2,62 × 1,50 m) za schodištěm s vlastním západním oknem a shozem prádla' },
       { id: '2.07', name: 'Dětský pokoj 1 (JZ)', areaSqm: 13.1, pos: [-1.81, 3.9, 3.81], desc: 'Čtvercový jihozápadní dětský pokoj (3,62 × 3,62 m) s okny na jih a západ' },
       { id: '2.08', name: 'Dětský pokoj 2 (JV)', areaSqm: 12.5, pos: [1.89, 3.9, 3.81], desc: 'Čtvercový jihovýchodní dětský pokoj (3,46 × 3,62 m) s okny na jih a východ' },
     ],
