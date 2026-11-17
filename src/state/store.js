@@ -12,11 +12,11 @@ export function createStore(initialState) {
 
   function setState(partialOrUpdater) {
     const patch =
-      typeof partialOrUpdater === 'function'
+      typeof partialOrUpdater === "function"
         ? partialOrUpdater(state)
         : partialOrUpdater;
 
-    if (!patch || typeof patch !== 'object') return;
+    if (!patch || typeof patch !== "object") return;
 
     const changedKeys = new Set();
     const nextState = { ...state };
@@ -58,22 +58,23 @@ export function createStore(initialState) {
 }
 
 export const INITIAL_STATE = {
-  activeModelId: 'concept',
+  activeModelId: "concept",
   uploadedModels: [],
-  floorMode: 'all', // 'all' | '1np' | '2np'
-  sliceHeight: 8.5,
+  floorMode: "all", // 'all' | '1np' | '2np'
+  sliceHeight: null,
+  activeRoomId: null,
   labelsVisible: true,
-  activeScheduleFloor: '1np', // '1np' | '2np'
+  activeScheduleFloor: "1np", // '1np' | '2np'
   sun: {
     dayOfYear: 172,
     hour: 14.0,
     latitude: 50.0,
     elevationDeg: 57.0,
     azimuthDeg: 218,
-    directionName: 'JZ',
+    directionName: "JZ",
     isDay: true,
-    summaryText: 'Odpolední slunce z JZ přímo na zahradní terasu',
-    summaryColor: '#34d399',
+    summaryText: "Odpolední slunce z JZ přímo na zahradní terasu",
+    summaryColor: "#34d399",
   },
   site: {
     gridVisible: true,
@@ -89,8 +90,8 @@ export const INITIAL_STATE = {
   },
   selectedElement: null,
   sidebarOpen: false,
-  activeTab: 'floors',
-  loading: { active: false, text: '' },
+  activeTab: "floors",
+  loading: { active: false, text: "" },
 };
 
 export const store = createStore(INITIAL_STATE);
