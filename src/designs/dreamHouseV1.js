@@ -15,7 +15,7 @@ export const dreamHouseV1 = {
       { name: 'Podlaha obývací pokoj & kuchyň', material: 'woodFloor', size: [7.6, 5.6], thickness: 0.12, pos: [0, 3.0] },
       { name: 'Podlaha pracovna / ložnice & schodiště (1.NP)', material: 'woodFloor', size: [3.3, 6.0], thickness: 0.12, pos: [-2.15, -2.8] },
       { name: 'Dlažba zádveří, chodba, technická m., koupelna', material: 'tileFloor', size: [4.3, 6.0], thickness: 0.12, pos: [1.65, -2.8] },
-      { name: 'Zahradní terasa (thermodřevo)', material: 'terrace', size: [4.0, 6.8], thickness: 0.14, pos: [-6.0, 3.2] },
+      { name: 'Zahradní terasa (thermodřevo)', material: 'terrace', size: [4.0, 6.0], thickness: 0.14, pos: [-6.0, 3.0] },
     ],
     walls: [
       // Exterior perimeter walls (1.NP, height 2.75 m)
@@ -165,15 +165,19 @@ export const dreamHouseV1 = {
     furniture: [
       {
         type: 'pergola',
-        name: 'Sloupky pergoly terasy',
+        name: 'Krytá pergola terasy',
+        desc: 'Konstrukce pergoly se zastřešením zarovnaná se západní a jižní fasádou domu',
         pos: [0, 0],
+        size: [4.0, 3.02, 6.0],
         height: 2.8,
         postSize: 0.14,
+        rafterCount: 7,
+        roofMaterial: 'roof',
         posts: [
-          [-7.9, 6.4],
-          [-7.9, 0.0],
-          [-4.15, 6.4],
-          [-4.15, 0.0],
+          [-7.93, 5.93],
+          [-7.93, 0.07],
+          [-4.07, 5.93],
+          [-4.07, 0.07],
         ],
       },
       {
@@ -199,7 +203,7 @@ export const dreamHouseV1 = {
       { id: '1.05', name: 'Chodba & schodiště', areaSqm: 11.5, pos: [0.45, 1.4, -1.2], desc: 'Centrální chodba s dvouramenným schodištěm do 2.NP a komorou pod schody' },
       { id: '1.06', name: 'Kuchyňský kout + Jídelna', areaSqm: 13.3, pos: [2.2, 1.1, 2.8], desc: 'Kuchyň s ostrůvkem a pásovým oknem na východ nad linkou' },
       { id: '1.07', name: 'Obývací pokoj', areaSqm: 23.5, pos: [-1.8, 1.1, 3.0], desc: 'Klidová denní část s krbem a velkým HS portálem na terasu' },
-      { id: '1.08', name: 'Zahradní terasa (JZ)', areaSqm: 28.0, interior: false, pos: [-6.0, 0.35, 3.2], desc: 'Krytá venkovní terasa s jihozápadním sluncem a pergolou' },
+      { id: '1.08', name: 'Zahradní terasa (JZ)', areaSqm: 24.0, interior: false, pos: [-6.0, 0.35, 3.0], desc: 'Krytá venkovní terasa s jihozápadním sluncem a zastřešenou pergolou' },
     ],
   },
 

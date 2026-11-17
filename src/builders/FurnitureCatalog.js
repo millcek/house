@@ -306,15 +306,79 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
       break;
     }
     case 'pergola': {
-      labelType = 'IfcColumn (Pergola)';
+      labelType = 'IfcRoof / IfcColumn (Pergola)';
+      desc = item.desc || 'Konstrukce pergoly se zastřešením terasy';
       const postSize = item.postSize ?? 0.14;
       const postHeight = item.height ?? 2.8;
+      const posts = item.posts || [];
       const postGeo = new THREE.BoxGeometry(postSize, postHeight, postSize);
-      for (const [px, pz] of item.posts || []) {
+      for (const [px, pz] of posts) {
         const post = new THREE.Mesh(postGeo, materials.frame);
         post.position.set(px, postHeight / 2, pz);
         post.castShadow = true;
+        post.receiveShadow = true;
         group.add(post);
+      }
+
+      if (posts.length > 0) {
+        const halfPost = postSize / 2;
+        const xs = posts.map(([px]) => px);
+        const zs = posts.map(([, pz]) => pz);
+        const minX = Math.min(...xs) - halfPost;
+        const maxX = Math.max(...xs) + halfPost;
+        const minZ = Math.min(...zs) - halfPost;
+        const maxZ = Math.max(...zs) + halfPost;
+        const spanX = maxX - minX;
+        const spanZ = maxZ - minZ;
+        const centerX = (minX + maxX) / 2;
+        const centerZ = (minZ + maxZ) / 2;
+
+        if (spanX > 0 && spanZ > 0) {
+          const beamHeight = item.beamHeight ?? 0.16;
+          const innerSpanX = Math.max(0, spanX - 2 * postSize);
+
+          // Perimeter frame beams (longitudinal along Z, transverse along X)
+          group.add(
+            createBoxPart(postSize, beamHeight, spanZ, minX + halfPost, postHeight, centerZ, materials.frame, true)
+          );
+          group.add(
+            createBoxPart(postSize, beamHeight, spanZ, maxX - halfPost, postHeight, centerZ, materials.frame, true)
+          );
+          if (innerSpanX > 0) {
+            group.add(
+              createBoxPart(innerSpanX, beamHeight, postSize, centerX, postHeight, maxZ - halfPost, materials.frame, true)
+            );
+            group.add(
+              createBoxPart(innerSpanX, beamHeight, postSize, centerX, postHeight, minZ + halfPost, materials.frame, true)
+            );
+
+            // Cross rafters evenly spaced along Z
+            const rafterCount = item.rafterCount ?? 7;
+            if (rafterCount > 0) {
+              const rafterHeight = 0.12;
+              const rafterDepth = 0.08;
+              const rafterY = postHeight + 0.02 + rafterHeight / 2;
+              const rafterGeo = new THREE.BoxGeometry(innerSpanX, rafterHeight, rafterDepth);
+              for (let i = 0; i < rafterCount; i++) {
+                const rz = minZ + (spanZ * (i + 1)) / (rafterCount + 1);
+                const rafter = new THREE.Mesh(rafterGeo, materials.frame);
+                rafter.position.set(centerX, rafterY, rz);
+                rafter.castShadow = true;
+                rafter.receiveShadow = true;
+                group.add(rafter);
+              }
+            }
+          }
+
+          // Roof covering slab (zastřešení)
+          if (item.roof !== false) {
+            const roofThickness = item.roofThickness ?? 0.06;
+            const roofMat = materials[item.roofMaterial] || materials.roof;
+            group.add(
+              createBoxPart(spanX, roofThickness, spanZ, centerX, postHeight + beamHeight, centerZ, roofMat, true)
+            );
+          }
+        }
       }
       break;
     }

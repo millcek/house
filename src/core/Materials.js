@@ -60,6 +60,7 @@ export function createMaterials(clipPlane = houseClipPlane) {
       color: 0x1e293b, // dark anthracite frames
       roughness: 0.5,
       clippingPlanes,
+      clipShadows: true,
     }),
     roof: new THREE.MeshStandardMaterial({
       color: 0x2b2f38, // dark roof

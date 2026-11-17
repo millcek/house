@@ -146,7 +146,7 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
     if (legendFreePct) legendFreePct.textContent = `${metrics.freeRatioPct.toFixed(1)} %`;
 
     if (areaPlotTotal) {
-      areaPlotTotal.textContent = `${formatArea(metrics.plotGrossSqm, 0)} m² (čistá ${formatArea(metrics.plotNetSqm, 1)} m²)`;
+      areaPlotTotal.textContent = `${formatArea(metrics.plotAreaSqm, 0)} m²`;
     }
     if (areaHouse) areaHouse.textContent = `${metrics.houseSqm.toFixed(1)} m² (${metrics.houseRatioPct.toFixed(1)} %)`;
     if (areaWorkshop) areaWorkshop.textContent = `${metrics.workshopSqm.toFixed(1)} m² (${metrics.workshopRatioPct.toFixed(1)} %)`;

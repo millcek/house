@@ -2,6 +2,7 @@ export const siteConfig = {
   width: 27, // X axis (m)
   depth: 40, // Z axis (m)
   chamfer: 3.5, // SE corner intersection chamfer (m)
+  areaSqm: 1076, // Parcel area (m²)
   roadWidth: 4.5,
   parcelRotationDeg: 26.5,
   defaultHousePos: {

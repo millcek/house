@@ -263,7 +263,7 @@ export function updateSetbackDimensions(setbackGroup, siteConfig, housePos, auxC
 }
 
 /**
- * Computes built-up area breakdown (m² and % of gross plot area) for the plot,
+ * Computes built-up area breakdown (m² and % of plot area) for the plot,
  * main house, workshop, covered parking, terrace, and connecting canopy.
  */
 export function computeBuiltUpArea(siteConfig, auxConfig, houseDesign) {
@@ -271,6 +271,7 @@ export function computeBuiltUpArea(siteConfig, auxConfig, houseDesign) {
   const chamfer = siteConfig.chamfer || 0;
   const chamferSqm = 0.5 * chamfer * chamfer;
   const plotNetSqm = Number((plotGrossSqm - chamferSqm).toFixed(1));
+  const plotAreaSqm = siteConfig.areaSqm ?? plotNetSqm;
 
   const houseWidth = houseDesign?.footprint?.width ?? 8;
   const houseLength = houseDesign?.footprint?.length ?? 12;
@@ -282,7 +283,7 @@ export function computeBuiltUpArea(siteConfig, auxConfig, houseDesign) {
   const terraceRoom = houseDesign?.floor1?.rooms?.find(
     (r) => r.id === '1.08' || r.interior === false
   );
-  const terraceSqm = Number((terraceRoom?.areaSqm ?? 28.0).toFixed(1));
+  const terraceSqm = Number((terraceRoom?.areaSqm ?? 24.0).toFixed(1));
 
   const canopySqm = auxConfig.canopy
     ? Number((auxConfig.canopy.size[0] * auxConfig.canopy.size[2]).toFixed(1))
@@ -291,9 +292,9 @@ export function computeBuiltUpArea(siteConfig, auxConfig, houseDesign) {
   const buildingsSqm = Number((houseSqm + workshopSqm + parkingSqm).toFixed(1));
   const accessoriesSqm = Number((terraceSqm + canopySqm).toFixed(1));
   const totalBuiltUpSqm = Number((buildingsSqm + accessoriesSqm).toFixed(1));
-  const freeGardenSqm = Number((plotGrossSqm - totalBuiltUpSqm).toFixed(1));
+  const freeGardenSqm = Number((plotAreaSqm - totalBuiltUpSqm).toFixed(1));
 
-  const pct = (sqm) => (plotGrossSqm > 0 ? Number(((sqm / plotGrossSqm) * 100).toFixed(1)) : 0);
+  const pct = (sqm) => (plotAreaSqm > 0 ? Number(((sqm / plotAreaSqm) * 100).toFixed(1)) : 0);
 
   const houseRatioPct = pct(houseSqm);
   const workshopRatioPct = pct(workshopSqm);
@@ -306,6 +307,7 @@ export function computeBuiltUpArea(siteConfig, auxConfig, houseDesign) {
   const freeRatioPct = Number((100 - totalRatioPct).toFixed(1));
 
   return {
+    plotAreaSqm,
     plotGrossSqm,
     chamferSqm,
     plotNetSqm,
@@ -406,8 +408,8 @@ export function updateFootprintOverlay(
   const houseLength = houseDesign?.footprint?.length ?? 12;
 
   const terraceFinish = houseDesign?.floor1?.finishes?.find((f) => f.material === 'terrace');
-  const [terraceW, terraceD] = terraceFinish?.size || [4.0, 6.8];
-  const [terraceX, terraceZ] = terraceFinish?.pos || [-6.0, 3.2];
+  const [terraceW, terraceD] = terraceFinish?.size || [4.0, 6.0];
+  const [terraceX, terraceZ] = terraceFinish?.pos || [-6.0, 3.0];
 
   // House & Terrace group (follows housePos X, Z, RotY)
   const houseOverlayGroup = new THREE.Group();
