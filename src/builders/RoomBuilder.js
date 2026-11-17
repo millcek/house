@@ -224,6 +224,7 @@ export function computeRoomAreasFromWalls(rooms = [], floorConfig = {}) {
     const stack = [[si, sj]];
     visited[si][sj] = 1;
     let totalSqm = 0;
+    const bounds = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
 
     while (stack.length > 0) {
       const [ci, cj] = stack.pop();
@@ -232,6 +233,10 @@ export function computeRoomAreasFromWalls(rooms = [], floorConfig = {}) {
       if (!inZoneBounds(cellCx, cellCz, room.zoneBounds)) continue;
 
       totalSqm += (xs[ci + 1] - xs[ci]) * (zs[cj + 1] - zs[cj]);
+      bounds.minX = Math.min(bounds.minX, xs[ci]);
+      bounds.maxX = Math.max(bounds.maxX, xs[ci + 1]);
+      bounds.minZ = Math.min(bounds.minZ, zs[cj]);
+      bounds.maxZ = Math.max(bounds.maxZ, zs[cj + 1]);
 
       const neighbors = [
         [ci - 1, cj],
@@ -256,6 +261,7 @@ export function computeRoomAreasFromWalls(rooms = [], floorConfig = {}) {
       ...room,
       areaSqm,
       area: `${areaSqm.toFixed(1)} m²`,
+      bounds,
     };
   });
 }

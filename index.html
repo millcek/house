@@ -27,6 +27,7 @@
         <button id="btn-floor-2np" class="btn btn-sm" title="2.NP Patro (řez v patře)">🛏️ 2.NP</button>
         <button id="btn-floor-topdown" class="btn btn-sm" title="Půdorysný 2D pohled shora">📐 Půdorys</button>
         <button id="btn-quick-drawings" class="btn btn-sm" title="Technické 2D výkresy půdorysů (SVG / PDF)">📄 Výkresy</button>
+        <button id="btn-quick-budget" class="btn btn-sm" title="Soupis materiálu a výkaz výměr (CSV)">📋 Rozpočet</button>
         <button id="btn-quick-labels" class="btn btn-sm btn-primary" title="Zobrazit / skrýt 3D popisky místností">🏷️ Popisky</button>
         <button id="btn-quick-footprint" class="btn btn-sm" title="Zobrazit zastavěnou plochu pozemku">📊 Zastavění</button>
         <div class="toolbar-divider"></div>
@@ -91,6 +92,10 @@
           <span class="nav-tab-icon">ℹ️</span>
           <span class="nav-tab-label">BIM</span>
           <span id="bim-badge-dot" class="badge-dot" style="display: none;"></span>
+        </button>
+        <button class="sidebar-nav-tab" data-tab="budget" title="Soupis materiálu a výkaz výměr">
+          <span class="nav-tab-icon">📋</span>
+          <span class="nav-tab-label">Rozpočet</span>
         </button>
       </nav>
 
@@ -442,6 +447,80 @@
               </p>
             </div>
           </div>
+        </div>
+
+        <!-- ==================== TAB 6: ROZPOČET & VÝKAZ VÝMĚR ==================== -->
+        <div id="tab-pane-budget" class="tab-pane">
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Soupis materiálu (Výkaz výměr)</span>
+              <div style="display: flex; gap: 4px;">
+                <button id="btn-budget-csv" class="btn btn-sm btn-primary" title="Stáhnout slepý rozpočet pro dodavatele (.csv)">📋 Slepý CSV</button>
+                <button id="btn-budget-csv-priced" class="btn btn-sm" title="Stáhnout rozpočet s orientačními cenami (.csv)">💰 Oceněný CSV</button>
+              </div>
+            </div>
+
+            <div class="form-stack">
+              <div class="form-row">
+                <label for="budget-variant-select" class="field-label">Varianta domu:</label>
+                <select id="budget-variant-select" class="select-custom" style="width: 100%;"></select>
+              </div>
+              <div id="budget-ifc-note" class="hint-card" style="display: none;">
+                ℹ️ Zobrazený model je vlastní IFC soubor; výkaz výměr níže se počítá z parametrického modelu vybrané varianty.
+              </div>
+              <div class="budget-scope-chips" role="group" aria-label="Rozsah soupisu">
+                <button type="button" class="btn btn-sm btn-primary budget-scope-chip active" data-scope="house">🏠 Hlavní dům</button>
+                <button type="button" class="btn btn-sm btn-primary budget-scope-chip active" data-scope="aux">🔧 Dílna & stání</button>
+                <button type="button" class="btn btn-sm btn-primary budget-scope-chip active" data-scope="exterior">🌿 Terasa & pozemek</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Orientační cena, Obestavěný prostor a m3 -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Orientační cena stavby (2026)</span>
+              <div class="budget-mode-toggle" role="group" aria-label="Režim ocenění">
+                <button type="button" id="btn-mode-turnkey" class="btn btn-sm btn-primary active" title="Kompletní dodávka na klíč firmou">🏢 Na klíč</button>
+                <button type="button" id="btn-mode-self" class="btn btn-sm" title="Nákup materiálu svépomocí + subdodávky klíčových profesí">🔨 Svépomocí</button>
+              </div>
+            </div>
+
+            <div id="budget-cost-highlight" class="budget-cost-highlight">
+              <!-- Rendered via JS -->
+            </div>
+
+            <div id="budget-volume-grid" class="budget-volume-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Souhrn klíčových výměr</span>
+            </div>
+            <div id="budget-summary-grid" class="budget-summary-grid"></div>
+          </div>
+
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Porovnání variant</span>
+            </div>
+            <div id="budget-compare-container" class="budget-compare-scroll"></div>
+          </div>
+
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Položky po oddílech</span>
+              <button id="btn-budget-toggle-all" type="button" class="btn btn-sm">Rozbalit vše</button>
+            </div>
+            <div class="budget-search-row">
+              <input id="budget-search" type="search" class="budget-search-input" placeholder="Hledat položku, kód nebo specifikaci..." />
+            </div>
+            <div id="budget-sections-container" class="budget-sections-list"></div>
+          </div>
+
+          <div id="budget-warnings-container" class="budget-meta-stack"></div>
         </div>
       </div>
     </aside>

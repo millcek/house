@@ -9,6 +9,7 @@ export function initToolbarController(store, sceneManager) {
   const btnFloorTopdown = document.getElementById("btn-floor-topdown");
   const btnQuickLabels = document.getElementById("btn-quick-labels");
   const btnQuickFootprint = document.getElementById("btn-quick-footprint");
+  const btnQuickBudget = document.getElementById("btn-quick-budget");
   const btnQuickSun = document.getElementById("btn-quick-sun");
   const compassBadge = document.getElementById("compass-badge");
   const compassDial = document.getElementById("compass-dial");
@@ -68,6 +69,10 @@ export function initToolbarController(store, sceneManager) {
         footprintVisible: true,
       },
     });
+  });
+
+  btnQuickBudget?.addEventListener("click", () => {
+    store.setState({ activeTab: "budget", sidebarOpen: true });
   });
 
   btnQuickSun?.addEventListener("click", () => {

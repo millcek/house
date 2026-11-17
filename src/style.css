@@ -8,7 +8,9 @@
   --accent-light: rgba(37, 99, 235, 0.18);
   --text-main: #f3f4f6;
   --text-muted: #9ca3af;
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
 }
 
 * {
@@ -136,7 +138,9 @@ body {
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
   flex-shrink: 0;
 }
 
@@ -237,7 +241,14 @@ body {
   transform: translateX(calc(100% + 24px));
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.22s ease,
+    width 0.22s ease;
+}
+
+.app-sidebar.wide {
+  width: 460px;
 }
 
 .app-sidebar.open {
@@ -334,7 +345,7 @@ body {
 
 .sidebar-nav-tab {
   flex: 1;
-  min-width: 58px;
+  min-width: 48px;
   padding: 6px 4px;
   background: transparent;
   border: 1px solid transparent;
@@ -1021,7 +1032,8 @@ body {
   }
 
   /* Bottom sheet drawer for mobile */
-  .app-sidebar {
+  .app-sidebar,
+  .app-sidebar.wide {
     top: auto;
     bottom: 0;
     left: 0;
@@ -1185,7 +1197,12 @@ body {
   flex: 1;
   overflow: hidden;
   background:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0) 0 0 / 24px 24px,
+    radial-gradient(
+        circle at 1px 1px,
+        rgba(255, 255, 255, 0.08) 1px,
+        transparent 0
+      )
+      0 0 / 24px 24px,
     #1e293b;
   cursor: grab;
   touch-action: none;
@@ -1277,4 +1294,414 @@ body {
     box-shadow: none !important;
     border-radius: 0 !important;
   }
+}
+
+/* ========================================================
+   BUDGET / BILL OF MATERIALS TAB
+   ======================================================== */
+.budget-scope-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.budget-mode-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.budget-cost-highlight {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(16, 185, 129, 0.16));
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.budget-cost-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.budget-cost-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #93c5fd;
+}
+
+.budget-cost-scope-tag {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.budget-cost-main {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 4px 0 2px 0;
+}
+
+.budget-cost-vat {
+  font-size: 12px;
+  color: #34d399;
+  font-weight: 600;
+}
+
+.budget-cost-note {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+.budget-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11.5px;
+}
+
+.budget-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.budget-breakdown-label {
+  color: var(--text-muted);
+}
+
+.budget-breakdown-val {
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.budget-volume-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.budget-scope-chip {
+  flex: 1 1 auto;
+  justify-content: center;
+  opacity: 0.72;
+}
+
+.budget-scope-chip.active {
+  opacity: 1;
+}
+
+.budget-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.budget-stat-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.budget-stat-label {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.budget-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.budget-stat-sub {
+  font-size: 10px;
+  color: #93c5fd;
+  margin-top: 1px;
+}
+
+.budget-compare-scroll {
+  overflow-x: auto;
+}
+
+.budget-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.budget-compare-table th,
+.budget-compare-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.budget-compare-table th:first-child,
+.budget-compare-table td:first-child {
+  text-align: left;
+  color: var(--text-muted);
+  white-space: normal;
+}
+
+.budget-compare-table th {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.budget-compare-table th.is-active,
+.budget-compare-table td.is-active {
+  background: rgba(37, 99, 235, 0.14);
+  color: #fff;
+  font-weight: 600;
+}
+
+.budget-search-row {
+  margin-bottom: 8px;
+}
+
+.budget-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-main);
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.budget-search-input:focus {
+  border-color: var(--accent);
+}
+
+.budget-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.budget-sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.budget-section {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.budget-section-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f3f4f6;
+  user-select: none;
+}
+
+.budget-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.budget-section-summary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.budget-section[open] .budget-section-summary {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.budget-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.budget-section-code {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #93c5fd;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.budget-section-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.budget-section-subtotal {
+  font-size: 11px;
+  font-weight: 700;
+  color: #34d399;
+}
+
+.budget-section-count {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.budget-items-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.budget-item {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.budget-item:last-child {
+  border-bottom: none;
+}
+
+.budget-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.budget-item-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: #93c5fd;
+  flex-shrink: 0;
+}
+
+.budget-item-name {
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.budget-item-spec {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.budget-item-calc {
+  font-size: 10.5px;
+  color: #cbd5e1;
+  opacity: 0.85;
+  line-height: 1.35;
+}
+
+.budget-item-qty-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.budget-item-qty-row strong {
+  color: #f3f4f6;
+}
+
+.budget-item-order strong {
+  color: #34d399;
+}
+
+.budget-item-price-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.budget-item-price-tag .unit-price {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.budget-item-price-tag .total-price {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.budget-meta-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.budget-warnings {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 11.5px;
+  color: #fde68a;
+}
+
+.budget-meta-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.budget-warnings ul,
+.budget-assumptions ul {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.4;
+}
+
+.budget-assumptions {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.budget-assumptions summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.budget-assumptions ul {
+  margin-top: 6px;
 }

@@ -11,6 +11,7 @@ export function initSidebarController(store) {
 
   function render({ sidebarOpen, activeTab }) {
     appSidebar?.classList.toggle('open', sidebarOpen);
+    appSidebar?.classList.toggle('wide', activeTab === 'budget');
     sidebarBackdrop?.classList.toggle('open', sidebarOpen);
     btnToggleSidebar?.classList.toggle('active', sidebarOpen);
 
