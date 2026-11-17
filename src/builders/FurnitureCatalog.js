@@ -79,6 +79,30 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
       }
       break;
     }
+    case 'shaft': {
+      const [w = 0.46, h = 2.7, d = 0.44] = size;
+      labelType = 'IfcDistributionChamberElement';
+      desc = item.desc || 'Instalační šachta pro VZT a TZB rozvody';
+      group.add(createBoxPart(w, h, d, 0, 0, 0, materials.partition || materials.wall, true));
+      break;
+    }
+    case 'recup': {
+      const [w = 0.7, h = 0.85, d = 0.42] = size;
+      labelType = 'IfcEnergyConversionDevice';
+      desc = item.desc || 'Centrální rekuperační jednotka VZT';
+      group.add(createBoxPart(w, h, d, 0, 0, 0, materials.frame, true));
+      // Intake & exhaust spiro duct stubs on top
+      const spiroRadius = 0.08;
+      const spiroH = 0.22;
+      const spiroGeo = new THREE.CylinderGeometry(spiroRadius, spiroRadius, spiroH, 16);
+      for (const dx of [-0.2, 0.2]) {
+        const duct = new THREE.Mesh(spiroGeo, materials.roof || materials.frame);
+        duct.position.set(dx, h + spiroH / 2, 0);
+        duct.castShadow = true;
+        group.add(duct);
+      }
+      break;
+    }
     case 'hvac': {
       const [w = 0.8, h = 1.8, d = 0.8] = size;
       labelType = 'IfcEnergyConversionDevice';

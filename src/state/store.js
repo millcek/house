@@ -64,6 +64,7 @@ export const INITIAL_STATE = {
   sliceHeight: null,
   activeRoomId: null,
   labelsVisible: true,
+  furnitureVisible: true,
   activeScheduleFloor: "1np", // '1np' | '2np'
   sun: {
     dayOfYear: 172,
@@ -92,6 +93,17 @@ export const INITIAL_STATE = {
   selectedElement: null,
   sidebarOpen: false,
   activeTab: "floors",
+  isTopDown: false,
+  drawings: {
+    isOpen: false,
+    sheet: "1np", // '1np' | '2np' | 'both'
+    units: "mm", // 'mm' | 'm'
+    showDimensions: true,
+    showInteriorDims: true,
+    showFurniture: true,
+    showOpeningTags: true,
+    showHatches: true,
+  },
   loading: { active: false, text: "" },
 };
 

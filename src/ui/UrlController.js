@@ -5,12 +5,16 @@ import { DESIGN_VARIANTS, getDesignVariant } from "../designs/index.js";
 const VALID_TABS = new Set(["floors", "sun", "site", "model", "bim", "budget"]);
 const DISCRETE_KEYS = [
   "floorMode",
+  "isTopDown",
   "activeRoomId",
   "sidebarOpen",
   "activeTab",
   "activeModelId",
+  "drawings",
+  "labelsVisible",
+  "furnitureVisible",
 ];
-const CONTINUOUS_KEYS = ["sliceHeight", "sun", "site", "labelsVisible"];
+const CONTINUOUS_KEYS = ["sliceHeight", "sun", "site"];
 
 const FLOOR_MODE_TO_VIEW = {
   all: "dum",
@@ -33,8 +37,116 @@ function parseVec3(str) {
   return parts;
 }
 
-function parseViewParam(rawView) {
-  const normalized = (rawView || "").trim().toLowerCase();
+function parseViewParam(rawView, rawSheet, rawParams) {
+  const normalized = (rawView || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const normalizedSheet = (rawSheet || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const isDrawings = (
+    normalized === "vykres" ||
+    normalized === "vykresy" ||
+    normalized === "drawings" ||
+    normalized === "drawing" ||
+    normalized.startsWith("vykres-") ||
+    normalized.startsWith("drawings-") ||
+    (!rawView && Boolean(rawSheet))
+  );
+
+  if (isDrawings) {
+    let sheet = "1np";
+    if (
+      normalizedSheet === "2np" ||
+      normalizedSheet === "2.np" ||
+      normalizedSheet === "floor2"
+    ) {
+      sheet = "2np";
+    } else if (
+      normalizedSheet === "both" ||
+      normalizedSheet === "oba" ||
+      normalizedSheet === "spolecne"
+    ) {
+      sheet = "both";
+    } else if (
+      normalizedSheet === "1np" ||
+      normalizedSheet === "1.np" ||
+      normalizedSheet === "floor1"
+    ) {
+      sheet = "1np";
+    } else if (normalized.endsWith("-2np")) {
+      sheet = "2np";
+    } else if (normalized.endsWith("-both")) {
+      sheet = "both";
+    } else if (normalized.endsWith("-1np")) {
+      sheet = "1np";
+    }
+
+    const units = rawParams?.get("units") === "m" ? "m" : "mm";
+    const showDimensions = rawParams?.get("dims") !== "0";
+    const showInteriorDims = rawParams?.get("intdims") !== "0";
+    const showFurniture = rawParams?.get("dfurniture") !== "0";
+    const showOpeningTags = rawParams?.get("tags") !== "0";
+    const showHatches = rawParams?.get("hatches") !== "0";
+
+    const floorMode = sheet === "2np" ? "2np" : "1np";
+    return {
+      floorMode,
+      activeScheduleFloor: floorMode,
+      isTopDownPreset: false,
+      isTopDown: false,
+      drawings: {
+        isOpen: true,
+        sheet,
+        units,
+        showDimensions,
+        showInteriorDims,
+        showFurniture,
+        showOpeningTags,
+        showHatches,
+      },
+    };
+  }
+
+  if (
+    normalized === "topdown" ||
+    normalized === "pudorys" ||
+    normalized === "topdown-1np" ||
+    normalized === "pudorys-1np"
+  ) {
+    return {
+      floorMode: "1np",
+      activeScheduleFloor: "1np",
+      isTopDownPreset: true,
+      isTopDown: true,
+      drawings: {
+        isOpen: false,
+        sheet: "1np",
+      },
+    };
+  }
+  if (
+    normalized === "topdown-2np" ||
+    normalized === "pudorys-2np"
+  ) {
+    return {
+      floorMode: "2np",
+      activeScheduleFloor: "2np",
+      isTopDownPreset: true,
+      isTopDown: true,
+      drawings: {
+        isOpen: false,
+        sheet: "2np",
+      },
+    };
+  }
+
   if (
     normalized === "1np" ||
     normalized === "1.np" ||
@@ -44,6 +156,11 @@ function parseViewParam(rawView) {
       floorMode: "1np",
       activeScheduleFloor: "1np",
       isTopDownPreset: false,
+      isTopDown: false,
+      drawings: {
+        isOpen: false,
+        sheet: "1np",
+      },
     };
   }
   if (
@@ -55,19 +172,22 @@ function parseViewParam(rawView) {
       floorMode: "2np",
       activeScheduleFloor: "2np",
       isTopDownPreset: false,
-    };
-  }
-  if (normalized === "topdown" || normalized === "pudorys") {
-    return {
-      floorMode: "1np",
-      activeScheduleFloor: "1np",
-      isTopDownPreset: true,
+      isTopDown: false,
+      drawings: {
+        isOpen: false,
+        sheet: "2np",
+      },
     };
   }
   return {
     floorMode: "all",
     activeScheduleFloor: "1np",
     isTopDownPreset: false,
+    isTopDown: false,
+    drawings: {
+      isOpen: false,
+      sheet: "1np",
+    },
   };
 }
 
@@ -98,7 +218,24 @@ function findRoomById(modelId, roomId) {
 export function buildSearchString(state, sceneManager, siteConfig) {
   const params = new URLSearchParams();
 
-  params.set("view", FLOOR_MODE_TO_VIEW[state.floorMode] || "dum");
+  if (state.drawings?.isOpen) {
+    params.set("view", "vykres");
+    if (state.drawings.sheet) {
+      params.set("sheet", state.drawings.sheet);
+    }
+    if (state.drawings.units === "m") {
+      params.set("units", "m");
+    }
+    if (state.drawings.showDimensions === false) params.set("dims", "0");
+    if (state.drawings.showInteriorDims === false) params.set("intdims", "0");
+    if (state.drawings.showFurniture === false) params.set("dfurniture", "0");
+    if (state.drawings.showOpeningTags === false) params.set("tags", "0");
+    if (state.drawings.showHatches === false) params.set("hatches", "0");
+  } else if (state.isTopDown) {
+    params.set("view", state.floorMode === "2np" ? "pudorys-2np" : "pudorys");
+  } else {
+    params.set("view", FLOOR_MODE_TO_VIEW[state.floorMode] || "dum");
+  }
 
   if (state.activeRoomId) {
     params.set("room", state.activeRoomId);
@@ -132,8 +269,10 @@ export function buildSearchString(state, sceneManager, siteConfig) {
   }
 
   if (!state.labelsVisible) params.set("labels", "0");
-  if (!state.site.gridVisible) params.set("grid", "0");
-  if (!state.site.plotVisible) params.set("plot", "0");
+  if (!state.furnitureVisible) params.set("furniture", "0");
+  if (state.site?.footprintVisible) params.set("footprint", "1");
+  if (!state.site?.gridVisible) params.set("grid", "0");
+  if (!state.site?.plotVisible) params.set("plot", "0");
 
   if (
     state.activeModelId !== "concept" &&
@@ -222,9 +361,11 @@ export function initUrlController({
 
       const activeModelId = store.getState().activeModelId;
 
-      // 2. View (`view`) & Room (`room`)
-      let { floorMode, activeScheduleFloor, isTopDownPreset } = parseViewParam(
+      // 2. View (`view`), Sheet (`sheet`) & Room (`room`)
+      let { floorMode, activeScheduleFloor, isTopDownPreset, isTopDown, drawings } = parseViewParam(
         params.get("view"),
+        params.get("sheet"),
+        params,
       );
 
       let activeRoomId = null;
@@ -236,6 +377,9 @@ export function initUrlController({
         matchedRoom = roomMatch.room;
         floorMode = roomMatch.floorKey;
         activeScheduleFloor = roomMatch.floorKey;
+        if (drawings.isOpen && !params.get("sheet")) {
+          drawings.sheet = roomMatch.floorKey;
+        }
       }
 
       // 3. Custom cut height (`slice`)
@@ -258,8 +402,10 @@ export function initUrlController({
       const sidebarOpen = hasValidTab;
       const activeTab = hasValidTab ? tabParam : store.getState().activeTab;
 
-      // 5. Visibility flags (`labels`, `grid`, `plot`)
+      // 5. Visibility flags (`labels`, `furniture`, `footprint`, `grid`, `plot`)
       const labelsVisible = params.get("labels") !== "0";
+      const furnitureVisible = params.get("furniture") !== "0";
+      const footprintVisible = params.get("footprint") === "1";
       const gridVisible = params.get("grid") !== "0";
       const plotVisible = params.get("plot") !== "0";
       gridHelper.visible = gridVisible;
@@ -319,12 +465,16 @@ export function initUrlController({
         activeRoomId,
         sliceHeight,
         labelsVisible,
+        furnitureVisible,
         sidebarOpen,
         activeTab,
+        isTopDown: Boolean(isTopDown),
+        drawings,
         site: {
           ...prevSite,
           gridVisible,
           plotVisible,
+          footprintVisible,
           housePos,
           setbacks,
         },
@@ -375,6 +525,11 @@ export function initUrlController({
   // Debounced camera / orbit target sync
   sceneManager.controls.addEventListener("change", () => {
     if (isApplyingFromUrl) return;
+    if (store.getState().isTopDown) {
+      if (typeof sceneManager.controls.getPolarAngle === "function" && sceneManager.controls.getPolarAngle() > 0.15) {
+        store.setState({ isTopDown: false });
+      }
+    }
     scheduleReplaceSync(200);
   });
 

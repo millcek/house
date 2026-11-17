@@ -576,6 +576,22 @@ function renderSingleFurnitureItem(item, floorKey) {
       break;
     }
 
+    case 'shaft': {
+      out.push(`<rect class="cad-wall-part-stroke" x="${m2svg(x)}" y="${m2svg(z)}" width="${m2svg(w)}" height="${m2svg(d)}" fill="#f1f5f9" />`);
+      out.push(`<line class="cad-furn-line" x1="${m2svg(x)}" y1="${m2svg(z)}" x2="${m2svg(x + w)}" y2="${m2svg(z + d)}" />`);
+      out.push(`<line class="cad-furn-line" x1="${m2svg(x + w)}" y1="${m2svg(z)}" x2="${m2svg(x)}" y2="${m2svg(z + d)}" />`);
+      out.push(`<text class="cad-micro-text" x="${m2svg(cx)}" y="${m2svg(cz + 0.04)}">ŠACHTA VZT</text>`);
+      break;
+    }
+
+    case 'recup': {
+      out.push(`<rect class="cad-furn-subtle" x="${m2svg(x)}" y="${m2svg(z)}" width="${m2svg(w)}" height="${m2svg(d)}" rx="2" />`);
+      out.push(`<line class="cad-furn-line" x1="${m2svg(x)}" y1="${m2svg(cz)}" x2="${m2svg(x + w)}" y2="${m2svg(cz)}" />`);
+      out.push(`<line class="cad-furn-line" x1="${m2svg(cx)}" y1="${m2svg(z)}" x2="${m2svg(cx)}" y2="${m2svg(z + d)}" />`);
+      out.push(`<text class="cad-micro-text" x="${m2svg(cx)}" y="${m2svg(cz + 0.04)}">VZT / REKUP</text>`);
+      break;
+    }
+
     case 'hvac':
     case 'laundryStack': {
       out.push(`<rect class="cad-furn-subtle" x="${m2svg(x)}" y="${m2svg(z)}" width="${m2svg(w)}" height="${m2svg(d)}" rx="2" />`);
@@ -593,9 +609,10 @@ function renderSingleFurnitureItem(item, floorKey) {
   return out.join('\n');
 }
 
-function renderFurniture(floorConfig, floorKey) {
+function renderFurniture(floorConfig, floorKey, showAll = true) {
   const parts = ['<g class="layer-furniture">'];
   for (const item of floorConfig.furniture || []) {
+    if (!showAll && item.type !== 'shaft') continue;
     const svg = renderSingleFurnitureItem(item, floorKey);
     if (svg) parts.push(svg);
   }
@@ -1265,9 +1282,7 @@ function renderFloorPlanGroup(designConfig, floorKey, offsetX, offsetY, options)
 
   parts.push(renderFinishesAndOverhangs(floorConfig, designConfig, floorKey, options.showHatches !== false));
   parts.push(renderStairsAndChimney(designConfig, floorKey));
-  if (options.showFurniture !== false) {
-    parts.push(renderFurniture(floorConfig, floorKey));
-  }
+  parts.push(renderFurniture(floorConfig, floorKey, options.showFurniture !== false));
   parts.push(renderWallsAndOpenings(floorConfig, options, bounds));
   parts.push(renderRoomStamps(floorConfig));
   if (options.showInteriorDims !== false) {

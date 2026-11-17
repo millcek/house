@@ -18,9 +18,26 @@ function assembleFloorGroup(name, floorConfig, materials, floorLabel) {
     group.add(buildWall(wall, materials, y, floorLabel));
   }
 
+  const furnitureGroup = new THREE.Group();
+  furnitureGroup.name = `furniture-${floorLabel.toLowerCase().replace('.', '')}`;
+
   for (const item of floorConfig.furniture || []) {
-    group.add(buildFurnitureItem(item, materials, y, floorLabel));
+    const mesh = buildFurnitureItem(item, materials, y, floorLabel);
+    if (
+      item.type === 'stairs' ||
+      item.type === 'canopy' ||
+      item.type === 'pergola' ||
+      item.type === 'railing' ||
+      item.type === 'shaft'
+    ) {
+      group.add(mesh);
+    } else {
+      furnitureGroup.add(mesh);
+    }
   }
+
+  group.add(furnitureGroup);
+  group.furnitureGroup = furnitureGroup;
 
   return group;
 }
@@ -53,6 +70,9 @@ export function buildHouseModel(designConfig, materials) {
 
   const roofGroup = new THREE.Group();
   roofGroup.name = 'roof-group';
+  if (designConfig.ceiling2Slab) {
+    roofGroup.add(buildSlab(designConfig.ceiling2Slab, materials));
+  }
   if (designConfig.roof) {
     roofGroup.add(buildGableRoof(designConfig.roof, materials.roof, materials.wall));
   }
@@ -73,6 +93,8 @@ export function buildHouseModel(designConfig, materials) {
   group.roofGroup = roofGroup;
   group.labels1np = labels1np;
   group.labels2np = labels2np;
+  group.furniture1np = floor1Group.furnitureGroup;
+  group.furniture2np = floor2Group.furnitureGroup;
   group.designConfig = designConfig;
 
   return group;

@@ -112,27 +112,91 @@ export function initDrawingsController(store, ifcController) {
     syncToolbarUi();
   }
 
-  function openModal() {
+  function openModal(requestedSheet) {
     if (!modal) return;
-    const { floorMode, activeScheduleFloor } = store.getState();
-    if (floorMode === '2np' || (floorMode === 'all' && activeScheduleFloor === '2np')) {
-      viewOpts.sheet = '2np';
-    } else if (floorMode === '1np') {
-      viewOpts.sheet = '1np';
+    const { floorMode, activeScheduleFloor, drawings } = store.getState();
+    let nextSheet = requestedSheet || drawings?.sheet;
+    if (!nextSheet || !['1np', '2np', 'both'].includes(nextSheet)) {
+      if (floorMode === '2np' || (floorMode === 'all' && activeScheduleFloor === '2np')) {
+        nextSheet = '2np';
+      } else {
+        nextSheet = '1np';
+      }
     }
 
-    isOpen = true;
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    renderDrawing();
-    resetView();
+    store.setState((prev) => ({
+      drawings: {
+        ...(prev.drawings || {}),
+        isOpen: true,
+        sheet: nextSheet,
+      },
+    }));
   }
 
   function closeModal() {
-    if (!modal || !isOpen) return;
-    isOpen = false;
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
+    if (!modal) return;
+    const { drawings } = store.getState();
+    if (!drawings?.isOpen && !isOpen) return;
+    store.setState((prev) => ({
+      drawings: {
+        ...(prev.drawings || {}),
+        isOpen: false,
+      },
+    }));
+  }
+
+  function applyOpenState(nextIsOpen, drawingsState) {
+    if (!modal) return;
+    const wasOpen = isOpen;
+    isOpen = Boolean(nextIsOpen);
+
+    if (isOpen) {
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      btnQuickDrawings?.classList.add('btn-primary');
+
+      const targetSheet =
+        drawingsState?.sheet === '2np' || drawingsState?.sheet === 'both'
+          ? drawingsState.sheet
+          : '1np';
+      const targetUnits = drawingsState?.units === 'm' ? 'm' : 'mm';
+      const targetDims = drawingsState?.showDimensions !== false;
+      const targetIntDims = drawingsState?.showInteriorDims !== false;
+      const targetFurn = drawingsState?.showFurniture !== false;
+      const targetTags = drawingsState?.showOpeningTags !== false;
+      const targetHatches = drawingsState?.showHatches !== false;
+
+      const changed =
+        !wasOpen ||
+        targetSheet !== viewOpts.sheet ||
+        targetUnits !== viewOpts.units ||
+        targetDims !== viewOpts.showDimensions ||
+        targetIntDims !== viewOpts.showInteriorDims ||
+        targetFurn !== viewOpts.showFurniture ||
+        targetTags !== viewOpts.showOpeningTags ||
+        targetHatches !== viewOpts.showHatches;
+
+      viewOpts.sheet = targetSheet;
+      viewOpts.units = targetUnits;
+      viewOpts.showDimensions = targetDims;
+      viewOpts.showInteriorDims = targetIntDims;
+      viewOpts.showFurniture = targetFurn;
+      viewOpts.showOpeningTags = targetTags;
+      viewOpts.showHatches = targetHatches;
+
+      if (changed) {
+        renderDrawing();
+        if (!wasOpen) {
+          resetView();
+        }
+      } else {
+        syncToolbarUi();
+      }
+    } else {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      btnQuickDrawings?.classList.remove('btn-primary');
+    }
   }
 
   function downloadSvg() {
@@ -170,9 +234,13 @@ export function initDrawingsController(store, ifcController) {
     btn.addEventListener('click', () => {
       const nextSheet = btn.dataset.sheet;
       if (!nextSheet || nextSheet === viewOpts.sheet) return;
-      viewOpts.sheet = nextSheet;
-      renderDrawing();
-      resetView();
+      store.setState((prev) => ({
+        drawings: {
+          ...(prev.drawings || {}),
+          isOpen: true,
+          sheet: nextSheet,
+        },
+      }));
     });
   });
 
@@ -180,14 +248,23 @@ export function initDrawingsController(store, ifcController) {
     btn.addEventListener('click', () => {
       const key = btn.dataset.layer;
       if (!key) return;
-      viewOpts[key] = !viewOpts[key];
-      renderDrawing();
+      store.setState((prev) => ({
+        drawings: {
+          ...(prev.drawings || {}),
+          [key]: !viewOpts[key],
+        },
+      }));
     });
   });
 
   btnUnits?.addEventListener('click', () => {
-    viewOpts.units = viewOpts.units === 'mm' ? 'm' : 'mm';
-    renderDrawing();
+    const nextUnits = viewOpts.units === 'mm' ? 'm' : 'mm';
+    store.setState((prev) => ({
+      drawings: {
+        ...(prev.drawings || {}),
+        units: nextUnits,
+      },
+    }));
   });
 
   btnZoomIn?.addEventListener('click', () => {
@@ -253,10 +330,23 @@ export function initDrawingsController(store, ifcController) {
     }
   });
 
-  store.subscribe(['activeModelId'], () => {
-    if (isOpen) renderDrawing();
-    else syncToolbarUi();
+  store.subscribe(['drawings', 'activeModelId'], (state, _prevState, changedKeys) => {
+    if (changedKeys.has('drawings')) {
+      const drawingsState = state.drawings;
+      applyOpenState(drawingsState?.isOpen, drawingsState);
+    } else if (changedKeys.has('activeModelId')) {
+      if (isOpen) {
+        renderDrawing();
+      } else {
+        syncToolbarUi();
+      }
+    }
   });
 
-  syncToolbarUi();
+  const initialDrawings = store.getState().drawings;
+  if (initialDrawings?.isOpen) {
+    applyOpenState(true, initialDrawings);
+  } else {
+    syncToolbarUi();
+  }
 }

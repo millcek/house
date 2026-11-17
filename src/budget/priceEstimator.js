@@ -169,10 +169,15 @@ export function priceItem(item) {
     [/Podlahové topení – trubka/, 35, 74],
     [/Rozdělovač podlahového topení/, 10500, 18000],
     [/Prostorové termostaty/, 2400, 4200],
-    [/Rekuperační jednotka/, 84000, 125000],
+    [/Rekuperační jednotka/, 89000, 134000],
+    [/Tlumiče hluku VZT/, 2400, 4800],
+    [/Rozdělovací distribuční boxy VZT/, 4500, 8200],
+    [/Fasádní sací a výfuková mřížka/, 2100, 4200],
+    [/Instalační šachta pro VZT/, 14000, 26000],
     [/Rekuperace – přívodní vyústky/, 1050, 2100],
     [/Rekuperace – odvodní vyústky/, 1050, 2100],
     [/Rekuperace – rozvodné potrubí/, 310, 680],
+    [/Těsnicí manžety/, 260, 490],
 
     // 13 Elektroinstalace
     [/Zásuvkové vývody/, 460, 1280],

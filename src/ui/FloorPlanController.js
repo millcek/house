@@ -16,6 +16,7 @@ export function initFloorPlanController(
   const btnSidebar2np = document.getElementById("btn-sidebar-2np");
   const btnSidebarTopdown = document.getElementById("btn-sidebar-topdown");
   const btnToggleLabels = document.getElementById("btn-toggle-labels");
+  const btnToggleFurniture = document.getElementById("btn-toggle-furniture");
   const variantSelect = document.getElementById("floorplan-variant-select");
 
   const tabFloor1np = document.getElementById("tab-floor-1np");
@@ -36,15 +37,20 @@ export function initFloorPlanController(
     };
   }
 
-  function applyVisibilityAndClip(floorMode, labelsVisible, sliceHeight) {
+  function applyVisibilityAndClip(floorMode, labelsVisible, furnitureVisible, sliceHeight) {
     const model = getActiveConceptModel();
+
+    if (model) {
+      if (model.furniture1np) model.furniture1np.visible = Boolean(furnitureVisible);
+      if (model.furniture2np) model.furniture2np.visible = Boolean(furnitureVisible);
+    }
 
     if (typeof sliceHeight === "number") {
       sceneManager.setClipHeight(sliceHeight);
       if (sliceSlider) sliceSlider.value = String(sliceHeight);
       if (sliceVal) sliceVal.textContent = `${sliceHeight.toFixed(2)} m`;
 
-      if (sliceHeight < 2.8) {
+      if (sliceHeight < 2.95) {
         if (model && model.floor1Group) {
           model.floor1Group.visible = true;
           model.ceiling1Group.visible = false;
@@ -54,7 +60,7 @@ export function initFloorPlanController(
           model.labels2np.visible = false;
         }
         if (activeFloorBadge) activeFloorBadge.textContent = "Řez 1.NP";
-      } else if (sliceHeight < 5.68) {
+      } else if (sliceHeight < 5.82) {
         if (model && model.floor1Group) {
           model.floor1Group.visible = true;
           model.ceiling1Group.visible = true;
@@ -83,13 +89,13 @@ export function initFloorPlanController(
     let sliceLabel = "Vše (bez řezu)";
 
     if (floorMode === "1np") {
-      clipHeight = 2.75;
-      sliderValue = 2.75;
-      sliceLabel = "2.75 m";
+      clipHeight = 2.95;
+      sliderValue = 2.95;
+      sliceLabel = "2.95 m";
     } else if (floorMode === "2np") {
-      clipHeight = 5.67;
-      sliderValue = 5.67;
-      sliceLabel = "5.67 m";
+      clipHeight = 5.82;
+      sliderValue = 5.82;
+      sliceLabel = "5.82 m";
     }
 
     sceneManager.setClipHeight(clipHeight);
@@ -160,6 +166,7 @@ export function initFloorPlanController(
       floorMode,
       sliceHeight,
       labelsVisible,
+      furnitureVisible,
       activeScheduleFloor,
       activeRoomId,
     } = state;
@@ -185,6 +192,11 @@ export function initFloorPlanController(
       btnToggleLabels.classList.toggle("btn-primary", labelsVisible);
     }
 
+    if (btnToggleFurniture) {
+      btnToggleFurniture.textContent = `🛋️ Nábytek a vybavení: ${furnitureVisible ? "ON" : "OFF"}`;
+      btnToggleFurniture.classList.toggle("btn-primary", furnitureVisible);
+    }
+
     if (variantSelect) {
       const variants = listDesignVariants();
       if (variantSelect.options.length !== variants.length) {
@@ -197,7 +209,7 @@ export function initFloorPlanController(
       }
     }
 
-    applyVisibilityAndClip(floorMode, labelsVisible, sliceHeight);
+    applyVisibilityAndClip(floorMode, labelsVisible, furnitureVisible, sliceHeight);
     renderSchedule(activeScheduleFloor, activeRoomId);
   }
 
@@ -213,6 +225,7 @@ export function initFloorPlanController(
       activeScheduleFloor: "1np",
       sliceHeight: null,
       activeRoomId: null,
+      isTopDown: false,
     }),
   );
   btnSidebar1np?.addEventListener("click", () =>
@@ -221,6 +234,7 @@ export function initFloorPlanController(
       activeScheduleFloor: "1np",
       sliceHeight: null,
       activeRoomId: null,
+      isTopDown: false,
     }),
   );
   btnSidebar2np?.addEventListener("click", () =>
@@ -229,6 +243,7 @@ export function initFloorPlanController(
       activeScheduleFloor: "2np",
       sliceHeight: null,
       activeRoomId: null,
+      isTopDown: false,
     }),
   );
   btnSidebarTopdown?.addEventListener("click", () => {
@@ -239,6 +254,7 @@ export function initFloorPlanController(
         s.floorMode === "all" ? "1np" : s.activeScheduleFloor,
       sliceHeight: null,
       activeRoomId: null,
+      isTopDown: true,
     }));
   });
 
@@ -248,6 +264,7 @@ export function initFloorPlanController(
       activeScheduleFloor: "1np",
       sliceHeight: null,
       activeRoomId: null,
+      isTopDown: false,
     }),
   );
   tabFloor2np?.addEventListener("click", () =>
@@ -256,11 +273,16 @@ export function initFloorPlanController(
       activeScheduleFloor: "2np",
       sliceHeight: null,
       activeRoomId: null,
+      isTopDown: false,
     }),
   );
 
   btnToggleLabels?.addEventListener("click", () => {
     store.setState((s) => ({ labelsVisible: !s.labelsVisible }));
+  });
+
+  btnToggleFurniture?.addEventListener("click", () => {
+    store.setState((s) => ({ furnitureVisible: !s.furnitureVisible }));
   });
 
   // Click room item -> switch to that floor and focus camera on room
@@ -294,6 +316,7 @@ export function initFloorPlanController(
       "floorMode",
       "sliceHeight",
       "labelsVisible",
+      "furnitureVisible",
       "activeScheduleFloor",
       "activeRoomId",
       "activeModelId",

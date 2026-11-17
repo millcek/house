@@ -1364,12 +1364,41 @@ export function computeBillOfMaterials({
     (r) => !NON_HABITABLE.test(r.name) && !(r.fixtures || []).length,
   );
   const exhaustRooms = interiorRooms.filter((r) => (r.fixtures || []).length);
+  const totalOutlets = supplyRooms.length + exhaustRooms.length;
   bom.add(S.heat, {
-    name: "Rekuperační jednotka",
-    spec: `průtok min. ${airflow} m³/h, účinnost ≥ 85 %`,
+    name: "Rekuperační jednotka s entalpickým výměníkem",
+    spec: `průtok min. ${airflow} m³/h, účinnost ≥ 88 %, letní bypass klapka`,
     unit: "ks",
     qty: 1,
     calc: `${fmt(interiorArea, 1)} m² × ${fmt(avgClear, 1)} m × ${fmt(TZ.ventilationAirChange, 1)}/h`,
+  });
+  bom.add(S.heat, {
+    name: "Tlumiče hluku VZT (přívod + odvod)",
+    spec: "Kruhové telefonní tlumiče L=1000 mm pro tichý chod rozvodů",
+    unit: "ks",
+    qty: 2,
+    calc: "1× přívod, 1× odvod",
+  });
+  bom.add(S.heat, {
+    name: "Rozdělovací distribuční boxy VZT",
+    spec: "Akusticky izolované rozdělovače pro přívodní a odtahové trasy",
+    unit: "ks",
+    qty: 2,
+    calc: "1× přívod, 1× odtah",
+  });
+  bom.add(S.heat, {
+    name: "Fasádní sací a výfuková mřížka",
+    spec: "Nerezové mřížky s protidešťovou žaluzií a odvodem kondenzátu na severní fasádě",
+    unit: "ks",
+    qty: 2,
+    calc: "sání + výfuk",
+  });
+  bom.add(S.heat, {
+    name: "Instalační šachta pro VZT a TZB rozvody",
+    spec: "Akustická a protipožární kapotáž šachty z desek Knauf Diamant/Red",
+    unit: "kpl",
+    qty: 1,
+    calc: "prostup 1.NP a 2.NP",
   });
   bom.add(S.heat, {
     name: "Rekuperace – přívodní vyústky",
@@ -1387,11 +1416,18 @@ export function computeBillOfMaterials({
   });
   bom.add(S.heat, {
     name: "Rekuperace – rozvodné potrubí",
-    spec: "Flexibilní / kruhové potrubí + rozdělovací boxy",
+    spec: "Flexibilní antibakteriální potrubí d90/75 mm + páteřní spiro potrubí",
     unit: "m",
-    qty: (supplyRooms.length + exhaustRooms.length) * TZ.ventDuctPerOutlet,
+    qty: totalOutlets * TZ.ventDuctPerOutlet,
     waste: 0.1,
-    calc: `${supplyRooms.length + exhaustRooms.length} vyústek × ${fmt(TZ.ventDuctPerOutlet, 1)} m`,
+    calc: `${totalOutlets} vyústek × ${fmt(TZ.ventDuctPerOutlet, 1)} m`,
+  });
+  bom.add(S.heat, {
+    name: "Těsnicí manžety a vzduchotěsné prostupy",
+    spec: "EPDM manžety pro neprůvzdušný prostup parotěsem (Blower-Door test)",
+    unit: "ks",
+    qty: totalOutlets + 4,
+    calc: `${totalOutlets} vyústek + 4 páteřní prostupy`,
   });
 
   // ============================================================ 13 ELEKTRO

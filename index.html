@@ -29,6 +29,7 @@
         <button id="btn-quick-drawings" class="btn btn-sm" title="Technické 2D výkresy půdorysů (SVG / PDF)">📄 Výkresy</button>
         <button id="btn-quick-budget" class="btn btn-sm" title="Soupis materiálu a výkaz výměr (CSV)">📋 Rozpočet</button>
         <button id="btn-quick-labels" class="btn btn-sm btn-primary" title="Zobrazit / skrýt 3D popisky místností">🏷️ Popisky</button>
+        <button id="btn-quick-furniture" class="btn btn-sm btn-primary" title="Zobrazit / skrýt 3D nábytek a vybavení">🛋️ Nábytek</button>
         <button id="btn-quick-footprint" class="btn btn-sm" title="Zobrazit zastavěnou plochu pozemku">📊 Zastavění</button>
         <div class="toolbar-divider"></div>
         <button id="btn-quick-sun" class="btn btn-sm" title="Rychlé nastavení slunce a stínů">☀️ Slunce</button>
@@ -118,6 +119,9 @@
             <button id="btn-toggle-labels" class="btn btn-sm btn-full" title="Zobrazit / skrýt 3D popisky místností">
               🏷️ Popisky místností: ON
             </button>
+            <button id="btn-toggle-furniture" class="btn btn-sm btn-full" style="margin-top: 4px;" title="Zobrazit / skrýt 3D nábytek a vybavení">
+              🛋️ Nábytek a vybavení: ON
+            </button>
             <div class="form-row" style="margin-top: 6px;">
               <label for="floorplan-variant-select" class="field-label">Varianta půdorysu 2.NP:</label>
               <select id="floorplan-variant-select" class="select-custom" style="width: 100%;" title="Porovnat varianty půdorysu 2.NP"></select>
@@ -148,9 +152,9 @@
             <div class="slice-control-group">
               <div class="slice-header">
                 <label for="slice-slider" class="field-label">Plynulý řez (výška Y):</label>
-                <span id="slice-val" class="field-val-highlight">2.75 m</span>
+                <span id="slice-val" class="field-val-highlight">2.95 m</span>
               </div>
-              <input type="range" id="slice-slider" min="0.2" max="8.5" step="0.05" value="2.75" class="range-slider" />
+              <input type="range" id="slice-slider" min="0.2" max="8.5" step="0.05" value="2.95" class="range-slider" />
             </div>
           </div>
         </div>

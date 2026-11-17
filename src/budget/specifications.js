@@ -83,8 +83,8 @@ export const BOM_SPEC = {
     membraneOverlap: 1.10,
     gutterHookSpacing: 0.75,
     covering: 'Skládaná střešní krytina (betonová / keramická taška)',
-    // Nevytápěné podkroví: izolace a podhled na úrovni stropu 2.NP
-    ceilingInsulationThickness: 0.30,
+    // Nevytápěné podkroví: izolace a podhled na úrovni stropu 2.NP (pasivní/nZEB standard)
+    ceilingInsulationThickness: 0.35,
     ceilingProfileMPerM2: 3.2, // CD profily na m² podhledu
   },
 
@@ -102,9 +102,9 @@ export const BOM_SPEC = {
   floors: {
     screedThickness: 0.05, // anhydritový potěr s podlahovým topením
     finishThickness: { woodFloor: 0.015, tileFloor: 0.012 },
-    groundFloorInsulation: 'EPS 150 S',
-    upperFloorInsulation: 'Kročejová izolace EPS T / minerální',
-    minGroundInsulation: 0.10, // kontrola – varování pod touto tloušťkou
+    groundFloorInsulation: 'EPS 150 S (tl. 155 mm v systémové skladbě na terénu)',
+    upperFloorInsulation: 'Kročejová izolace EPS T / akustická minerální vlna tl. 55 mm',
+    minGroundInsulation: 0.14, // kontrola – varování pod touto tloušťkou
     woodWaste: 0.08,
     tileWaste: 0.10,
     tileAdhesiveKgPerM2: 4.5,
