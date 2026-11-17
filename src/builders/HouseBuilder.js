@@ -58,11 +58,11 @@ export function buildHouseModel(designConfig, materials) {
   }
   group.add(roofGroup);
 
-  const labels1np = buildRoomLabels(designConfig.floor1?.rooms || []);
+  const labels1np = buildRoomLabels(designConfig.floor1?.rooms || [], designConfig.floor1);
   labels1np.name = 'labels-1np';
   group.add(labels1np);
 
-  const labels2np = buildRoomLabels(designConfig.floor2?.rooms || []);
+  const labels2np = buildRoomLabels(designConfig.floor2?.rooms || [], designConfig.floor2);
   labels2np.name = 'labels-2np';
   group.add(labels2np);
 

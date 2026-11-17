@@ -29,8 +29,8 @@ export function initFloorPlanController(
     const { activeModelId } = store.getState();
     const design = getDesignVariant(activeModelId);
     return {
-      f1: computeRoomSchedule(design.floor1?.rooms || []),
-      f2: computeRoomSchedule(design.floor2?.rooms || []),
+      f1: computeRoomSchedule(design.floor1?.rooms || [], design.floor1),
+      f2: computeRoomSchedule(design.floor2?.rooms || [], design.floor2),
     };
   }
 

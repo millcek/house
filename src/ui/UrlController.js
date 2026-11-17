@@ -44,11 +44,11 @@ function parseViewParam(rawView) {
 function findRoomById(modelId, roomId) {
   if (!roomId) return null;
   const design = getDesignVariant(modelId);
-  const f1 = computeRoomSchedule(design.floor1?.rooms || []).rooms;
+  const f1 = computeRoomSchedule(design.floor1?.rooms || [], design.floor1).rooms;
   const match1 = f1.find((r) => r.id === roomId);
   if (match1) return { floorKey: '1np', room: match1 };
 
-  const f2 = computeRoomSchedule(design.floor2?.rooms || []).rooms;
+  const f2 = computeRoomSchedule(design.floor2?.rooms || [], design.floor2).rooms;
   const match2 = f2.find((r) => r.id === roomId);
   if (match2) return { floorKey: '2np', room: match2 };
 

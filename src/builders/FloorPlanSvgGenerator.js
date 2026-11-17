@@ -1,4 +1,4 @@
-import { computeRoomSchedule } from './RoomBuilder.js';
+import { computeRoomSchedule, getWallBox, computeFloorBounds } from './RoomBuilder.js';
 
 const SCALE = 100; // 1 m = 100 SVG units
 
@@ -38,6 +38,12 @@ function formatTagDim(meters, units = 'mm') {
 
 function formatArea(sqm) {
   return `${Number(sqm).toFixed(1).replace('.', ',')}\u00A0m²`;
+}
+
+function formatElevation(meters) {
+  if (Math.abs(meters) < 0.0005) return '±0,000';
+  const sign = meters >= 0 ? '+' : '-';
+  return `${sign}${Math.abs(meters).toFixed(3).replace('.', ',')}`;
 }
 
 function normalizeVec(x, z) {
@@ -346,8 +352,11 @@ function renderStairsAndChimney(designConfig, floorKey) {
           `<rect x="${m2svg(rx - rw / 2)}" y="${m2svg(rz - rd / 2)}" width="${m2svg(rw)}" height="${m2svg(rd)}" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.3" />`
         );
       }
+      const floor2Struct = designConfig.floor2?.elevation ?? 3.02;
+      const floor2FinishThick =
+        (designConfig.floor2?.finishes || []).find((f) => f.material !== 'terrace')?.thickness ?? 0.08;
       parts.push(
-        `<text class="cad-micro-text" x="${m2svg((xStart + xLanding) / 2)}" y="${m2svg(z2Center - 0.14)}">VÝSTUP +3,100</text>`
+        `<text class="cad-micro-text" x="${m2svg((xStart + xLanding) / 2)}" y="${m2svg(z2Center - 0.14)}">VÝSTUP ${esc(formatElevation(floor2Struct + floor2FinishThick))}</text>`
       );
     }
   }
@@ -776,7 +785,7 @@ function renderWindowOpening(wallGeom, op) {
   return parts.join('\n');
 }
 
-function renderOpeningTag(wallGeom, op, units) {
+function renderOpeningTag(wallGeom, op, units, bounds) {
   const { ptAt, ux, uz, halfT } = wallGeom;
   const isDoor = Boolean(op.swing || op.type === 'door');
   const wStr = formatTagDim(op.width, units);
@@ -793,9 +802,9 @@ function renderOpeningTag(wallGeom, op, units) {
 
   if (isHorizontal) {
     // Exterior North/South walls tag slightly outside; interior horizontal walls tag on non-swing side
-    if (cz < -5.0) {
+    if (cz <= bounds.innerMinZ) {
       tz = cz - halfT - 0.16;
-    } else if (cz > 5.0) {
+    } else if (cz >= bounds.innerMaxZ) {
       tz = cz + halfT + 0.24;
     } else {
       const dirY = op.swing?.dir === 'north' ? 1 : -1;
@@ -803,9 +812,9 @@ function renderOpeningTag(wallGeom, op, units) {
     }
   } else {
     rot = -90;
-    if (cx < -3.0) {
+    if (cx <= bounds.innerMinX) {
       tx = cx - halfT - 0.18;
-    } else if (cx > 3.0) {
+    } else if (cx >= bounds.innerMaxX) {
       tx = cx + halfT + 0.22;
     } else {
       const dirX = op.swing?.dir === 'west' ? 1 : -1;
@@ -819,7 +828,7 @@ function renderOpeningTag(wallGeom, op, units) {
   return `<text class="cad-tag-text" x="${sx}" y="${sz}"${transformAttr}>${esc(text)}</text>`;
 }
 
-function renderWallsAndOpenings(floorConfig, options) {
+function renderWallsAndOpenings(floorConfig, options, bounds) {
   const { showHatches = true, showOpeningTags = true } = options;
   const units = options.units || 'mm';
 
@@ -886,7 +895,7 @@ function renderWallsAndOpenings(floorConfig, options) {
       }
 
       if (showOpeningTags && (op.type === 'window' || op.swing || op.type === 'door')) {
-        parts.push(renderOpeningTag(g, op, units));
+        parts.push(renderOpeningTag(g, op, units, bounds));
       }
     }
   }
@@ -896,7 +905,7 @@ function renderWallsAndOpenings(floorConfig, options) {
 }
 
 function renderRoomStamps(floorConfig) {
-  const { rooms } = computeRoomSchedule(floorConfig.rooms || []);
+  const { rooms } = computeRoomSchedule(floorConfig.rooms || [], floorConfig);
   const parts = ['<g class="layer-rooms">'];
 
   for (const room of rooms) {
@@ -1049,104 +1058,183 @@ function sortUniqueCoords(coords) {
   return out;
 }
 
-function renderExteriorDimensions(floorConfig, floorKey, units) {
-  const walls = floorConfig.walls || [];
-  const findWall = (dir) => walls.find((w) => w.id?.endsWith(`-${dir}`));
+/**
+ * Intersects a dimension ray at `sliceCoord` along `axis` ('x' = horizontal ray at z = sliceCoord,
+ * 'z' = vertical ray at x = sliceCoord) against all floor walls, returning sorted wall-face coordinates.
+ */
+export function computeWallSliceNodes(walls = [], axis = 'x', sliceCoord = 0) {
+  const eps = 0.02;
+  const coords = [];
+  for (const wall of walls) {
+    const box = getWallBox(wall);
+    if (axis === 'x') {
+      if (!box.isHorizontal && sliceCoord >= box.minZ - eps && sliceCoord <= box.maxZ + eps) {
+        coords.push(box.minX, box.maxX);
+      }
+    } else if (box.isHorizontal && sliceCoord >= box.minX - eps && sliceCoord <= box.maxX + eps) {
+      coords.push(box.minZ, box.maxZ);
+    }
+  }
+  return sortUniqueCoords(coords);
+}
 
-  const northNodes = sortUniqueCoords([-4.0, ...collectWallOpeningNodes(findWall('north'), 'x'), 4.0]);
-  const southNodes = sortUniqueCoords([-4.0, ...collectWallOpeningNodes(findWall('south'), 'x'), 4.0]);
-  const eastNodes = sortUniqueCoords([-6.0, ...collectWallOpeningNodes(findWall('east'), 'z'), 6.0]);
-  const westNodes = sortUniqueCoords([-6.0, ...collectWallOpeningNodes(findWall('west'), 'z'), 6.0]);
+function renderExteriorDimensions(floorConfig, designConfig, units) {
+  const bounds = computeFloorBounds(floorConfig, designConfig);
+  const { wallMinX, wallMaxX, wallMinZ, wallMaxZ, northWall, southWall, eastWall, westWall, terrace } = bounds;
+
+  const northNodes = sortUniqueCoords([
+    wallMinX,
+    ...collectWallOpeningNodes(northWall?.wallDef, 'x'),
+    wallMaxX,
+  ]);
+  const southNodes = sortUniqueCoords([
+    wallMinX,
+    ...collectWallOpeningNodes(southWall?.wallDef, 'x'),
+    wallMaxX,
+  ]);
+  const eastNodes = sortUniqueCoords([
+    wallMinZ,
+    ...collectWallOpeningNodes(eastWall?.wallDef, 'z'),
+    wallMaxZ,
+  ]);
+  const westNodes = sortUniqueCoords([
+    wallMinZ,
+    ...collectWallOpeningNodes(westWall?.wallDef, 'z'),
+    wallMaxZ,
+  ]);
 
   const parts = ['<g class="layer-ext-dims">'];
 
   // North (top)
-  parts.push(drawDimensionChain(northNodes, 'x', -6.65, { extStart: -6.0, units, textSide: -1 }));
-  parts.push(drawDimensionChain([-4.0, 4.0], 'x', -7.20, { extStart: -6.0, units, textSide: -1 }));
+  parts.push(drawDimensionChain(northNodes, 'x', wallMinZ - 0.65, { extStart: wallMinZ, units, textSide: -1 }));
+  parts.push(drawDimensionChain([wallMinX, wallMaxX], 'x', wallMinZ - 1.20, { extStart: wallMinZ, units, textSide: -1 }));
 
   // South (bottom)
-  parts.push(drawDimensionChain(southNodes, 'x', 6.65, { extStart: 6.0, units, textSide: 1 }));
-  if (floorKey === '1np') {
-    parts.push(drawDimensionChain([-8.0, -4.0, 4.0], 'x', 7.20, { extStart: 6.0, units, textSide: 1 }));
-    parts.push(drawDimensionChain([-8.0, 4.0], 'x', 7.75, { extStart: 6.0, units, textSide: 1 }));
+  parts.push(drawDimensionChain(southNodes, 'x', wallMaxZ + 0.65, { extStart: wallMaxZ, units, textSide: 1 }));
+  if (terrace) {
+    const southBandNodes = sortUniqueCoords([terrace.minX, terrace.maxX, wallMinX, wallMaxX]);
+    parts.push(drawDimensionChain(southBandNodes, 'x', wallMaxZ + 1.20, { extStart: wallMaxZ, units, textSide: 1 }));
+    const southOuterMin = Math.min(wallMinX, terrace.minX);
+    const southOuterMax = Math.max(wallMaxX, terrace.maxX);
+    parts.push(drawDimensionChain([southOuterMin, southOuterMax], 'x', wallMaxZ + 1.75, { extStart: wallMaxZ, units, textSide: 1 }));
   } else {
-    parts.push(drawDimensionChain([-4.0, 4.0], 'x', 7.20, { extStart: 6.0, units, textSide: 1 }));
+    parts.push(drawDimensionChain([wallMinX, wallMaxX], 'x', wallMaxZ + 1.20, { extStart: wallMaxZ, units, textSide: 1 }));
   }
 
   // East (right)
-  parts.push(drawDimensionChain(eastNodes, 'z', 4.65, { extStart: 4.0, units, textSide: -1 }));
-  parts.push(drawDimensionChain([-6.0, 6.0], 'z', 5.20, { extStart: 4.0, units, textSide: -1 }));
+  parts.push(drawDimensionChain(eastNodes, 'z', wallMaxX + 0.65, { extStart: wallMaxX, units, textSide: -1 }));
+  parts.push(drawDimensionChain([wallMinZ, wallMaxZ], 'z', wallMaxX + 1.20, { extStart: wallMaxX, units, textSide: -1 }));
 
   // West (left)
-  if (floorKey === '1np') {
-    parts.push(drawDimensionChain(westNodes, 'z', -8.65, { extStart: -4.0, units, textSide: -1 }));
-    parts.push(drawDimensionChain([-6.0, 0.0, 6.0], 'z', -9.20, { extStart: -8.0, units, textSide: -1 }));
-    parts.push(drawDimensionChain([-6.0, 6.0], 'z', -9.75, { extStart: -8.0, units, textSide: -1 }));
+  if (terrace) {
+    const westEdge = Math.min(wallMinX, terrace.minX);
+    const westBandNodes = sortUniqueCoords([wallMinZ, terrace.minZ, terrace.maxZ, wallMaxZ]);
+    parts.push(drawDimensionChain(westNodes, 'z', westEdge - 0.65, { extStart: wallMinX, units, textSide: -1 }));
+    parts.push(drawDimensionChain(westBandNodes, 'z', westEdge - 1.20, { extStart: westEdge, units, textSide: -1 }));
+    parts.push(drawDimensionChain([wallMinZ, wallMaxZ], 'z', westEdge - 1.75, { extStart: westEdge, units, textSide: -1 }));
   } else {
-    parts.push(drawDimensionChain(westNodes, 'z', -4.65, { extStart: -4.0, units, textSide: -1 }));
-    parts.push(drawDimensionChain([-6.0, 6.0], 'z', -5.20, { extStart: -4.0, units, textSide: -1 }));
+    parts.push(drawDimensionChain(westNodes, 'z', wallMinX - 0.65, { extStart: wallMinX, units, textSide: -1 }));
+    parts.push(drawDimensionChain([wallMinZ, wallMaxZ], 'z', wallMinX - 1.20, { extStart: wallMinX, units, textSide: -1 }));
   }
 
   parts.push('</g>');
   return parts.join('\n');
 }
 
-function renderInteriorDimensions(floorKey, units) {
+function pickClearSliceCoord(bandMin, bandMax, axis, floorConfig) {
+  const span = bandMax - bandMin;
+  if (span < 0.9) return Number(((bandMin + bandMax) / 2).toFixed(2));
+
+  const fractions = [0.22, 0.35, 0.65, 0.78];
+  const rooms = (floorConfig.rooms || []).filter((r) => r.interior !== false && Array.isArray(r.pos));
+  let bestCoord = bandMin + span * 0.25;
+  let bestScore = -Infinity;
+
+  for (const frac of fractions) {
+    const cand = bandMin + span * frac;
+    let minDist = Infinity;
+    for (const r of rooms) {
+      const rCoord = axis === 'x' ? r.pos[2] : r.pos[0];
+      minDist = Math.min(minDist, Math.abs(cand - rCoord));
+    }
+    if (minDist > bestScore) {
+      bestScore = minDist;
+      bestCoord = cand;
+    }
+  }
+  return Number(bestCoord.toFixed(2));
+}
+
+function discoverDistinctSlices(floorConfig, bounds, axis) {
+  const walls = floorConfig.walls || [];
+  const boxes = walls.map(getWallBox);
+  const { innerMinX, innerMaxX, innerMinZ, innerMaxZ } = bounds;
+
+  const stops =
+    axis === 'x'
+      ? sortUniqueCoords([
+          innerMinZ,
+          innerMaxZ,
+          ...boxes
+            .filter((b) => b.isHorizontal)
+            .flatMap((b) => [b.minZ, b.maxZ])
+            .filter((z) => z > innerMinZ + 0.05 && z < innerMaxZ - 0.05),
+        ])
+      : sortUniqueCoords([
+          innerMinX,
+          innerMaxX,
+          ...boxes
+            .filter((b) => !b.isHorizontal)
+            .flatMap((b) => [b.minX, b.maxX])
+            .filter((x) => x > innerMinX + 0.05 && x < innerMaxX - 0.05),
+        ]);
+
+  const seenSignatures = new Set();
+  const slices = [];
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a = stops[i];
+    const b = stops[i + 1];
+    if (b - a < 0.45) continue;
+
+    const sliceCoord = pickClearSliceCoord(a, b, axis, floorConfig);
+    const nodes = computeWallSliceNodes(walls, axis, sliceCoord);
+    if (nodes.length < 4) continue;
+
+    const sig = nodes.map((n) => n.toFixed(2)).join('|');
+    if (seenSignatures.has(sig)) continue;
+    seenSignatures.add(sig);
+    slices.push({ sliceCoord, nodes });
+  }
+
+  return slices;
+}
+
+function renderInteriorDimensions(floorConfig, designConfig, bounds, units) {
+  const walls = floorConfig.walls || [];
   const parts = ['<g class="layer-int-dims">'];
 
-  if (floorKey === '1np') {
-    parts.push(
-      drawDimensionChain([-4.0, -3.62, -0.58, -0.42, 1.32, 1.48, 3.62, 4.0], 'x', -4.90, {
-        units,
-        textSide: -1,
-      })
-    );
-    parts.push(drawDimensionChain([-4.0, -3.62, 3.62, 4.0], 'x', 3.35, { units, textSide: -1 }));
-    parts.push(
-      drawDimensionChain([-6.0, -5.62, -1.94, -1.78, 0.18, 0.42, 5.62, 6.0], 'z', -1.60, {
-        units,
-        textSide: -1,
-      })
-    );
-    parts.push(
-      drawDimensionChain([-6.0, -5.62, -2.22, -2.06, 0.18, 0.42, 5.62, 6.0], 'z', 2.85, {
-        units,
-        textSide: -1,
-      })
-    );
+  const customSlices = floorConfig.dimensionSlices;
+  if (customSlices) {
+    for (const zSlice of customSlices.x || []) {
+      const nodes = computeWallSliceNodes(walls, 'x', zSlice);
+      if (nodes.length >= 4) {
+        parts.push(drawDimensionChain(nodes, 'x', zSlice, { units, textSide: -1 }));
+      }
+    }
+    for (const xSlice of customSlices.z || []) {
+      const nodes = computeWallSliceNodes(walls, 'z', xSlice);
+      if (nodes.length >= 4) {
+        parts.push(drawDimensionChain(nodes, 'z', xSlice, { units, textSide: -1 }));
+      }
+    }
   } else {
-    parts.push(
-      drawDimensionChain([-4.0, -3.62, -0.58, -0.42, 3.62, 4.0], 'x', -4.90, {
-        units,
-        textSide: -1,
-      })
-    );
-    parts.push(
-      drawDimensionChain([-4.0, -3.62, -0.58, -0.42, 0.97, 1.13, 3.62, 4.0], 'x', -1.60, {
-        units,
-        textSide: -1,
-      })
-    );
-    parts.push(
-      drawDimensionChain([-4.0, -3.62, -0.38, -0.22, 3.62, 4.0], 'x', 3.60, {
-        units,
-        textSide: -1,
-      })
-    );
-    parts.push(
-      drawDimensionChain([-6.0, -5.62, -1.94, -1.78, 0.18, 0.34, 5.62, 6.0], 'z', -1.60, {
-        units,
-        textSide: -1,
-      })
-    );
-    parts.push(
-      drawDimensionChain(
-        [-6.0, -5.62, -3.08, -2.92, -0.80, -0.64, 0.56, 0.72, 1.72, 1.88, 5.62, 6.0],
-        'z',
-        2.45,
-        { units, textSide: -1 }
-      )
-    );
+    for (const { sliceCoord, nodes } of discoverDistinctSlices(floorConfig, bounds, 'x')) {
+      parts.push(drawDimensionChain(nodes, 'x', sliceCoord, { units, textSide: -1 }));
+    }
+    for (const { sliceCoord, nodes } of discoverDistinctSlices(floorConfig, bounds, 'z')) {
+      parts.push(drawDimensionChain(nodes, 'z', sliceCoord, { units, textSide: -1 }));
+    }
   }
 
   parts.push('</g>');
@@ -1157,37 +1245,44 @@ function renderFloorPlanGroup(designConfig, floorKey, offsetX, offsetY, options)
   const floorConfig = floorKey === '2np' ? designConfig.floor2 : designConfig.floor1;
   if (!floorConfig) return '';
 
+  const bounds = computeFloorBounds(floorConfig, designConfig);
+  const structElev = floorConfig.elevation ?? 0;
+  const finishThick =
+    (floorConfig.finishes || []).find((f) => f.material !== 'terrace')?.thickness ?? 0;
+  const finishElev = structElev + finishThick;
+
   const title = floorKey === '2np' ? 'PŮDORYS 2.NP (PATRO)' : 'PŮDORYS 1.NP (PŘÍZEMÍ)';
-  const elevText =
-    floorKey === '2np'
-      ? 'Úroveň č. podlahy +3,100 m (nosná deska +3,020 m)'
-      : 'Úroveň č. podlahy +0,120 m (základová deska ±0,000 m)';
+  const baseLabel = structElev === 0 ? 'základová deska' : 'nosná deska';
+  const elevText = `Úroveň č. podlahy ${formatElevation(finishElev)} m (${baseLabel} ${formatElevation(structElev)} m)`;
+
+  const headingX = m2svg(bounds.wallMinX);
+  const headingY = m2svg(bounds.wallMinZ - 2.25);
 
   const parts = [];
   parts.push(`<g transform="translate(${offsetX}, ${offsetY})">`);
-  parts.push(`<text class="cad-plan-heading" x="-400" y="-825">${esc(title)}</text>`);
-  parts.push(`<text class="cad-plan-sub" x="-400" y="-803">${esc(elevText)}</text>`);
+  parts.push(`<text class="cad-plan-heading" x="${headingX}" y="${headingY}">${esc(title)}</text>`);
+  parts.push(`<text class="cad-plan-sub" x="${headingX}" y="${headingY + 22}">${esc(elevText)}</text>`);
 
   parts.push(renderFinishesAndOverhangs(floorConfig, designConfig, floorKey, options.showHatches !== false));
   parts.push(renderStairsAndChimney(designConfig, floorKey));
   if (options.showFurniture !== false) {
     parts.push(renderFurniture(floorConfig, floorKey));
   }
-  parts.push(renderWallsAndOpenings(floorConfig, options));
+  parts.push(renderWallsAndOpenings(floorConfig, options, bounds));
   parts.push(renderRoomStamps(floorConfig));
   if (options.showInteriorDims !== false) {
-    parts.push(renderInteriorDimensions(floorKey, options.units || 'mm'));
+    parts.push(renderInteriorDimensions(floorConfig, designConfig, bounds, options.units || 'mm'));
   }
   if (options.showDimensions !== false) {
-    parts.push(renderExteriorDimensions(floorConfig, floorKey, options.units || 'mm'));
+    parts.push(renderExteriorDimensions(floorConfig, designConfig, options.units || 'mm'));
   }
 
   parts.push('</g>');
   return parts.join('\n');
 }
 
-function renderRoomScheduleTable(x, y, width, title, roomsConfig) {
-  const schedule = computeRoomSchedule(roomsConfig || []);
+function renderRoomScheduleTable(x, y, width, title, floorConfig) {
+  const schedule = computeRoomSchedule(floorConfig?.rooms || [], floorConfig);
   const rowH = 22;
   const headerH = 28;
   const interiorRooms = schedule.rooms.filter((r) => r.interior);
@@ -1391,11 +1486,11 @@ export function generateFloorPlanSvg(designConfig, options = {}) {
   curY += compass.height + 14;
 
   if (isBoth) {
-    const t1 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'MÍSTNOSTI 1.NP (PŘÍZEMÍ)', designConfig.floor1?.rooms);
+    const t1 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'MÍSTNOSTI 1.NP (PŘÍZEMÍ)', designConfig.floor1);
     parts.push(t1.svg);
     curY += t1.height + 12;
 
-    const t2 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'MÍSTNOSTI 2.NP (PATRO)', designConfig.floor2?.rooms);
+    const t2 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'MÍSTNOSTI 2.NP (PATRO)', designConfig.floor2);
     parts.push(t2.svg);
     curY += t2.height + 12;
 
@@ -1411,11 +1506,11 @@ export function generateFloorPlanSvg(designConfig, options = {}) {
     );
     curY += 44;
   } else if (sheet === '2np') {
-    const t2 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'TABULKA MÍSTNOSTÍ — 2.NP', designConfig.floor2?.rooms);
+    const t2 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'TABULKA MÍSTNOSTÍ — 2.NP', designConfig.floor2);
     parts.push(t2.svg);
     curY += t2.height + 14;
   } else {
-    const t1 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'TABULKA MÍSTNOSTÍ — 1.NP', designConfig.floor1?.rooms);
+    const t1 = renderRoomScheduleTable(sidebarX, curY, sidebarW, 'TABULKA MÍSTNOSTÍ — 1.NP', designConfig.floor1);
     parts.push(t1.svg);
     curY += t1.height + 14;
   }
