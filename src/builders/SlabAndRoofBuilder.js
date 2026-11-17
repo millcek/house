@@ -40,7 +40,7 @@ export function buildSlab(slabDef, materials) {
   });
   geo.rotateX(-Math.PI / 2);
 
-  const mesh = new THREE.Mesh(geo, materials.wall);
+  const mesh = new THREE.Mesh(geo, materials.slab || materials.wall);
   mesh.position.y = y;
   mesh.receiveShadow = true;
   mesh.userData.bim = {

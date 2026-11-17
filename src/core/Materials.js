@@ -10,16 +10,18 @@ export function createMaterials(clipPlane = houseClipPlane) {
   const clippingPlanes = [clipPlane];
 
   return {
-    // House architectural materials (respect floor-slicing clip plane)
+    // House architectural materials (walls/partitions are sliced geometrically; other house materials use clipPlane)
     wall: new THREE.MeshStandardMaterial({
       color: 0xf1f3f5,
       roughness: 0.65,
-      clippingPlanes,
-      clipShadows: true,
     }),
     partition: new THREE.MeshStandardMaterial({
       color: 0xe2e8f0,
       roughness: 0.7,
+    }),
+    slab: new THREE.MeshStandardMaterial({
+      color: 0xf1f3f5,
+      roughness: 0.65,
       clippingPlanes,
       clipShadows: true,
     }),

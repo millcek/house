@@ -61,6 +61,11 @@ export class SceneManager {
     this.setbackGroup = new THREE.Group();
     this.plotGroup.add(this.setbackGroup);
 
+    // Built-up footprint overlay Group
+    this.footprintGroup = new THREE.Group();
+    this.footprintGroup.visible = false;
+    this.plotGroup.add(this.footprintGroup);
+
     // House Anchor Container
     this.houseContainer = new THREE.Group();
     this.setHouseTransform(defaultHousePos);
@@ -80,6 +85,31 @@ export class SceneManager {
 
   setClipHeight(height) {
     this.clipPlane.constant = height;
+    this.applyWallSlice(this.houseContainer, height);
+  }
+
+  applyWallSlice(root = this.houseContainer, height = this.clipPlane.constant) {
+    if (!root) return;
+    root.traverse((child) => {
+      const slice = child.userData?.wallSlice;
+      if (!slice) return;
+      const { worldYBottom, worldYTop, yBottom, yTop } = slice;
+      const fullH = yTop - yBottom;
+      if (fullH <= 0.0001) return;
+
+      if (height <= worldYBottom + 0.005) {
+        child.visible = false;
+      } else if (height >= worldYTop) {
+        child.visible = true;
+        child.scale.y = 1;
+        child.position.y = (yBottom + yTop) / 2;
+      } else {
+        const clippedH = height - worldYBottom;
+        child.visible = true;
+        child.scale.y = clippedH / fullH;
+        child.position.y = yBottom + clippedH / 2;
+      }
+    });
   }
 
   fitCameraToObject(object = this.siteContainer) {

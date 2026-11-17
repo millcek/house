@@ -79,6 +79,7 @@ export const INITIAL_STATE = {
   site: {
     gridVisible: true,
     plotVisible: true,
+    footprintVisible: false,
     housePos: { x: 4.5, z: 1.0, rotY: 0 },
     setbacks: {
       streetRight: 5.0,

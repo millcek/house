@@ -758,6 +758,85 @@ body {
   color: #fff;
 }
 
+#builtup-area-card .info-val {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Built-up Area Ratio Progress Bar & Legend */
+.builtup-progress-bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 6px;
+}
+
+.builtup-segment {
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.seg-buildings {
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+}
+
+.seg-accessories {
+  background: linear-gradient(90deg, #f59e0b, #a855f7);
+}
+
+.seg-free {
+  background: rgba(52, 211, 153, 0.35);
+}
+
+.builtup-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.footprint-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.info-list li.info-list-subtotal {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 3px;
+  padding-top: 5px;
+}
+
+.info-list li.info-list-total {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin-top: 3px;
+  padding-top: 5px;
+}
+
 .hint-card {
   font-size: 11.5px;
   color: var(--text-muted);

@@ -9,7 +9,7 @@ function resolveOpeningCenter(opening) {
 /**
  * Creates a framed glass window or glazed door assembly in local wall coordinates.
  */
-function buildAperture(opening, wallThickness, materials, floorName, wallName) {
+function buildAperture(opening, wallThickness, materials, floorName, wallName, floorY = 0) {
   const group = new THREE.Group();
   const width = opening.width;
   const height = opening.height;
@@ -22,12 +22,25 @@ function buildAperture(opening, wallThickness, materials, floorName, wallName) {
     materials.frame
   );
   frame.position.set(at, centerY, 0);
+  frame.userData.wallSlice = {
+    worldYBottom: floorY + sill,
+    worldYTop: floorY + sill + height,
+    yBottom: sill,
+    yTop: sill + height,
+  };
 
+  const glassH = Math.max(0.05, height - 0.12);
   const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(Math.max(0.05, width - 0.12), Math.max(0.05, height - 0.12), 0.04),
+    new THREE.BoxGeometry(Math.max(0.05, width - 0.12), glassH, 0.04),
     materials.glass
   );
   glass.position.set(at, centerY, 0);
+  glass.userData.wallSlice = {
+    worldYBottom: floorY + centerY - glassH / 2,
+    worldYTop: floorY + centerY + glassH / 2,
+    yBottom: centerY - glassH / 2,
+    yTop: centerY + glassH / 2,
+  };
 
   const ifcType = opening.type === 'door' ? 'IfcDoor' : 'IfcWindow';
   const bimData = {
@@ -101,6 +114,12 @@ export function buildWall(wallDef, materials, floorY = 0, floorName = '1.NP') {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.userData.bim = wallBim;
+    mesh.userData.wallSlice = {
+      worldYBottom: floorY + yBottom,
+      worldYTop: floorY + yTop,
+      yBottom,
+      yTop,
+    };
     wallGroup.add(mesh);
   };
 
@@ -136,7 +155,7 @@ export function buildWall(wallDef, materials, floorY = 0, floorName = '1.NP') {
 
     // Glazed/framed aperture unless it's a pure open passage
     if (op.type !== 'opening') {
-      wallGroup.add(buildAperture(op, thickness, materials, floorName, wallName));
+      wallGroup.add(buildAperture(op, thickness, materials, floorName, wallName, floorY));
     }
 
     cursor = Math.max(cursor, op.end);

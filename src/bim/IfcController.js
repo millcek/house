@@ -35,7 +35,9 @@ export class IfcController {
     this._pointerDownPos = null;
 
     this._bindCanvasEvents();
-    this.store.subscribe(['site'], () => this._syncConceptHighlightTransform());
+    this.store.subscribe(['site', 'sliceHeight', 'floorMode'], () =>
+      queueMicrotask(() => this._syncConceptHighlightTransform())
+    );
   }
 
   _bindCanvasEvents() {
@@ -62,6 +64,7 @@ export class IfcController {
     const model = this.buildConceptFn(variantId);
     this.currentModel = model;
     this.sceneManager.houseContainer.add(model);
+    this.sceneManager.applyWallSlice(model);
 
     this.store.setState({
       activeModelId: variantId,
@@ -261,8 +264,20 @@ export class IfcController {
 
   _syncConceptHighlightTransform() {
     if (this.conceptHighlightMesh && this._highlightedSourceMesh) {
-      this._highlightedSourceMesh.updateWorldMatrix(true, false);
-      this.conceptHighlightMesh.matrix.copy(this._highlightedSourceMesh.matrixWorld);
+      let visible = true;
+      let obj = this._highlightedSourceMesh;
+      while (obj) {
+        if (!obj.visible) {
+          visible = false;
+          break;
+        }
+        obj = obj.parent;
+      }
+      this.conceptHighlightMesh.visible = visible;
+      if (visible) {
+        this._highlightedSourceMesh.updateWorldMatrix(true, false);
+        this.conceptHighlightMesh.matrix.copy(this._highlightedSourceMesh.matrixWorld);
+      }
     }
   }
 

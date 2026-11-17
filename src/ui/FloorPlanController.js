@@ -52,7 +52,7 @@ export function initFloorPlanController(
           model.labels2np.visible = false;
         }
         if (activeFloorBadge) activeFloorBadge.textContent = "Řez 1.NP";
-      } else if (sliceHeight < 5.6) {
+      } else if (sliceHeight < 5.68) {
         if (model && model.floor1Group) {
           model.floor1Group.visible = true;
           model.ceiling1Group.visible = true;
@@ -85,9 +85,9 @@ export function initFloorPlanController(
       sliderValue = 2.75;
       sliceLabel = "2.75 m";
     } else if (floorMode === "2np") {
-      clipHeight = 5.55;
-      sliderValue = 5.55;
-      sliceLabel = "5.55 m";
+      clipHeight = 5.67;
+      sliderValue = 5.67;
+      sliceLabel = "5.67 m";
     }
 
     sceneManager.setClipHeight(clipHeight);

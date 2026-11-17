@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildGableRoof } from './SlabAndRoofBuilder.js';
+import { createRoomBadge } from './RoomBuilder.js';
 
 /**
  * Builds the 40×27m chamfered plot, coordinate grid, boundary polygon, and adjacent roads.
@@ -259,4 +260,227 @@ export function updateSetbackDimensions(setbackGroup, siteConfig, housePos, auxC
     workshopTop: Number((auxMinZ - -hd).toFixed(1)),
     houseFront: Number((hd - houseMaxZ).toFixed(1)),
   };
+}
+
+/**
+ * Computes built-up area breakdown (m² and % of gross plot area) for the plot,
+ * main house, workshop, covered parking, terrace, and connecting canopy.
+ */
+export function computeBuiltUpArea(siteConfig, auxConfig, houseDesign) {
+  const plotGrossSqm = Number((siteConfig.width * siteConfig.depth).toFixed(1));
+  const chamfer = siteConfig.chamfer || 0;
+  const chamferSqm = 0.5 * chamfer * chamfer;
+  const plotNetSqm = Number((plotGrossSqm - chamferSqm).toFixed(1));
+
+  const houseWidth = houseDesign?.footprint?.width ?? 8;
+  const houseLength = houseDesign?.footprint?.length ?? 12;
+  const houseSqm = Number((houseWidth * houseLength).toFixed(1));
+
+  const workshopSqm = Number((auxConfig.workshopWidth * auxConfig.depth).toFixed(1));
+  const parkingSqm = Number((auxConfig.parkWidth * auxConfig.depth).toFixed(1));
+
+  const terraceRoom = houseDesign?.floor1?.rooms?.find(
+    (r) => r.id === '1.08' || r.interior === false
+  );
+  const terraceSqm = Number((terraceRoom?.areaSqm ?? 28.0).toFixed(1));
+
+  const canopySqm = auxConfig.canopy
+    ? Number((auxConfig.canopy.size[0] * auxConfig.canopy.size[2]).toFixed(1))
+    : 0;
+
+  const buildingsSqm = Number((houseSqm + workshopSqm + parkingSqm).toFixed(1));
+  const accessoriesSqm = Number((terraceSqm + canopySqm).toFixed(1));
+  const totalBuiltUpSqm = Number((buildingsSqm + accessoriesSqm).toFixed(1));
+  const freeGardenSqm = Number((plotGrossSqm - totalBuiltUpSqm).toFixed(1));
+
+  const pct = (sqm) => (plotGrossSqm > 0 ? Number(((sqm / plotGrossSqm) * 100).toFixed(1)) : 0);
+
+  const houseRatioPct = pct(houseSqm);
+  const workshopRatioPct = pct(workshopSqm);
+  const parkingRatioPct = pct(parkingSqm);
+  const terraceRatioPct = pct(terraceSqm);
+  const canopyRatioPct = pct(canopySqm);
+  const buildingsRatioPct = pct(buildingsSqm);
+  const accessoriesRatioPct = pct(accessoriesSqm);
+  const totalRatioPct = pct(totalBuiltUpSqm);
+  const freeRatioPct = Number((100 - totalRatioPct).toFixed(1));
+
+  return {
+    plotGrossSqm,
+    chamferSqm,
+    plotNetSqm,
+    houseSqm,
+    workshopSqm,
+    parkingSqm,
+    terraceSqm,
+    canopySqm,
+    buildingsSqm,
+    accessoriesSqm,
+    totalBuiltUpSqm,
+    freeGardenSqm,
+    houseRatioPct,
+    workshopRatioPct,
+    parkingRatioPct,
+    terraceRatioPct,
+    canopyRatioPct,
+    buildingsRatioPct,
+    accessoriesRatioPct,
+    totalRatioPct,
+    freeRatioPct,
+  };
+}
+
+function disposeGroupResources(group) {
+  group.traverse((obj) => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of mats) {
+        if (m.map) m.map.dispose();
+        m.dispose();
+      }
+    }
+  });
+  group.clear();
+}
+
+function createFootprintZone({ width, depth, color, label, areaText, x = 0, z = 0, y = 0.06 }) {
+  const zoneGroup = new THREE.Group();
+  zoneGroup.position.set(x, 0, z);
+
+  const fillGeo = new THREE.PlaneGeometry(width, depth);
+  const fillMat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.28,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const fillMesh = new THREE.Mesh(fillGeo, fillMat);
+  fillMesh.rotation.x = -Math.PI / 2;
+  fillMesh.position.y = y;
+  fillMesh.renderOrder = 4;
+  zoneGroup.add(fillMesh);
+
+  const hw = width / 2;
+  const hd = depth / 2;
+  const outlineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-hw, y, -hd),
+    new THREE.Vector3(hw, y, -hd),
+    new THREE.Vector3(hw, y, hd),
+    new THREE.Vector3(-hw, y, hd),
+  ]);
+  const outlineMat = new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.95,
+    depthTest: false,
+  });
+  const outlineLoop = new THREE.LineLoop(outlineGeo, outlineMat);
+  outlineLoop.renderOrder = 5;
+  zoneGroup.add(outlineLoop);
+
+  const badge = createRoomBadge(label, areaText, '#ffffff');
+  badge.position.set(0, 0.4, 0);
+  badge.renderOrder = 10;
+  zoneGroup.add(badge);
+
+  return zoneGroup;
+}
+
+/**
+ * Updates 3D translucent built-up area footprints, outlines, and badges in `footprintGroup`.
+ */
+export function updateFootprintOverlay(
+  footprintGroup,
+  siteConfig,
+  housePos,
+  auxConfig,
+  houseDesign
+) {
+  disposeGroupResources(footprintGroup);
+
+  const metrics = computeBuiltUpArea(siteConfig, auxConfig, houseDesign);
+  const houseWidth = houseDesign?.footprint?.width ?? 8;
+  const houseLength = houseDesign?.footprint?.length ?? 12;
+
+  const terraceFinish = houseDesign?.floor1?.finishes?.find((f) => f.material === 'terrace');
+  const [terraceW, terraceD] = terraceFinish?.size || [4.0, 6.8];
+  const [terraceX, terraceZ] = terraceFinish?.pos || [-6.0, 3.2];
+
+  // House & Terrace group (follows housePos X, Z, RotY)
+  const houseOverlayGroup = new THREE.Group();
+  houseOverlayGroup.position.set(housePos.x, 0, housePos.z);
+  houseOverlayGroup.rotation.y = THREE.MathUtils.degToRad(housePos.rotY || 0);
+
+  houseOverlayGroup.add(
+    createFootprintZone({
+      width: houseWidth,
+      depth: houseLength,
+      color: 0x3b82f6,
+      label: 'Hlavní dům',
+      areaText: `${metrics.houseSqm.toFixed(1)} m² (${metrics.houseRatioPct.toFixed(1)} %)`,
+    })
+  );
+
+  houseOverlayGroup.add(
+    createFootprintZone({
+      width: terraceW,
+      depth: terraceD,
+      color: 0xf59e0b,
+      label: 'Terasa (JZ)',
+      areaText: `${metrics.terraceSqm.toFixed(1)} m² (${metrics.terraceRatioPct.toFixed(1)} %)`,
+      x: terraceX,
+      z: terraceZ,
+    })
+  );
+
+  footprintGroup.add(houseOverlayGroup);
+
+  // Auxiliary building parts (Workshop, Covered Parking, Canopy)
+  const totalAuxWidth = auxConfig.parkWidth + auxConfig.workshopWidth;
+  const workshopRelX = -totalAuxWidth / 2 + auxConfig.workshopWidth / 2;
+  const parkRelX = totalAuxWidth / 2 - auxConfig.parkWidth / 2;
+  const [auxX, , auxZ] = auxConfig.position;
+
+  footprintGroup.add(
+    createFootprintZone({
+      width: auxConfig.workshopWidth,
+      depth: auxConfig.depth,
+      color: 0x10b981,
+      label: 'Zahradní dílna',
+      areaText: `${metrics.workshopSqm.toFixed(1)} m² (${metrics.workshopRatioPct.toFixed(1)} %)`,
+      x: auxX + workshopRelX,
+      z: auxZ,
+    })
+  );
+
+  footprintGroup.add(
+    createFootprintZone({
+      width: auxConfig.parkWidth,
+      depth: auxConfig.depth,
+      color: 0x06b6d4,
+      label: 'Kryté parkování',
+      areaText: `${metrics.parkingSqm.toFixed(1)} m² (${metrics.parkingRatioPct.toFixed(1)} %)`,
+      x: auxX + parkRelX,
+      z: auxZ,
+    })
+  );
+
+  if (auxConfig.canopy) {
+    footprintGroup.add(
+      createFootprintZone({
+        width: auxConfig.canopy.size[0],
+        depth: auxConfig.canopy.size[2],
+        color: 0xa855f7,
+        label: 'Kryté loubí',
+        areaText: `${metrics.canopySqm.toFixed(1)} m² (${metrics.canopyRatioPct.toFixed(1)} %)`,
+        x: auxX + auxConfig.canopy.pos[0],
+        z: auxZ + auxConfig.canopy.pos[2],
+      })
+    );
+  }
+
+  return metrics;
 }
