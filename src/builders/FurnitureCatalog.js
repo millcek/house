@@ -19,7 +19,8 @@ function createBoxPart(w, h, d, x, y, z, material, castShadow = true) {
 export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.NP') {
   const group = new THREE.Group();
   const [x, z] = item.pos || [0, 0];
-  group.position.set(x, floorY, z);
+  const yOffset = item.type === 'stairs' ? 0 : (item.yOffset ?? 0);
+  group.position.set(x, floorY + yOffset, z);
   if (item.rotY) {
     group.rotation.y = degToRad(item.rotY);
   }
@@ -118,6 +119,7 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
         const zFlight2 = item.zFlight2 ?? [-0.67, 0.2];
         const stepsPerFlight = item.stepsPerFlight ?? 8;
         const totalRise = item.totalRise ?? 3.02;
+        const yBase = item.yBase ?? 0;
 
         const totalRisers = stepsPerFlight * 2 + 2;
         const riserHeight = totalRise / totalRisers;
@@ -131,7 +133,7 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
         const z1Center = (zFlight1[0] + zFlight1[1]) / 2;
         const stepGeo1 = new THREE.BoxGeometry(stepDepth, stepHeight, w1);
         for (let s = 0; s < stepsPerFlight; s++) {
-          const yTop = (s + 1) * riserHeight;
+          const yTop = yBase + (s + 1) * riserHeight;
           const stepMesh = new THREE.Mesh(stepGeo1, materials.stair);
           stepMesh.position.set(
             xStart + dir * (s + 0.5) * stepRun,
@@ -144,7 +146,7 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
         }
 
         // Mid-landing (Mezipodesta, riser stepsPerFlight + 1)
-        const yLanding = (stepsPerFlight + 1) * riserHeight;
+        const yLanding = yBase + (stepsPerFlight + 1) * riserHeight;
         const landingThickness = 0.18;
         const landingWidthX = Math.abs(xLanding - xEnd);
         const landingCenterX = (xEnd + xLanding) / 2;
@@ -170,7 +172,7 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
         const z2Center = (zFlight2[0] + zFlight2[1]) / 2;
         const stepGeo2 = new THREE.BoxGeometry(stepDepth, stepHeight, w2);
         for (let s = 0; s < stepsPerFlight; s++) {
-          const yTop = (stepsPerFlight + 2 + s) * riserHeight;
+          const yTop = yBase + (stepsPerFlight + 2 + s) * riserHeight;
           const stepMesh = new THREE.Mesh(stepGeo2, materials.stair);
           stepMesh.position.set(
             xLanding - dir * (s + 0.5) * stepRun,
@@ -204,8 +206,8 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
         for (let i = 0; i <= stepsPerFlight; i++) {
           const t = i / stepsPerFlight;
           const xPos = xStart + dir * i * stepRun;
-          const yBottom = Math.max(0, i * riserHeight - 0.15);
-          const yRail2 = totalRise + 0.9 - t * (totalRise - yLanding);
+          const yBottom = Math.max(yBase, yBase + i * riserHeight - 0.15);
+          const yRail2 = yBase + totalRise + 0.9 - t * (yBase + totalRise - yLanding);
           const postH = yRail2 - yBottom;
           const post = new THREE.Mesh(
             new THREE.BoxGeometry(0.04, postH, dividerThick),
@@ -216,8 +218,8 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
           group.add(post);
         }
 
-        addSlopedRail(xStart, riserHeight + 0.9, xLanding, yLanding + 0.9);
-        addSlopedRail(xLanding, yLanding + 0.9, xStart, totalRise + 0.9);
+        addSlopedRail(xStart, yBase + riserHeight + 0.9, xLanding, yLanding + 0.9);
+        addSlopedRail(xLanding, yLanding + 0.9, xStart, yBase + totalRise + 0.9);
         break;
       }
 
@@ -380,6 +382,106 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
           }
         }
       }
+      break;
+    }
+    case 'canopy': {
+      labelType = 'IfcRoof (Přístřešek vchodu)';
+      const [w = 1.1, h = 0.08, d = 1.8] = size;
+      const frameBar = 0.06;
+      for (const sx of [-1, 1]) {
+        group.add(
+          createBoxPart(
+            frameBar,
+            h,
+            d,
+            sx * (w / 2 - frameBar / 2),
+            0,
+            0,
+            materials.frame,
+            true
+          )
+        );
+      }
+      const innerW = Math.max(0.05, w - 2 * frameBar);
+      for (const sz of [-1, 1]) {
+        group.add(
+          createBoxPart(
+            innerW,
+            h,
+            frameBar,
+            0,
+            0,
+            sz * (d / 2 - frameBar / 2),
+            materials.frame,
+            true
+          )
+        );
+      }
+      const innerD = Math.max(0.05, d - 2 * frameBar);
+      group.add(
+        createBoxPart(
+          innerW,
+          Math.max(0.02, h * 0.4),
+          innerD,
+          0,
+          h * 0.3,
+          0,
+          materials.glass,
+          false
+        )
+      );
+      break;
+    }
+    case 'fireplace': {
+      labelType = 'IfcSpaceHeater (Krb s komínem)';
+      const [w = 0.9, h = 2.68, d = 0.52] = size;
+      const hearthH = 0.32;
+      const fireboxH = 0.88;
+      const flueH = Math.max(0.2, h - hearthH - fireboxH);
+
+      group.add(createBoxPart(w, hearthH, d, 0, 0, 0, materials.frame, true));
+      group.add(
+        createBoxPart(w * 0.86, fireboxH, d * 0.85, 0, hearthH, 0, materials.kitchenCounter, true)
+      );
+      group.add(
+        createBoxPart(
+          w * 0.68,
+          fireboxH * 0.62,
+          0.04,
+          0,
+          hearthH + 0.14,
+          (d * 0.85) / 2,
+          materials.glass,
+          false
+        )
+      );
+      group.add(
+        createBoxPart(
+          w * 0.46,
+          flueH,
+          d * 0.65,
+          0,
+          hearthH + fireboxH,
+          -d * 0.08,
+          materials.kitchenCounter,
+          true
+        )
+      );
+      break;
+    }
+    case 'tvStand': {
+      const [w = 1.6, h = 1.3, d = 0.45] = size;
+      const consoleH = 0.45;
+      const screenW = Math.max(0.6, w * 0.82);
+      const screenH = Math.max(0.45, h - consoleH - 0.15);
+
+      group.add(createBoxPart(w, consoleH, d, 0, 0, 0, materials.furniture, true));
+      group.add(
+        createBoxPart(0.16, 0.15, 0.10, 0, consoleH, -d * 0.12, materials.frame, true)
+      );
+      group.add(
+        createBoxPart(screenW, screenH, 0.05, 0, consoleH + 0.15, -d * 0.10, materials.frame, true)
+      );
       break;
     }
     default: {

@@ -17,4 +17,8 @@ export const auxiliaryBuildingConfig = {
       [3.6, 7.4],
     ],
   },
+  eastWalkway: {
+    size: [1.3, 0.04, 7.6],
+    pos: [6.0, 0.02, 9.2],
+  },
 };

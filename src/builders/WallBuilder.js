@@ -92,11 +92,22 @@ export function buildWall(wallDef, materials, floorY = 0, floorName = '1.NP') {
   const wallMat = materials[matKey] || materials.wall;
   const wallName = wallDef.name || wallDef.id || 'Stěna';
 
+  const isStructural = wallDef.structural === true || matKey === 'wall';
   const wallBim = {
-    type: matKey === 'partition' ? 'IfcWall (Příčka)' : 'IfcWallStandardCase',
+    type:
+      matKey === 'partition'
+        ? isStructural
+          ? 'IfcWallStandardCase (Vnitřní nosná stěna)'
+          : 'IfcWall (Příčka)'
+        : 'IfcWallStandardCase',
     name: wallName,
     floor: floorName,
-    description: matKey === 'partition' ? 'Vnitřní dělicí příčka' : 'Obvodová nosná stěna',
+    description:
+      matKey === 'partition'
+        ? isStructural
+          ? 'Vnitřní nosná stěna'
+          : 'Vnitřní dělicí příčka'
+        : 'Obvodová nosná stěna',
     parameters: {
       Délka: `${length.toFixed(2)} m`,
       Výška: `${height.toFixed(2)} m`,

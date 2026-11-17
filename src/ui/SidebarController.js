@@ -41,6 +41,8 @@ export function initSidebarController(store) {
   });
 
   window.addEventListener('keydown', (e) => {
+    const drawingsModal = document.getElementById('drawings-modal');
+    if (drawingsModal?.classList.contains('open')) return;
     if (e.key === 'Escape' && store.getState().sidebarOpen) {
       store.setState({ sidebarOpen: false });
     }

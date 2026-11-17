@@ -15,6 +15,7 @@ import { initSunController } from "./ui/SunController.js";
 import { initSiteController } from "./ui/SiteController.js";
 import { initModelAndBimController } from "./ui/ModelAndBimController.js";
 import { initUrlController } from "./ui/UrlController.js";
+import { initDrawingsController } from "./ui/DrawingsController.js";
 
 // 1. Core 3D Scene, Materials & Solar Lighting
 const canvas = document.getElementById("three-canvas");
@@ -51,6 +52,7 @@ initFloorPlanController(store, sceneManager, () => ifcController.currentModel);
 initSunController(store, sunSystem);
 initSiteController(store, sceneManager, siteConfig, auxiliaryBuildingConfig);
 initModelAndBimController(store, sceneManager, ifcController, gridHelper);
+initDrawingsController(store);
 initUrlController({
   store,
   sceneManager,

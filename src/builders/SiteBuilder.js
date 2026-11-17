@@ -82,6 +82,7 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
     roofHeight,
     position,
     canopy,
+    eastWalkway,
   } = auxConfig;
   const totalWidth = parkWidth + workshopWidth;
 
@@ -158,7 +159,8 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
       ridgeAxis: 'x',
       name: 'Střecha dílny a stání',
     },
-    materials.auxRoof
+    materials.auxRoof,
+    materials.auxWall
   );
   group.add(roof);
 
@@ -187,6 +189,25 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
       pMesh.castShadow = true;
       group.add(pMesh);
     }
+  }
+
+  // 5. Paved walkway connecting carport canopy to main East entrance (1.01)
+  if (eastWalkway) {
+    const [ew, eh, ed] = eastWalkway.size;
+    const [ex, ey, ez] = eastWalkway.pos;
+    const eastWalkMesh = new THREE.Mesh(new THREE.BoxGeometry(ew, eh, ed), materials.auxFloor);
+    eastWalkMesh.position.set(ex, ey, ez);
+    eastWalkMesh.receiveShadow = true;
+    eastWalkMesh.userData.bim = {
+      type: 'IfcSlab (Chodník)',
+      name: 'Chodník k hlavnímu vchodu (1.01)',
+      floor: 'Pozemek',
+      description: 'Zpevněný přístupový chodník od krytého parkování k hlavnímu vstupu do zádveří',
+      parameters: {
+        Rozměry: `${ew.toFixed(1)} × ${ed.toFixed(1)} m`,
+      },
+    };
+    group.add(eastWalkMesh);
   }
 
   group.position.set(position[0], position[1], position[2]);

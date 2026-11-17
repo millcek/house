@@ -26,6 +26,8 @@
         <button id="btn-floor-1np" class="btn btn-sm" title="1.NP Přízemí (řez v přízemí)">🏠 1.NP</button>
         <button id="btn-floor-2np" class="btn btn-sm" title="2.NP Patro (řez v patře)">🛏️ 2.NP</button>
         <button id="btn-floor-topdown" class="btn btn-sm" title="Půdorysný 2D pohled shora">📐 Půdorys</button>
+        <button id="btn-quick-drawings" class="btn btn-sm" title="Technické 2D výkresy půdorysů (SVG / PDF)">📄 Výkresy</button>
+        <button id="btn-quick-labels" class="btn btn-sm btn-primary" title="Zobrazit / skrýt 3D popisky místností">🏷️ Popisky</button>
         <button id="btn-quick-footprint" class="btn btn-sm" title="Zobrazit zastavěnou plochu pozemku">📊 Zastavění</button>
         <div class="toolbar-divider"></div>
         <button id="btn-quick-sun" class="btn btn-sm" title="Rychlé nastavení slunce a stínů">☀️ Slunce</button>
@@ -110,6 +112,9 @@
             </div>
             <button id="btn-toggle-labels" class="btn btn-sm btn-full" title="Zobrazit / skrýt 3D popisky místností">
               🏷️ Popisky místností: ON
+            </button>
+            <button id="btn-sidebar-drawings" class="btn btn-sm btn-primary btn-full" style="margin-top: 6px;" title="Otevřít kótované 2D výkresy půdorysů v SVG">
+              📄 2D Výkresy půdorysů (SVG)
             </button>
           </div>
 
@@ -459,6 +464,58 @@
     <div id="loading-overlay">
       <div class="spinner"></div>
       <span id="loading-text" style="font-size: 13px; font-weight: 500;">Parsing IFC model...</span>
+    </div>
+
+    <!-- 2D Architectural Floor Plans SVG Modal -->
+    <div id="drawings-modal" class="drawings-modal" aria-hidden="true" role="dialog" aria-label="2D Výkresy půdorysů">
+      <div class="drawings-header">
+        <div class="drawings-title-group">
+          <span class="drawings-title-icon">📐</span>
+          <div>
+            <h2>Technické výkresy — Půdorysy (SVG)</h2>
+            <p>Kótované výkresy generované z parametrického modelu · Kolečko = Zoom · Tažení = Posun</p>
+          </div>
+        </div>
+
+        <div class="drawings-toolbar">
+          <div class="drawings-segment" role="group" aria-label="Volba výkresu">
+            <button class="btn btn-sm btn-primary" data-sheet="1np">1.NP Přízemí</button>
+            <button class="btn btn-sm" data-sheet="2np">2.NP Patro</button>
+            <button class="btn btn-sm" data-sheet="both">1.NP + 2.NP společně</button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <div class="drawings-layers" role="group" aria-label="Vrstvy výkresu">
+            <button class="btn btn-sm layer-chip active" data-layer="showDimensions" title="Vnější kótovací řetězce">Kóty</button>
+            <button class="btn btn-sm layer-chip active" data-layer="showInteriorDims" title="Vnitřní světlé kóty místností a stěn">Vnitřní kóty</button>
+            <button class="btn btn-sm layer-chip active" data-layer="showFurniture" title="2D symboly nábytku a sanity">Nábytek</button>
+            <button class="btn btn-sm layer-chip active" data-layer="showOpeningTags" title="Rozměry oken a dveří">Popisy otvorů</button>
+            <button class="btn btn-sm layer-chip active" data-layer="showHatches" title="Šrafování zdiva a podlah">Šrafy</button>
+            <button id="btn-drawings-units" class="btn btn-sm" title="Přepnout jednotky kót (mm / m)">Jednotky: mm</button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <div class="drawings-zoom-group">
+            <button id="btn-drawings-zoom-out" class="btn btn-sm" title="Oddálit">−</button>
+            <button id="btn-drawings-zoom-reset" class="btn btn-sm" title="Přizpůsobit oknu">100%</button>
+            <button id="btn-drawings-zoom-in" class="btn btn-sm" title="Přiblížit">+</button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <div class="drawings-actions">
+            <button id="btn-drawings-download" class="btn btn-sm btn-primary" title="Stáhnout čistý vektorový soubor .SVG">⬇️ Stáhnout SVG</button>
+            <button id="btn-drawings-print" class="btn btn-sm" title="Vytisknout nebo uložit jako PDF">🖨️ Tisk / PDF</button>
+            <button id="btn-drawings-close" class="btn-icon" title="Zavřít (Esc)">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="drawings-viewport" class="drawings-viewport">
+        <div id="drawings-svg-stage" class="drawings-svg-stage"></div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

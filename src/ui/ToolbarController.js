@@ -7,6 +7,7 @@ export function initToolbarController(store, sceneManager) {
   const btnFloor1np = document.getElementById("btn-floor-1np");
   const btnFloor2np = document.getElementById("btn-floor-2np");
   const btnFloorTopdown = document.getElementById("btn-floor-topdown");
+  const btnQuickLabels = document.getElementById("btn-quick-labels");
   const btnQuickFootprint = document.getElementById("btn-quick-footprint");
   const btnQuickSun = document.getElementById("btn-quick-sun");
   const compassBadge = document.getElementById("compass-badge");
@@ -53,6 +54,10 @@ export function initToolbarController(store, sceneManager) {
     }));
   });
 
+  btnQuickLabels?.addEventListener("click", () => {
+    store.setState((s) => ({ labelsVisible: !s.labelsVisible }));
+  });
+
   btnQuickFootprint?.addEventListener("click", () => {
     const { site } = store.getState();
     store.setState({
@@ -81,7 +86,7 @@ export function initToolbarController(store, sceneManager) {
     }
   });
 
-  function render({ floorMode, site }) {
+  function render({ floorMode, site, labelsVisible }) {
     [btnFloorAll, btnFloor1np, btnFloor2np].forEach((b) =>
       b?.classList.remove("btn-primary"),
     );
@@ -89,12 +94,13 @@ export function initToolbarController(store, sceneManager) {
     if (floorMode === "1np") btnFloor1np?.classList.add("btn-primary");
     if (floorMode === "2np") btnFloor2np?.classList.add("btn-primary");
 
+    btnQuickLabels?.classList.toggle("btn-primary", Boolean(labelsVisible));
     btnQuickFootprint?.classList.toggle(
       "btn-primary",
       Boolean(site?.footprintVisible),
     );
   }
 
-  store.subscribe(["floorMode", "site"], (state) => render(state));
+  store.subscribe(["floorMode", "site", "labelsVisible"], (state) => render(state));
   render(store.getState());
 }

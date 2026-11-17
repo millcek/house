@@ -54,7 +54,7 @@ export function buildHouseModel(designConfig, materials) {
   const roofGroup = new THREE.Group();
   roofGroup.name = 'roof-group';
   if (designConfig.roof) {
-    roofGroup.add(buildGableRoof(designConfig.roof, materials.roof));
+    roofGroup.add(buildGableRoof(designConfig.roof, materials.roof, materials.wall));
   }
   group.add(roofGroup);
 

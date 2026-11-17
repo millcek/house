@@ -59,9 +59,11 @@ export function buildSlab(slabDef, materials) {
 }
 
 /**
- * Builds an extruded gable roof along either the Z axis (default) or X axis.
+ * Builds an extruded gable roof along either the Z axis (default) or X axis,
+ * separating the triangular gable masonry core (`gableMaterial`) from the
+ * overhanging pitched roof shell (`material`).
  */
-export function buildGableRoof(roofDef, material) {
+export function buildGableRoof(roofDef, material, gableMaterial = null) {
   const {
     width,
     length,
@@ -69,45 +71,99 @@ export function buildGableRoof(roofDef, material) {
     y,
     ridgeAxis = 'z',
     name = 'Sedlová střecha',
+    eaveOverhang = 0.45,
+    gableOverhang = 0.35,
+    thickness = 0.22,
   } = roofDef;
 
   const span = ridgeAxis === 'z' ? width : length;
   const run = ridgeAxis === 'z' ? length : width;
   const halfSpan = span / 2;
 
-  const shape = new THREE.Shape();
-  shape.moveTo(-halfSpan, 0);
-  shape.lineTo(halfSpan, 0);
-  shape.lineTo(0, height);
-  shape.closePath();
+  const group = new THREE.Group();
+  group.name = 'roof-assembly';
+  group.position.y = y;
 
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: run,
-    bevelEnabled: false,
-  });
+  const orientGeo = (geo, depth) => {
+    if (ridgeAxis === 'x') {
+      geo.rotateY(Math.PI / 2);
+      geo.translate(-depth / 2, 0, 0);
+    } else {
+      geo.translate(0, 0, -depth / 2);
+    }
+    return geo;
+  };
 
-  if (ridgeAxis === 'x') {
-    geo.rotateY(Math.PI / 2);
-    geo.translate(-run / 2, 0, 0);
-  } else {
-    geo.translate(0, 0, -run / 2);
-  }
+  // 1. Gable Wall Core (Štítové stěny)
+  const gableShape = new THREE.Shape();
+  gableShape.moveTo(-halfSpan, 0);
+  gableShape.lineTo(halfSpan, 0);
+  gableShape.lineTo(0, height);
+  gableShape.closePath();
 
-  const mesh = new THREE.Mesh(geo, material);
-  mesh.position.y = y;
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  mesh.userData.bim = {
+  const gableGeo = orientGeo(
+    new THREE.ExtrudeGeometry(gableShape, {
+      depth: run,
+      bevelEnabled: false,
+    }),
+    run
+  );
+  const gableMesh = new THREE.Mesh(gableGeo, gableMaterial || material);
+  gableMesh.castShadow = true;
+  gableMesh.receiveShadow = true;
+  gableMesh.userData.bim = {
+    type: 'IfcWallStandardCase (Štít)',
+    name: 'Štítové zdivo střechy',
+    floor: 'Střecha',
+    description: 'Štítová stěna pod sedlovou střechou',
+    parameters: {
+      Rozpětí: `${span.toFixed(1)} m`,
+      'Výška štítu': `${height.toFixed(2)} m`,
+      Délka: `${run.toFixed(1)} m`,
+    },
+  };
+  group.add(gableMesh);
+
+  // 2. Pitched Roof Shell (Střešní plášť s přesahy)
+  const slopeAngle = Math.atan2(height, halfSpan);
+  const dyEave = eaveOverhang * (height / halfSpan);
+  const dyThick = thickness / Math.cos(slopeAngle);
+  const outerHalfSpan = halfSpan + eaveOverhang;
+  const shellDepth = run + 2 * gableOverhang;
+
+  const shellShape = new THREE.Shape();
+  shellShape.moveTo(-outerHalfSpan, -dyEave);
+  shellShape.lineTo(0, height);
+  shellShape.lineTo(outerHalfSpan, -dyEave);
+  shellShape.lineTo(outerHalfSpan, -dyEave + dyThick);
+  shellShape.lineTo(0, height + dyThick);
+  shellShape.lineTo(-outerHalfSpan, -dyEave + dyThick);
+  shellShape.closePath();
+
+  const shellGeo = orientGeo(
+    new THREE.ExtrudeGeometry(shellShape, {
+      depth: shellDepth,
+      bevelEnabled: false,
+    }),
+    shellDepth
+  );
+  const shellMesh = new THREE.Mesh(shellGeo, material);
+  shellMesh.castShadow = true;
+  shellMesh.receiveShadow = true;
+  shellMesh.userData.bim = {
     type: 'IfcRoof',
     name,
     floor: 'Střecha',
-    description: 'Sedlová střecha',
+    description: 'Sedlová střecha s přesahy okapů a štítů',
     parameters: {
       Půdorys: `${width.toFixed(1)} × ${length.toFixed(1)} m`,
       'Výška hřebene': `${height.toFixed(2)} m`,
+      'Přesah okapu': `${eaveOverhang.toFixed(2)} m`,
+      'Přesah štítu': `${gableOverhang.toFixed(2)} m`,
       'Směr hřebene': ridgeAxis.toUpperCase(),
     },
   };
+  group.add(shellMesh);
 
-  return mesh;
+  return group;
 }

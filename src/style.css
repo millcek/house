@@ -1100,3 +1100,181 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================================================
+   2D ARCHITECTURAL SVG FLOOR PLANS MODAL & PRINT STYLES
+   ======================================================== */
+.drawings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawings-modal.open {
+  display: flex;
+}
+
+.drawings-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 16px;
+  background: rgba(20, 22, 27, 0.94);
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+
+.drawings-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drawings-title-icon {
+  font-size: 20px;
+}
+
+.drawings-title-group h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.drawings-title-group p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.drawings-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.drawings-segment,
+.drawings-layers,
+.drawings-zoom-group,
+.drawings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.layer-chip {
+  opacity: 0.72;
+}
+
+.layer-chip.active {
+  opacity: 1;
+}
+
+.drawings-viewport {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0) 0 0 / 24px 24px,
+    #1e293b;
+  cursor: grab;
+  touch-action: none;
+}
+
+.drawings-viewport.panning {
+  cursor: grabbing;
+}
+
+.drawings-svg-stage {
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 0 0;
+}
+
+.drawings-svg-stage svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .drawings-header {
+    padding: 8px 10px;
+  }
+
+  .drawings-title-group p {
+    display: none;
+  }
+
+  .drawings-svg-stage {
+    padding: 8px;
+  }
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 6mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    overflow: visible !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  body > *:not(#drawings-modal) {
+    display: none !important;
+  }
+
+  #drawings-modal {
+    position: static !important;
+    display: block !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .drawings-header {
+    display: none !important;
+  }
+
+  .drawings-viewport {
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .drawings-svg-stage {
+    transform: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .drawings-svg-stage svg {
+    width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}
