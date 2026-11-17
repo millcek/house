@@ -1,5 +1,5 @@
 import { computeRoomSchedule } from "../builders/RoomBuilder.js";
-import { getDesignVariant } from "../designs/index.js";
+import { getDesignVariant, listDesignVariants } from "../designs/index.js";
 
 /**
  * Manages floor view presets, dynamic Y-clipping slider, room labels toggle,
@@ -9,12 +9,14 @@ export function initFloorPlanController(
   store,
   sceneManager,
   getActiveConceptModel,
+  ifcController,
 ) {
   const btnSidebarAll = document.getElementById("btn-sidebar-all");
   const btnSidebar1np = document.getElementById("btn-sidebar-1np");
   const btnSidebar2np = document.getElementById("btn-sidebar-2np");
   const btnSidebarTopdown = document.getElementById("btn-sidebar-topdown");
   const btnToggleLabels = document.getElementById("btn-toggle-labels");
+  const variantSelect = document.getElementById("floorplan-variant-select");
 
   const tabFloor1np = document.getElementById("tab-floor-1np");
   const tabFloor2np = document.getElementById("tab-floor-2np");
@@ -183,11 +185,28 @@ export function initFloorPlanController(
       btnToggleLabels.classList.toggle("btn-primary", labelsVisible);
     }
 
+    if (variantSelect) {
+      const variants = listDesignVariants();
+      if (variantSelect.options.length !== variants.length) {
+        variantSelect.innerHTML = variants
+          .map((v) => `<option value="${v.id}">${v.label}</option>`)
+          .join("");
+      }
+      if (variants.some((v) => v.id === state.activeModelId)) {
+        variantSelect.value = state.activeModelId;
+      }
+    }
+
     applyVisibilityAndClip(floorMode, labelsVisible, sliceHeight);
     renderSchedule(activeScheduleFloor, activeRoomId);
   }
 
   // Event bindings
+  variantSelect?.addEventListener("change", async (e) => {
+    if (ifcController) {
+      await ifcController.selectModel(e.target.value);
+    }
+  });
   btnSidebarAll?.addEventListener("click", () =>
     store.setState({
       floorMode: "all",

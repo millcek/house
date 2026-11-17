@@ -1,15 +1,16 @@
 import { generateFloorPlanSvg } from '../builders/FloorPlanSvgGenerator.js';
-import { getDesignVariant } from '../designs/index.js';
+import { getDesignVariant, listDesignVariants } from '../designs/index.js';
 
 /**
  * Manages the interactive 2D SVG floor plan modal: sheet selection (`1np` / `2np` / `both`),
  * architectural layer toggles, units toggle (`mm` / `m`), pan & wheel zoom,
  * standalone SVG download, and print-to-PDF.
  */
-export function initDrawingsController(store) {
+export function initDrawingsController(store, ifcController) {
   const modal = document.getElementById('drawings-modal');
   const viewport = document.getElementById('drawings-viewport');
   const stage = document.getElementById('drawings-svg-stage');
+  const variantSelect = document.getElementById('drawings-variant-select');
 
   const btnQuickDrawings = document.getElementById('btn-quick-drawings');
   const btnSidebarDrawings = document.getElementById('btn-sidebar-drawings');
@@ -88,6 +89,18 @@ export function initDrawingsController(store) {
     if (btnUnits) {
       btnUnits.textContent = `Jednotky: ${viewOpts.units}`;
     }
+    if (variantSelect) {
+      const variants = listDesignVariants();
+      if (variantSelect.options.length !== variants.length) {
+        variantSelect.innerHTML = variants
+          .map((v) => `<option value="${v.id}">${v.label}</option>`)
+          .join('');
+      }
+      const { activeModelId } = store.getState();
+      if (variants.some((v) => v.id === activeModelId)) {
+        variantSelect.value = activeModelId;
+      }
+    }
   }
 
   function renderDrawing() {
@@ -139,6 +152,11 @@ export function initDrawingsController(store) {
   }
 
   // Event bindings
+  variantSelect?.addEventListener('change', async (e) => {
+    if (ifcController) {
+      await ifcController.selectModel(e.target.value);
+    }
+  });
   btnQuickDrawings?.addEventListener('click', openModal);
   btnSidebarDrawings?.addEventListener('click', openModal);
   btnClose?.addEventListener('click', closeModal);
@@ -237,6 +255,7 @@ export function initDrawingsController(store) {
 
   store.subscribe(['activeModelId'], () => {
     if (isOpen) renderDrawing();
+    else syncToolbarUi();
   });
 
   syncToolbarUi();

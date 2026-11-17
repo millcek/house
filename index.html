@@ -113,6 +113,10 @@
             <button id="btn-toggle-labels" class="btn btn-sm btn-full" title="Zobrazit / skrýt 3D popisky místností">
               🏷️ Popisky místností: ON
             </button>
+            <div class="form-row" style="margin-top: 6px;">
+              <label for="floorplan-variant-select" class="field-label">Varianta půdorysu 2.NP:</label>
+              <select id="floorplan-variant-select" class="select-custom" style="width: 100%;" title="Porovnat varianty půdorysu 2.NP"></select>
+            </div>
             <button id="btn-sidebar-drawings" class="btn btn-sm btn-primary btn-full" style="margin-top: 6px;" title="Otevřít kótované 2D výkresy půdorysů v SVG">
               📄 2D Výkresy půdorysů (SVG)
             </button>
@@ -478,6 +482,10 @@
         </div>
 
         <div class="drawings-toolbar">
+          <select id="drawings-variant-select" class="select-custom" title="Porovnat varianty půdorysu 2.NP"></select>
+
+          <div class="toolbar-divider"></div>
+
           <div class="drawings-segment" role="group" aria-label="Volba výkresu">
             <button class="btn btn-sm btn-primary" data-sheet="1np">1.NP Přízemí</button>
             <button class="btn btn-sm" data-sheet="2np">2.NP Patro</button>

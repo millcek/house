@@ -48,11 +48,11 @@ ifcController.loadConceptVariant("concept");
 // 4. UI Controllers (all decoupled via reactive store)
 initSidebarController(store);
 initToolbarController(store, sceneManager);
-initFloorPlanController(store, sceneManager, () => ifcController.currentModel);
+initFloorPlanController(store, sceneManager, () => ifcController.currentModel, ifcController);
 initSunController(store, sunSystem);
 initSiteController(store, sceneManager, siteConfig, auxiliaryBuildingConfig);
 initModelAndBimController(store, sceneManager, ifcController, gridHelper);
-initDrawingsController(store);
+initDrawingsController(store, ifcController);
 initUrlController({
   store,
   sceneManager,
