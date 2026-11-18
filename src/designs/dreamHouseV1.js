@@ -304,14 +304,14 @@ export const dreamHouseV1 = {
       { type: 'vanity', name: 'Umyvadlo se skříňkou', desc: 'Umyvadlová skříňka se zrcadlem na jižní stěně s volným koridorem do sprchy', pos: [2.15, -2.21], size: [0.75, 0.85, 0.46] },
       // 1.04 Budoucí ložnice / Pracovna
       { type: 'bed', name: 'Dvoulůžko ložnice/pracovna', desc: 'Manželská postel u severní stěny', pos: [-2.10, -4.60], size: [1.80, 0.52, 2.00] },
-      { type: 'wardrobe', name: 'Šatní skříň pracovna', desc: 'Vestavěná šatní skříň odsazená od dveří na severovýchodní stěně', pos: [-0.80, -4.70], size: [0.60, 2.1, 1.80] },
+      { type: 'wardrobe', name: 'Šatní skříň pracovna', desc: 'Vestavěná šatní skříň odsazená od dveří na severovýchodní stěně', pos: [-0.88, -4.70], size: [0.60, 2.1, 1.80] },
       { type: 'desk', name: 'Pracovní stůl', desc: 'Psací stůl u západního okna do zahrady', pos: [-3.15, -2.80], size: [0.70, 0.75, 1.30] },
       // 1.05 Chodba pod schody
       { type: 'wardrobe', name: 'Úložný prostor pod schodištěm', desc: 'Vestavěná skříň pod schody na úklidové potřeby a vysavač', pos: [-1.80, -0.35], size: [0.80, 1.6, 1.0] },
       // 1.06 Kuchyňský kout + Jídelna
       { type: 'kitchenCounter', name: 'Kuchyňská linka (východ)', desc: 'Pracovní linka s dřezem a myčkou pod pásovým oknem', pos: [3.30, 2.00], size: [0.65, 0.90, 2.60] },
-      { type: 'kitchenIsland', name: 'Kuchyňský ostrůvek', desc: 'Ostrůvek s varnou deskou s ergonomickou uličkou 115 cm k lince', pos: [1.35, 2.00], size: [0.95, 0.90, 2.00] },
-      { type: 'diningTable', name: 'Jídelní stůl pro 6 osob', desc: 'Masivní jídelní stůl s 1,3 m volným průchodem k jižnímu zahradnímu portálu', pos: [2.35, 3.85], size: [1.80, 0.76, 0.95] },
+      { type: 'kitchenIsland', name: 'Kuchyňský ostrůvek', desc: 'Ostrůvek s varnou deskou s ergonomickou uličkou 115 cm k lince', pos: [1.35, 1.80], size: [0.95, 0.90, 1.80] },
+      { type: 'diningTable', name: 'Jídelní stůl pro 6 osob', desc: 'Masivní jídelní stůl s 1,3 m volným průchodem k jižnímu zahradnímu portálu', pos: [2.35, 4.20], size: [1.80, 0.76, 0.95] },
       // 1.07 Obývací pokoj
       {
         type: 'lSofa',
@@ -324,21 +324,25 @@ export const dreamHouseV1 = {
         ],
       },
       { type: 'coffeeTable', name: 'Konferenční stolek', desc: 'Konferenční stolek', pos: [-1.80, 2.40], size: [0.70, 0.35, 1.20] },
-      { type: 'tvStand', name: 'TV nábytková stěna', desc: 'Nízká TV komoda a stěna bez oslnění ze západu', pos: [-1.80, 0.55], size: [2.00, 0.45, 0.45] },
-      { type: 'fireplace', name: 'Krbové těleso', desc: 'Krbová vložka s prosklením do obývací části', pos: [-3.30, 0.65], size: [0.65, 1.4, 0.65] },
+      { type: 'tvStand', name: 'TV nábytková stěna', desc: 'Nízká TV komoda a stěna bez oslnění ze západu', pos: [-1.80, 0.65], size: [2.00, 0.45, 0.45] },
+      { type: 'fireplace', name: 'Krbové těleso', desc: 'Krbová vložka s prosklením do obývací části', pos: [-3.28, 0.75], size: [0.65, 1.4, 0.65] },
     ],
+    dimensionSlices: {
+      x: [-0.60, 2.30],
+      z: [0.45],
+    },
     rooms: [
       { id: '1.01', name: 'Zádveří / Vstup', areaSqm: 4.3, pos: [2.55, 1.1, -0.82], desc: 'Vstupní hala s 60cm nikou na vestavěnou skříň a venkovním přístřeškem' },
-      { id: '1.02', fixtures: ['hvac', 'pracka', 'susicka', 'vylevka'], name: 'Technická m. & Prádelna', areaSqm: 7.2, pos: [1.60, 1.1, -4.73], desc: 'Prostorná technická místnost (7,2 m²): TČ, rekuperace, pračka, sušička, výlevka, přímé dveře k parkování a shoz prádla z patra' },
-      { id: '1.03', fixtures: ['wc', 'umyvadlo', 'sprcha'], name: 'Koupelna s WC', areaSqm: 3.6, pos: [2.55, 1.1, -2.83], desc: 'Koupelna (2,14 × 1,70 m) se vstupem z chodby, walk-in sprchovým koutem, WC, umyvadlem a východním oknem' },
-      { id: '1.04', name: 'Budoucí ložnice / Pracovna', areaSqm: 11.2, pos: [-2.10, 1.1, -3.78], desc: 'Pracovna / budoucí bezbariérová ložnice s plnou severní stěnou pro manželskou postel' },
+      { id: '1.02', fixtures: ['hvac', 'pracka', 'susicka', 'vylevka'], name: 'Technická m. & Prádelna', areaSqm: 7.2, pos: [2.08, 1.1, -4.60], desc: 'Prostorná technická místnost (7,2 m²): TČ, rekuperace, pračka, sušička, výlevka, přímé dveře k parkování a shoz prádla z patra' },
+      { id: '1.03', fixtures: ['wc', 'umyvadlo', 'sprcha'], name: 'Koupelna s WC', areaSqm: 3.6, pos: [2.10, 1.1, -2.78], desc: 'Koupelna (2,14 × 1,70 m) se vstupem z chodby, walk-in sprchovým koutem, WC, umyvadlem a východním oknem' },
+      { id: '1.04', name: 'Budoucí ložnice / Pracovna', areaSqm: 11.2, pos: [-2.00, 1.1, -2.60], desc: 'Pracovna / budoucí bezbariérová ložnice s plnou severní stěnou pro manželskou postel' },
       { id: '1.05', name: 'Chodba & schodiště', areaSqm: 13.0, pos: [0.45, 1.4, -1.45], desc: 'Centrální chodba s přímými vstupy do všech místností, dvouramenným schodištěm a úložným prostorem' },
       {
         id: '1.06',
         name: 'Kuchyňský kout + Jídelna',
         fixtures: ['drez', 'mycka'],
         areaSqm: 13.6,
-        pos: [2.30, 1.1, 3.00],
+        pos: [2.35, 1.1, 3.05],
         zoneBounds: { xMin: X_KITCHEN_SPLIT },
         desc: 'Kuchyň s vysokou sestavou, ostrůvkem, posunutým pásovým oknem a stolem pro 6 osob',
       },
@@ -346,7 +350,7 @@ export const dreamHouseV1 = {
         id: '1.07',
         name: 'Obývací pokoj',
         areaSqm: 24.0,
-        pos: [-1.50, 1.1, 3.00],
+        pos: [-1.30, 1.1, 1.45],
         zoneBounds: { xMax: X_KITCHEN_SPLIT },
         desc: 'Obývací část s krbem, TV stěnou bez oslnění a výhledem přes HS portál na terasu',
       },
@@ -565,38 +569,42 @@ export const dreamHouseV1 = {
       },
       // 2.02 Ložnice rodičů (SZ)
       { type: 'bed', name: 'Manželská postel rodiče', desc: 'Dvoulůžko s nočními stolky u plné severní stěny', pos: [-1.60, -4.60], size: [1.80, 0.52, 2.00] },
-      { type: 'wardrobe', name: 'Šatní skříň ložnice', desc: 'Vestavěná skříň na východní příčce s volným průchodem od dveří', pos: [0.16, -4.40], size: [0.60, 2.2, 2.40] },
+      { type: 'wardrobe', name: 'Šatní skříň ložnice', desc: 'Vestavěná skříň na východní příčce s volným průchodem od dveří', pos: [0.08, -4.40], size: [0.60, 2.2, 2.40] },
       { type: 'desk', name: 'Toaletní stolek ložnice', desc: 'Toaletní stolek se zrcadlem u západního okna', pos: [-3.15, -2.80], size: [0.60, 0.75, 1.20] },
       // 2.03 Šatna & Pracovna manželky (SV)
       { type: 'wardrobe', name: 'Velká šatní sestava dámská', desc: 'Velkorysá vestavěná šatní stěna po celé severní stěně (délka 2,8 m)', pos: [2.05, -5.32], size: [2.80, 2.2, 0.60] },
       { type: 'desk', name: 'Pracovní & toaletní stůl', desc: 'Pracovní stůl s ranním východním světlem', pos: [3.20, -3.20], size: [0.70, 0.75, 1.40] },
       // 2.04 Rodinná koupelna
-      { type: 'bathtub', name: 'Relaxační vana', desc: 'Pohodlná rodinná vana pod oknem', pos: [2.60, -1.45], size: [1.70, 0.60, 0.80] },
-      { type: 'shower', name: 'Walk-in sprchový kout', desc: 'Velký sprchový kout', pos: [1.95, 0.30], size: [0.90, 2.0, 0.90] },
-      { type: 'vanity', name: 'Dvojumyvadlo se skříňkou', desc: 'Dvojumyvadlo se zrcadlem a úložným prostorem', pos: [3.20, 0.15], size: [0.55, 0.85, 1.20] },
+      { type: 'bathtub', name: 'Relaxační vana', desc: 'Pohodlná rodinná vana pod oknem', pos: [2.60, -1.38], size: [1.70, 0.60, 0.80] },
+      { type: 'shower', name: 'Walk-in sprchový kout', desc: 'Velký sprchový kout', pos: [1.97, 0.27], size: [0.90, 2.0, 0.90] },
+      { type: 'vanity', name: 'Dvojumyvadlo se skříňkou', desc: 'Dvojumyvadlo se zrcadlem a úložným prostorem', pos: [3.345, 0.12], size: [0.55, 0.85, 1.20] },
       // 2.05 Samostatné WC
-      { type: 'wc', name: 'Závěsné WC', desc: 'WC mísa se splachovacím modulem na východní stěně', pos: [2.80, 1.36], size: [0.65, 0.45, 0.45] },
+      { type: 'wc', name: 'Závěsné WC', desc: 'WC mísa se splachovacím modulem na východní stěně', pos: [3.28, 1.36], size: [0.65, 0.45, 0.45] },
       { type: 'vanity', name: 'Umývátko WC', desc: 'Kompaktní umývátko u vstupu', pos: [1.80, 1.36], size: [0.45, 0.80, 0.35] },
       // 2.06 Centrální komora / šatna za schodištěm
-      { type: 'wardrobe', name: 'Úložné regály a skříně komory', desc: 'Policový systém a skříně na kufry, sezónní prádlo a úklid', pos: [-2.20, 0.60], size: [0.60, 2.1, 2.40] },
+      { type: 'wardrobe', name: 'Úložné regály a skříně komory', desc: 'Policový systém a skříně na kufry, sezónní prádlo a úklid', pos: [-2.15, 0.565], size: [1.70, 2.10, 0.45] },
       // 2.07 Dětský pokoj 2 (JZ)
       { type: 'bed', name: 'Postel dětský pokoj JZ', desc: 'Dětská postel 100×200 cm', pos: [-0.60, 4.30], size: [1.00, 0.52, 2.00] },
       { type: 'desk', name: 'Psací stůl JZ', desc: 'Pracovní stůl pod jižním oknem', pos: [-2.40, 5.25], size: [1.40, 0.75, 0.70] },
       { type: 'wardrobe', name: 'Šatní skříň JZ', desc: 'Šatní skříň na západní stěně s volným vstupem do pokoje', pos: [-3.30, 2.70], size: [0.60, 2.1, 1.40] },
       // 2.08 Dětský pokoj 3 (JV)
-      { type: 'bed', name: 'Postel dětský pokoj JV', desc: 'Dětská postel 120×200 cm', pos: [1.80, 5.00], size: [1.20, 0.52, 2.00] },
+      { type: 'bed', name: 'Postel dětský pokoj JV', desc: 'Dětská postel 120×200 cm', pos: [1.80, 4.45], size: [1.20, 0.52, 2.00] },
       { type: 'desk', name: 'Psací stůl JV', desc: 'Pracovní stůl se židlí u východního okna', pos: [3.25, 3.80], size: [0.70, 0.75, 1.30] },
-      { type: 'wardrobe', name: 'Šatní skříň JV', desc: 'Šatní skříň na severní stěně mimo dosah dveří', pos: [2.40, 2.25], size: [1.60, 2.1, 0.60] },
+      { type: 'wardrobe', name: 'Šatní skříň JV', desc: 'Šatní skříň na severní stěně mimo dosah dveří', pos: [2.40, 2.30], size: [1.60, 2.1, 0.60] },
     ],
+    dimensionSlices: {
+      x: [-0.60, 3.30],
+      z: [0.35],
+    },
     rooms: [
       { id: '2.01', name: 'Schodišťová hala', areaSqm: 6.9, pos: [0.35, 4.05, -0.10], desc: 'Kompaktní čtvercová hala (šířka 1,78 m) s přímými vstupy do všech místností bez dlouhých chodeb' },
-      { id: '2.02', name: 'Ložnice / Pokoj 1 (SZ)', areaSqm: 14.7, pos: [-1.62, 4.05, -3.78], desc: 'Prostorná ložnice (4,00 × 3,68 m) s plnou severní stěnou pro manželskou postel a oknem do zahrady' },
+      { id: '2.02', name: 'Ložnice / Pokoj 1 (SZ)', areaSqm: 14.7, pos: [-1.60, 4.05, -2.50], desc: 'Prostorná ložnice (4,00 × 3,68 m) s plnou severní stěnou pro manželskou postel a oknem do zahrady' },
       { id: '2.03', name: 'Šatna & Pracovna (SV)', areaSqm: 11.3, pos: [2.08, 4.05, -3.78], desc: 'Multifunkční dámský pokoj a pracovna (3,08 × 3,68 m) s velkorysou sestavou vestavěných šatních skříní, pracovním stolem u okna a ranním východním sluncem' },
       { id: '2.04', fixtures: ['vana', 'sprcha', 'dvojumyvadlo'], name: 'Rodinná koupelna', areaSqm: 5.5, pos: [2.57, 4.05, -0.53], desc: 'Zvětšená rodinná koupelna (2,18 × 2,66 m) pro vanu, velký sprchový kout, dvojumyvadlo a úložné skříňky' },
-      { id: '2.05', fixtures: ['wc', 'umyvatko'], name: 'Samostatné WC', areaSqm: 2.0, pos: [2.57, 4.05, 1.36], desc: 'Samostatné WC s umývátkem a východním oknem přímo nad instalační šachtou' },
-      { id: '2.06', fixtures: ['satna', 'regal'], name: 'Centrální šatna / Komora', areaSqm: 4.1, pos: [-2.26, 4.05, 1.09], desc: 'Centrální šatna a úložná komora (2,72 × 1,50 m) za schodištěm s vlastním oknem na západ: kufry, sezónní věci, úklid a shoz prádla do technické místnosti' },
+      { id: '2.05', fixtures: ['wc', 'umyvatko'], name: 'Samostatné WC', areaSqm: 2.0, pos: [2.40, 4.05, 1.36], desc: 'Samostatné WC s umývátkem a východním oknem přímo nad instalační šachtou' },
+      { id: '2.06', fixtures: ['satna', 'regal'], name: 'Centrální šatna / Komora', areaSqm: 4.1, pos: [-2.15, 4.05, 1.25], desc: 'Centrální šatna a úložná komora (2,72 × 1,50 m) za schodištěm s vlastním oknem na západ: kufry, sezónní věci, úklid a shoz prádla do technické místnosti' },
       { id: '2.07', name: 'Dětský pokoj 2 (JZ)', areaSqm: 13.8, pos: [-1.72, 4.05, 3.81], desc: 'Slunný čtvercový jihozápadní dětský pokoj (3,80 × 3,62 m) bez úzkých výklenků' },
-      { id: '2.08', name: 'Dětský pokoj 3 (JV)', areaSqm: 11.9, pos: [1.98, 4.05, 3.81], desc: 'Světlý čtvercový jihovýchodní dětský pokoj (3,28 × 3,62 m) s okny na jih a východ' },
+      { id: '2.08', name: 'Dětský pokoj 3 (JV)', areaSqm: 11.9, pos: [1.80, 4.05, 2.85], desc: 'Světlý čtvercový jihovýchodní dětský pokoj (3,28 × 3,62 m) s okny na jih a východ' },
     ],
   },
 
@@ -843,7 +851,7 @@ export const dreamHouse5kk = {
       { type: 'shower', name: 'Walk-in sprchový kout', desc: 'Velký sprchový kout', pos: [1.95, 0.30], size: [0.90, 2.0, 0.90] },
       { type: 'vanity', name: 'Dvojumyvadlo se skříňkou', desc: 'Dvojumyvadlo se zrcadlem a úložným prostorem', pos: [3.20, 0.15], size: [0.55, 0.85, 1.20] },
       // 2.05 Samostatné WC
-      { type: 'wc', name: 'Závěsné WC', desc: 'WC mísa se splachovacím modulem na východní stěně', pos: [2.80, 1.36], size: [0.65, 0.45, 0.45] },
+      { type: 'wc', name: 'Závěsné WC', desc: 'WC mísa se splachovacím modulem na východní stěně', pos: [3.28, 1.36], size: [0.65, 0.45, 0.45] },
       { type: 'vanity', name: 'Umývátko WC', desc: 'Kompaktní umývátko u vstupu', pos: [1.80, 1.36], size: [0.45, 0.80, 0.35] },
       // 2.06 Centrální komora / šatna za schodištěm
       { type: 'wardrobe', name: 'Úložné regály a skříně komory', desc: 'Policový systém a skříně na kufry, sezónní prádlo a úklid', pos: [-2.20, 0.60], size: [0.60, 2.1, 2.40] },
@@ -852,7 +860,7 @@ export const dreamHouse5kk = {
       { type: 'desk', name: 'Psací stůl JZ', desc: 'Pracovní stůl pod jižním oknem', pos: [-2.40, 5.25], size: [1.40, 0.75, 0.70] },
       { type: 'wardrobe', name: 'Šatní skříň JZ', desc: 'Šatní skříň na západní stěně s volným vstupem do pokoje', pos: [-3.30, 2.70], size: [0.60, 2.1, 1.40] },
       // 2.08 Dětský pokoj 3 (JV)
-      { type: 'bed', name: 'Postel dětský pokoj JV', desc: 'Dětská postel 120×200 cm', pos: [1.80, 5.00], size: [1.20, 0.52, 2.00] },
+      { type: 'bed', name: 'Postel dětský pokoj JV', desc: 'Dětská postel 120×200 cm', pos: [1.80, 4.45], size: [1.20, 0.52, 2.00] },
       { type: 'desk', name: 'Psací stůl JV', desc: 'Pracovní stůl se židlí u východního okna', pos: [3.25, 3.80], size: [0.70, 0.75, 1.30] },
       { type: 'wardrobe', name: 'Šatní skříň JV', desc: 'Šatní skříň na severní stěně mimo dosah dveří', pos: [2.40, 2.25], size: [1.60, 2.1, 0.60] },
     ],
@@ -1091,7 +1099,7 @@ export const dreamHouseOriginal = {
       { type: 'shower', name: 'Walk-in sprchový kout', desc: 'Velký sprchový kout', pos: [1.95, 0.30], size: [0.90, 2.0, 0.90] },
       { type: 'vanity', name: 'Dvojumyvadlo se skříňkou', desc: 'Dvojumyvadlo se zrcadlem a úložným prostorem', pos: [3.20, 0.15], size: [0.55, 0.85, 1.20] },
       // 2.05 Samostatné WC
-      { type: 'wc', name: 'Závěsné WC', desc: 'WC mísa se splachovacím modulem na východní stěně', pos: [2.80, 1.36], size: [0.65, 0.45, 0.45] },
+      { type: 'wc', name: 'Závěsné WC', desc: 'WC mísa se splachovacím modulem na východní stěně', pos: [3.28, 1.36], size: [0.65, 0.45, 0.45] },
       { type: 'vanity', name: 'Umývátko WC', desc: 'Kompaktní umývátko u vstupu', pos: [1.80, 1.36], size: [0.45, 0.80, 0.35] },
       // 2.06 Centrální komora / šatna za schodištěm
       { type: 'wardrobe', name: 'Úložné regály a skříně komory', desc: 'Policový systém a skříně na kufry, sezónní prádlo a úklid', pos: [-2.20, 0.60], size: [0.60, 2.1, 2.40] },
@@ -1100,7 +1108,7 @@ export const dreamHouseOriginal = {
       { type: 'desk', name: 'Psací stůl JZ', desc: 'Pracovní stůl pod jižním oknem', pos: [-2.40, 5.25], size: [1.40, 0.75, 0.70] },
       { type: 'wardrobe', name: 'Šatní skříň JZ', desc: 'Šatní skříň na západní stěně s volným vstupem do pokoje', pos: [-3.30, 2.70], size: [0.60, 2.1, 1.40] },
       // 2.08 Dětský pokoj 3 (JV)
-      { type: 'bed', name: 'Postel dětský pokoj JV', desc: 'Dětská postel 120×200 cm', pos: [1.80, 5.00], size: [1.20, 0.52, 2.00] },
+      { type: 'bed', name: 'Postel dětský pokoj JV', desc: 'Dětská postel 120×200 cm', pos: [1.80, 4.45], size: [1.20, 0.52, 2.00] },
       { type: 'desk', name: 'Psací stůl JV', desc: 'Pracovní stůl se židlí u východního okna', pos: [3.25, 3.80], size: [0.70, 0.75, 1.30] },
       { type: 'wardrobe', name: 'Šatní skříň JV', desc: 'Šatní skříň na severní stěně mimo dosah dveří', pos: [2.40, 2.25], size: [1.60, 2.1, 0.60] },
     ],

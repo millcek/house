@@ -97,10 +97,10 @@ function buildDefsAndStyles() {
       .cad-dim-line { stroke: #334155; stroke-width: 0.8; fill: none; }
       .cad-dim-ext { stroke: #94a3b8; stroke-width: 0.65; fill: none; }
       .cad-dim-tick { stroke: #0f172a; stroke-width: 1.3; }
-      .cad-dim-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 11px; font-weight: 600; fill: #0f172a; text-anchor: middle; }
-      .cad-tag-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 9.5px; font-weight: 600; fill: #1e293b; text-anchor: middle; }
-      .cad-micro-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 9px; font-weight: 600; fill: #475569; text-anchor: middle; }
-      .cad-room-halo { fill: rgba(255, 255, 255, 0.88); stroke: rgba(148, 163, 184, 0.55); stroke-width: 0.8; rx: 4; }
+      .cad-dim-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 11px; font-weight: 600; fill: #0f172a; text-anchor: middle; paint-order: stroke fill; stroke: #ffffff; stroke-width: 3.5px; stroke-linejoin: round; }
+      .cad-tag-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 9.5px; font-weight: 600; fill: #1e293b; text-anchor: middle; paint-order: stroke fill; stroke: #ffffff; stroke-width: 2.5px; stroke-linejoin: round; }
+      .cad-micro-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 9px; font-weight: 600; fill: #475569; text-anchor: middle; paint-order: stroke fill; stroke: #ffffff; stroke-width: 2px; stroke-linejoin: round; }
+      .cad-room-halo { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 4; }
       .cad-room-id-bg { fill: #0f172a; rx: 2.5; }
       .cad-room-id-txt { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
       .cad-room-name { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 11px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
@@ -366,7 +366,7 @@ function renderStairsAndChimney(designConfig, floorKey) {
   if (fireplace) {
     const [fx] = fireplace.pos;
     const chimneySize = 0.38;
-    const chimneyZ = floorKey === '1np' ? 0.62 : 0.54;
+    const chimneyZ = 0.55;
     parts.push(
       `<rect class="cad-chimney" x="${m2svg(fx - chimneySize / 2)}" y="${m2svg(chimneyZ - chimneySize / 2)}" width="${m2svg(chimneySize)}" height="${m2svg(chimneySize)}" />`
     );
@@ -1284,13 +1284,13 @@ function renderFloorPlanGroup(designConfig, floorKey, offsetX, offsetY, options)
   parts.push(renderStairsAndChimney(designConfig, floorKey));
   parts.push(renderFurniture(floorConfig, floorKey, options.showFurniture !== false));
   parts.push(renderWallsAndOpenings(floorConfig, options, bounds));
-  parts.push(renderRoomStamps(floorConfig));
   if (options.showInteriorDims !== false) {
     parts.push(renderInteriorDimensions(floorConfig, designConfig, bounds, options.units || 'mm'));
   }
   if (options.showDimensions !== false) {
     parts.push(renderExteriorDimensions(floorConfig, designConfig, options.units || 'mm'));
   }
+  parts.push(renderRoomStamps(floorConfig));
 
   parts.push('</g>');
   return parts.join('\n');
@@ -1425,7 +1425,23 @@ function renderTitleBlock(x, y, width, designConfig, sheet, units) {
   parts.push(`<text class="cad-title-sub" x="14" y="92">${esc(docTitle)} · PŮDORYS ${wM} × ${lM} m</text>`);
 
   parts.push(`<text class="cad-title-label" x="14" y="121">ZDROJ MODELU</text>`);
-  parts.push(`<text class="cad-title-val" x="14" y="140">${esc(designConfig.label || designConfig.id)}</text>`);
+  const rawLabel = String(designConfig.label || designConfig.id || '');
+  if (rawLabel.length > 28) {
+    const parenIdx = rawLabel.indexOf('(');
+    let line1 = rawLabel;
+    let line2 = '';
+    if (parenIdx > 0) {
+      line1 = rawLabel.slice(0, parenIdx).trim();
+      line2 = rawLabel.slice(parenIdx).trim();
+    } else {
+      line1 = rawLabel.slice(0, 26).trim();
+      line2 = rawLabel.slice(26).trim();
+    }
+    parts.push(`<text class="cad-title-val" x="14" y="134" style="font-size:10px;">${esc(line1)}</text>`);
+    parts.push(`<text class="cad-title-val" x="14" y="145" style="font-size:8.5px;fill:#475569;">${esc(line2)}</text>`);
+  } else {
+    parts.push(`<text class="cad-title-val" x="14" y="140">${esc(rawLabel)}</text>`);
+  }
 
   parts.push(`<text class="cad-title-label" x="${width * 0.52 + 12}" y="121">MĚŘÍTKO</text>`);
   parts.push(`<text class="cad-title-val" x="${width * 0.52 + 12}" y="140">1 : 50</text>`);
