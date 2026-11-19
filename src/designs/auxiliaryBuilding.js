@@ -7,6 +7,13 @@ export const auxiliaryBuildingConfig = {
   roofType: 'mono',
   roofHeight: 0.45,
   position: [3.5, 0, -12.25],
+  // Otvory dílny. wall: S (+z) | N (-z) | E (+x, ke stání) | W (-x).
+  // offset = poloha středu otvoru od středu stěny (S/N podél x, E/W podél z), v metrech.
+  workshopOpenings: [
+    { id: 'D1', kind: 'door', wall: 'S', offset: 0, width: 1.4, height: 2.1, sill: 0, name: 'Dvoukřídlé dveře dílny' },
+    { id: 'O1', kind: 'window', wall: 'W', offset: 0, width: 1.5, height: 1.2, sill: 0.9, name: 'Okno dílny (západ)' },
+    { id: 'O2', kind: 'window', wall: 'N', offset: 0, width: 1.2, height: 0.6, sill: 1.9, name: 'Horní okno dílny (sever)' },
+  ],
   canopy: {
     size: [1.9, 0.12, 3.96],
     pos: [4.05, 2.55, 5.23],

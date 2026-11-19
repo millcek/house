@@ -583,6 +583,7 @@ export function initDrawingMeasureController(stage, viewport, options = {}) {
 
   function handlePointerTap(e) {
     if (!active) return;
+    if (e.target?.closest?.('#drawings-measure-hud')) return;
     const rawPt = getSvgCoordinates(e);
     if (!rawPt) return;
 
@@ -616,6 +617,7 @@ export function initDrawingMeasureController(stage, viewport, options = {}) {
 
   function handlePointerMove(e) {
     if (!active) return;
+    if (e.target?.closest?.('#drawings-measure-hud')) return;
     const rawPt = getSvgCoordinates(e);
     if (!rawPt) return;
 
@@ -714,6 +716,29 @@ export function initDrawingMeasureController(stage, viewport, options = {}) {
   btnUndo?.addEventListener('click', undoLastPoint);
   btnClear?.addEventListener('click', clearAllMeasurements);
   btnClose?.addEventListener('click', () => setActive(false));
+
+  if (hud) {
+    const stopPropagation = (e) => {
+      e.stopPropagation();
+    };
+    [
+      'pointerdown',
+      'pointerup',
+      'pointermove',
+      'pointercancel',
+      'mousedown',
+      'mouseup',
+      'mousemove',
+      'click',
+      'dblclick',
+      'touchstart',
+      'touchend',
+      'touchmove',
+      'wheel',
+    ].forEach((evt) => {
+      hud.addEventListener(evt, stopPropagation);
+    });
+  }
 
   const toggleBtn = document.getElementById('btn-drawings-measure-toggle');
   toggleBtn?.addEventListener('click', () => {

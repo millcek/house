@@ -553,7 +553,7 @@ export const dreamHouseV1 = {
         name: "Zádveří / Vstup",
         areaSqm: 4.8,
         pos: [2.35, 1.1, -0.82],
-        desc: "Prostorné vstupní zádveří se skříní 2,4 m, vchodovými dveřmi 1100 mm, venkovním přístřeškem a prosklenými dveřmi do haly",
+        desc: "Prostorné vstupní zádveří se skříní 2,4 m, vchodovými dveřmi 1100 mm s omezovačem 95–100°, venkovním přístřeškem a prosklenými dveřmi do haly",
       },
       {
         id: "1.02",
@@ -561,7 +561,7 @@ export const dreamHouseV1 = {
         name: "Technická m. & Prádelna",
         areaSqm: 6.3,
         pos: [0.85, 1.1, -4.50],
-        desc: "Technická místnost a prádelna: TČ (oddáleno od ložnice), rekuperace, pračka + sušička, bezbariérová pochozí mycí plocha pro psa & výlevka, přímé dveře k parkování a shoz prádla z 2.04",
+        desc: "Technická místnost a prádelna: TČ, hybridní střídač FVE 10 kW + baterie 10,6 kWh, domácí vodárna a filtrace dešťové vody pro WC, rekuperace, pračka + sušička, mycí plocha pro psa & výlevka, shoz prádla z 2.04",
       },
       {
         id: "1.03",
@@ -569,7 +569,7 @@ export const dreamHouseV1 = {
         name: "Koupelna s WC",
         areaSqm: 4.7,
         pos: [1.85, 1.1, -2.65],
-        desc: "Bezbariérová koupelna s dveřmi 900 mm otevíranými ven, walk-in sprchou 120×90 cm, WC pod oknem a 80cm umyvadlem",
+        desc: "Bezbariérová koupelna s dveřmi 900 mm otevíranými ven (omezovač 95–100°), walk-in sprchou 120×90 cm, WC se splachováním dešťovou vodou a 80cm umyvadlem",
       },
       {
         id: "1.04",

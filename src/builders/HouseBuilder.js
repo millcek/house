@@ -85,7 +85,15 @@ export function buildHouseModel(designConfig, materials) {
     roofGroup.add(buildSlab(designConfig.ceiling2Slab, materials));
   }
   if (designConfig.roof) {
-    roofGroup.add(buildGableRoof(designConfig.roof, materials.roof, materials.wall));
+    roofGroup.add(
+      buildGableRoof(
+        designConfig.roof,
+        materials.roof,
+        materials.wall,
+        materials.solarPanel,
+        materials.solarFrame
+      )
+    );
   }
   group.add(roofGroup);
 

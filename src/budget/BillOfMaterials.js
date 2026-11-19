@@ -296,6 +296,7 @@ export function computeBillOfMaterials({
     metal: bom.section("14", "Zámečnické a doplňkové konstrukce"),
     terrace: bom.section("15", "Terasa a pergola"),
     aux: bom.section("16", "Vedlejší stavba – dílna a kryté stání"),
+    auxHeat: bom.section("16A", "Dílna – izolace a vytápění (klimatizace)"),
     site: bom.section("17", "Venkovní úpravy a přípojky"),
     eng: bom.section("18", "Projektová dokumentace, inženýring a technický dozor"),
   };
@@ -1458,6 +1459,13 @@ export function computeBillOfMaterials({
     qty: 1,
     calc: "1 šachta 2.04 → 1.02",
   });
+  bom.add(S.zti, {
+    name: "Rozvod užitkové dešťové vody k WC a zahradnímu ventilu",
+    spec: "Potrubí PE-Xc / PPR, sedimentační filtr, automatická doplňovací jednotka pitnou vodou při vyčerpání nádrže",
+    unit: "kpl",
+    qty: 1,
+    calc: "napojení splachování WC 1.03 a fasádního nezámrzného kohoutu",
+  });
 
   // ============================================================ 12 VYTÁPĚNÍ & VZT
   const heatKw = (interiorArea * TZ.heatLossWPerM2) / 1000;
@@ -1635,6 +1643,13 @@ export function computeBillOfMaterials({
     unit: "kpl",
     qty: 1,
     calc: `${sockets} zásuvek, ${lights} světel`,
+  });
+  bom.add(S.elec, {
+    name: "Fotovoltaická elektrárna (FVE) 7,2 kWp vč. bateriového úložiště 10,6 kWh",
+    spec: "16× monokrystalický celočerný panel 450 Wp na střeše JZ, hybridní 3f střídač 10 kW, LiFePO4 baterie 10,6 kWh, nosná konstrukce, kabeláž, revize a připojení",
+    unit: "kpl",
+    qty: 1,
+    calc: "16 panelů na střeše, střídač + baterie v 1.02",
   });
   if (roofGeo) {
     const eave = design.roof.y;
@@ -1831,7 +1846,9 @@ export function computeBillOfMaterials({
     const rule = masonryRule(spec, A.wallThickness);
     const pcs = 1 / (rule.format[0] * rule.format[1]);
     const gableA = depth * roofHeight; // u pultu dva klíny nad dílnou; u sedlové dva štíty
-    const masonryA = wallLen * wallHeight + gableA;
+    const openings = auxConfig.workshopOpenings ?? [];
+    const openingsA = openings.reduce((a, o) => a + o.width * o.height, 0);
+    const masonryA = wallLen * wallHeight + gableA - openingsA;
     const sc = "aux";
 
     bom.add(S.aux, {
@@ -1866,7 +1883,7 @@ export function computeBillOfMaterials({
       unit: "m²",
       qty: masonryA,
       scope: sc,
-      calc: `(${fmt(workshopPerim)} + zadní stěna ${fmt(parkWidth)}) × ${fmt(wallHeight)} + štíty ${fmt(gableA)} m² (bez odečtu otvorů)`,
+      calc: `(${fmt(workshopPerim)} + zadní stěna ${fmt(parkWidth)}) × ${fmt(wallHeight)} + štíty ${fmt(gableA)} − otvory ${fmt(openingsA)} m²`,
     });
     bom.add(S.aux, {
       name: `Tvárnice dílny tl. ${mm(A.wallThickness)} mm`,
@@ -1934,7 +1951,7 @@ export function computeBillOfMaterials({
       name: "Vnitřní omítka / nátěr zdiva dílny",
       spec: "Jednovrstvá vápenocementová omítka + bílý omyvatelný nátěr",
       unit: "m²",
-      qty: workshopPerim * wallHeight,
+      qty: workshopPerim * wallHeight - openingsA,
       waste: 0.05,
       scope: sc,
       calc: `obvod dílny ${fmt(workshopPerim)} × ${fmt(wallHeight)} m`,
@@ -1947,27 +1964,83 @@ export function computeBillOfMaterials({
       scope: sc,
       calc: "1 kpl",
     });
-    bom.add(S.aux, {
-      name: "Vrata do dílny",
-      spec: "Sekční / křídlová – rozměr k upřesnění (v modelu nejsou otvory)",
-      unit: "ks",
-      qty: 1,
+    const mmSize = (o) => `${Math.round(o.width * 1000)} × ${Math.round(o.height * 1000)} mm`;
+    for (const o of openings) {
+      const base = { unit: "ks", qty: 1, scope: sc, calc: `${o.id} – ${o.name}` };
+      if (o.kind === "gate") {
+        bom.add(S.aux, { ...base, name: "Vrata do dílny", spec: `Izolovaná sekční ${mmSize(o)}, ${o.id}` });
+      } else if (o.kind === "door") {
+        bom.add(S.aux, { ...base, name: `Vstupní dveře ${mmSize(o)}`, spec: `${o.name} (${o.id}), izolované, bezpečnostní` });
+      } else {
+        bom.add(S.aux, { ...base, name: `Okno ${mmSize(o)}`, spec: `${o.name} (${o.id}), parapet ${Math.round(o.sill * 1000)} mm, izolační dvojsklo` });
+      }
+    }
+    bom.warn(
+      "DPH u vedlejší stavby: samostatně stojící dílna může být posouzena v základní sazbě 21 % DPH namísto 12 % (§ 48 odst. 5 ZDPH).",
+    );
+
+    bom.add(S.auxHeat, {
+      name: "Dílna – zateplení stěn ETICS EPS tl. 100 mm",
+      spec: "EPS 70F 100 mm + lepidlo, perlinka, kotvy (dílna vytápěná klimatizací)",
+      unit: "m²",
+      qty: (masonryA + openingsA) * workshopPerim / wallLen - openingsA,
+      waste: 0.07,
       scope: sc,
-      calc: "předpoklad",
+      calc: "plocha zdiva dílny bez zadní stěny stání, po odečtu otvorů",
     });
-    bom.add(S.aux, {
-      name: "Dveře + okno dílny",
-      spec: "K upřesnění",
+    bom.add(S.auxHeat, {
+      name: "Dílna – XPS pod podlahovou deskou tl. 100 mm",
+      spec: "XPS 300 kPa + PE fólie, okrajový dilatační pás",
+      unit: "m²",
+      qty: workshopWidth * depth,
+      waste: 0.05,
+      scope: sc,
+      calc: `${fmt(workshopWidth)} × ${fmt(depth)}`,
+    });
+    bom.add(S.auxHeat, {
+      name: "Dílna – izolace střechy minerální vata 200 mm + parozábrana",
+      spec: "Minerální vata mezi krokve 200 mm, parozábrana, větraná mezera pod plechem",
+      unit: "m²",
+      qty: workshopWidth * depth * 1.08,
+      waste: 0.05,
+      scope: sc,
+      calc: `${fmt(workshopWidth)} × ${fmt(depth)} × 1,08 (jen část nad dílnou)`,
+    });
+    bom.add(S.auxHeat, {
+      name: "Dílna – SDK podhled (požárně odolný) vč. roštu",
+      spec: "SDK RF 12,5 mm + CD/UD profily, nátěr",
+      unit: "m²",
+      qty: workshopWidth * depth,
+      waste: 0.07,
+      scope: sc,
+      calc: `${fmt(workshopWidth)} × ${fmt(depth)}`,
+    });
+    bom.add(S.auxHeat, {
+      name: "Dílna – split klimatizace topení/chlazení 3,5 kW vč. montáže",
+      spec: "Nástěnná jednotka, topný faktor SCOP ≥ 4, samostatný jistič, kondenzát",
       unit: "kpl",
       qty: 1,
       scope: sc,
-      calc: "předpoklad",
+      calc: "1 kpl (cca 26 m², dobře zateplená dílna)",
+    });
+    bom.add(S.auxHeat, {
+      name: "Dílna – odsávání prachu (cyklon + rozvod)",
+      spec: "Mobilní/stacionární odsávání pro dřevoobrábění",
+      unit: "kpl",
+      qty: 1,
+      scope: sc,
+      calc: "1 kpl",
+    });
+    bom.add(S.auxHeat, {
+      name: "Dílna – gumová podlaha na cvičení",
+      spec: "Gumové dlaždice 15 mm, cvičební zóna",
+      unit: "m²",
+      qty: 12,
+      scope: sc,
+      calc: "cca 12 m² cvičební zóna",
     });
     bom.warn(
-      "Vedlejší stavba: otvory (vrata, dveře, okna) nejsou v modelu – zdivo je bez odečtu otvorů.",
-    );
-    bom.warn(
-      "DPH u vedlejší stavby: samostatně stojící dílna může být posouzena v základní sazbě 21 % DPH namísto 12 % (§ 48 odst. 5 ZDPH).",
+      "Dílna je počítána jako vytápěná klimatizací: ETICS, izolace podlahy a střechy, SDK podhled, split, odsávání prachu. Vstupní dveře dílny musí být izolované (dvoukřídlé 1400 mm pro vnášení pinballu a materiálu).",
     );
 
     const auxRoofDef = {
@@ -2210,8 +2283,16 @@ export function computeBillOfMaterials({
           }).planArea
         : 0);
     bom.add(S.site, {
-      name: "Vsakovací objekt dešťové vody",
-      spec: "Vsakovací boxy / akumulační nádrž – dle hydrogeologie",
+      name: "Podzemní samonosná nádrž na dešťovou vodu 7 m³ vč. filtrace a čerpadla",
+      spec: "Monolitická nádrž 7 000 l, pochozí poklop, filtrační šachta, ponorné automatické tlakové čerpadlo pro zálivku a WC",
+      unit: "kpl",
+      qty: 1,
+      scope: "exterior",
+      calc: "akumulace ze střech domu (127 m²) a dílny (71 m²) pro zálivku a WC",
+    });
+    bom.add(S.site, {
+      name: "Vsakovací objekt dešťové vody (bezpečnostní přepad)",
+      spec: "Vsakovací boxy s geotextilií – přepad z akumulační nádrže",
       unit: "m³",
       qty: roofsPlan * SI.rainwaterRetentionM3PerM2,
       scope: "exterior",

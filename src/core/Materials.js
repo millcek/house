@@ -88,6 +88,27 @@ export function createMaterials(clipPlane = houseClipPlane) {
       clippingPlanes,
       clipShadows: true,
     }),
+    solarPanel: new THREE.MeshStandardMaterial({
+      color: 0x111c26, // deep monocrystalline blue-black
+      roughness: 0.15,
+      metalness: 0.85,
+      clippingPlanes,
+      clipShadows: true,
+    }),
+    solarFrame: new THREE.MeshStandardMaterial({
+      color: 0x334155, // dark aluminum mounting frame
+      roughness: 0.35,
+      metalness: 0.7,
+      clippingPlanes,
+      clipShadows: true,
+    }),
+    rainwaterTank: new THREE.MeshStandardMaterial({
+      color: 0x1e293b, // durable cast-iron / dark polyetylene manhole cover
+      roughness: 0.65,
+      metalness: 0.3,
+      clippingPlanes,
+      clipShadows: true,
+    }),
     stair: new THREE.MeshStandardMaterial({
       color: 0x96744e,
       roughness: 0.5,

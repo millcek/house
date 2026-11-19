@@ -22,3 +22,9 @@ This repository contains a 3D IFC and 2D CAD architectural viewer for residentia
    - In [src/builders/FloorPlanSvgGenerator.js](file:///src/builders/FloorPlanSvgGenerator.js), render room badges *after* dimension lines so badges mask underlying lines.
    - Maintain `paint-order: stroke fill; stroke: #ffffff;` white halos on dimension and opening text.
    - Keep title block (razítko) text wrapped to avoid overlapping the scale (MĚŘÍTKO) column.
+4. **Dveřní kování a ochrana proti kolizím (Omezovače otevření)**:
+   - U všech interiérových i vchodových otočných dveří (zejména 1.01, 1.03, 1.05, 1.07, 2.03, 2.07, 2.08) musí být specifikovány skryté integrované omezovače úhlu otevření (95–100°) v horním pantu nebo zárubni.
+   - Zabraňují nárazu kliky nebo dveřního křídla do sousedního nábytku, sanity či sousedních dveří při průvanu nebo prudkém otevření.
+5. **TZB a udržitelná infrastruktura (FVE & Dešťová voda)**:
+   - Na střeše domu je integrována střešní fotovoltaická elektrárna 7,2 kWp (16× 450 Wp panel) s hybridním střídačem 10 kW a baterií 10,6 kWh v technické místnosti 1.02.
+   - Na pozemku je osazena podzemní akumulační nádrž na dešťovou vodu (7,0 m³) pro automatickou zálivku zahrady a splachování toalet v 1.NP s přepadem do vsaku.

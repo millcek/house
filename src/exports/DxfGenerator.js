@@ -1929,6 +1929,22 @@ function renderSitePlanToDxf(
     "A-SITE-BUILD",
     ...tf.rectToDxf(wsX, auxZ - auxD / 2, auxConfig.workshopWidth, auxD),
   );
+  for (const o of auxConfig.workshopOpenings ?? []) {
+    const wcx = wsX + auxConfig.workshopWidth / 2;
+    const alongX = o.wall === "S" || o.wall === "N";
+    const ow = alongX ? o.width : 0.12;
+    const od = alongX ? 0.12 : o.width;
+    let cx = wcx;
+    let cz = auxZ;
+    if (o.wall === "S") { cx += o.offset; cz += auxD / 2; }
+    if (o.wall === "N") { cx += o.offset; cz -= auxD / 2; }
+    if (o.wall === "E") { cx += auxConfig.workshopWidth / 2; cz += o.offset; }
+    if (o.wall === "W") { cx -= auxConfig.workshopWidth / 2; cz += o.offset; }
+    dxf.addRect(
+      "A-SITE-BUILD",
+      ...tf.rectToDxf(cx - ow / 2, cz - od / 2, ow, od),
+    );
+  }
   const [wsCX, wsCY] = tf.toDxf(wsX + auxConfig.workshopWidth / 2, auxZ);
   dxf.addText("A-TITLE", wsCX, wsCY + 140, "DÍLNA", {
     height: 200,
@@ -2017,6 +2033,23 @@ function renderSitePlanToDxf(
       ...tf.rectToDxf(auxX + ex - ew / 2, auxZ + ez - ed / 2, ew, ed),
     );
   }
+
+  // 3b. Podzemní akumulační nádrž na dešťovou vodu (7 m³)
+  const tankX = 1.5;
+  const tankZ = -7.5;
+  const [tDxfX, tDxfY] = tf.toDxf(tankX, tankZ);
+  dxf.addCircle("A-SITE-BUILD", tDxfX, tDxfY, 1200);
+  dxf.addCircle("A-SITE-BUILD", tDxfX, tDxfY, 350);
+  dxf.addText("A-TITLE", tDxfX, tDxfY + 160, "NÁDRŽ DEŠŤOVÉ VODY", {
+    height: 150,
+    hAlign: 1,
+    vAlign: 2,
+  });
+  dxf.addText("A-TITLE", tDxfX, tDxfY - 160, "7 m³ (WC + ZÁLIVKA)", {
+    height: 120,
+    hAlign: 1,
+    vAlign: 2,
+  });
 
   // 4. Setback dimensions
   const sb = computeSiteSetbacks(

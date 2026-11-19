@@ -114,9 +114,10 @@ export const BOM_SPEC = {
     pskLabel: 'Terasový portál PSK (posuvně-sklopný), izolační trojsklo, Uw ≤ 0,8 W/m²K',
     blindsLabel: 'Venkovní žaluzie Z90 s motorickým pohonem + podomítkový kastlík',
     extDoorLabel: 'Vchodové dveře, Ud ≤ 0,9 W/m²K, bezpečnostní kování',
-    intDoorLabel: 'Vnitřní dveře otočné plné + obložková zárubeň',
-    glazedDoorLabel: 'Vnitřní dveře otočné prosklené (bezpečnostní / akustické sklo) + obložková zárubeň',
+    intDoorLabel: 'Vnitřní dveře otočné plné + obložková zárubeň (vč. skrytého integrovaného omezovače otevření 95–100°)',
+    glazedDoorLabel: 'Vnitřní dveře otočné prosklené (bezpečnostní / akustické sklo) + obložková zárubeň (vč. skrytého omezovače otevření 95–100°)',
     pocketDoorLabel: 'Vnitřní dveře posuvné do stavebního pouzdra + stavební pouzdro',
+    doorStopFitting: 'Skrytý integrovaný omezovač úhlu otevření (95–100°) v horním pantu / zárubni (ochrana stěn, sanity a nábytku)',
     sillOverhang: 0.05, // přesah parapetu za ostění
     minSillForParapet: 0.30, // okna s parapetem nad 30 cm dostanou vnitřní parapet
   },
@@ -159,6 +160,10 @@ export const BOM_SPEC = {
     floorHeatingPipeMPerM2: 6.7, // rozteč 150 mm
     ventilationAirChange: 0.3, // 1/h
     ventDuctPerOutlet: 6.0, // m potrubí na vyústku (odhad)
+    fveKwp: 7.2, // instalovaný výkon střešní FVE (16× 450 Wp)
+    fveBatteryKwh: 10.6, // kapacita LiFePO4 bateriového úložiště
+    fveInverterKw: 10.0, // hybridní 3f střídač
+    rainwaterTankM3: 7.0, // podzemní akumulační nádrž na dešťovou vodu
     hotWaterBase: 200, // l
     hotWaterPerBathroom: 50, // l
     socketsPerM2: 1 / 5, // zásuvky – odhad 1 ks / 5 m², min. 2
@@ -212,7 +217,8 @@ export const BOM_ASSUMPTIONS = [
   'Obvodové zdivo uvažováno jako 240 mm keramická cihla + 140 mm kontaktní zateplení ETICS (EPS 70F); příčky 2.NP jako akustické SDK W112 tl. 125 mm.',
   'Střecha hlavního domu: příhradové vazníky tvořící nosný strop 2.NP i krov, nevytápěné podkroví s 350 mm minerální vaty a SDK podhledem (v 1.NP podhled 100 mm pro VZT).',
   'Podlahy: potěr i nášlapné vrstvy (dub v obýváku s kuchyní, lepený vinyl v pokojích a 1.04, keramická dlažba v zázemí) vycházejí ze skutečné vnitřní užitné plochy místností.',
-  'TZB a elektro jsou orientační počty (podlahové topení systémem Tacker, ekvitermní regulace, shoz prádla 2.04→1.02) – nenahrazují prováděcí projekt.',
+  'TZB a elektro jsou orientační počty (podlahové topení systémem Tacker, ekvitermní regulace, shoz prádla 2.04→1.02, střešní FVE 7,2 kWp s baterií 10,6 kWh, akumulační nádrž dešťové vody 7 m³ pro WC a zálivku) – nenahrazují prováděcí projekt.',
+  'Dveřní kování: u otočných interiérových i vchodových dveří jsou v zárubních uvažovány skryté integrované omezovače otevření (95–100°) proti kolizi křídel s nábytkem.',
   'Vedlejší stavba (zdivo 240 mm, nízká pultová střecha): otvory dílny nejsou v modelu; u samostatně stojící dílny mimo příslušenství RD může finanční úřad posoudit DPH 21 % namísto 12 % (§ 48 ZDPH).',
   'Sloupce „Jedn. cena“ a „Cena celkem“ vyplní dodavatel; „Množství k objednání“ zahrnuje prořez.',
 ];

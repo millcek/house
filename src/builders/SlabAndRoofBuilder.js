@@ -63,7 +63,7 @@ export function buildSlab(slabDef, materials) {
  * separating the triangular gable masonry core (`gableMaterial`) from the
  * overhanging pitched roof shell (`material`).
  */
-export function buildGableRoof(roofDef, material, gableMaterial = null) {
+export function buildGableRoof(roofDef, material, gableMaterial = null, solarPanelMat = null, solarFrameMat = null) {
   const {
     width,
     length,
@@ -74,6 +74,7 @@ export function buildGableRoof(roofDef, material, gableMaterial = null) {
     eaveOverhang = 0.45,
     gableOverhang = 0.35,
     thickness = 0.22,
+    hasSolar = true,
   } = roofDef;
 
   const span = ridgeAxis === 'z' ? width : length;
@@ -164,6 +165,70 @@ export function buildGableRoof(roofDef, material, gableMaterial = null) {
     },
   };
   group.add(shellMesh);
+
+  // 3. Střešní fotovoltaická elektrárna FVE 7,2 kWp (16 panelů na západní střeše s orientací JZ)
+  if (ridgeAxis === 'z' && hasSolar) {
+    const pMat = solarPanelMat || new THREE.MeshStandardMaterial({
+      color: 0x111c26,
+      roughness: 0.15,
+      metalness: 0.85,
+    });
+    const fMat = solarFrameMat || new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.35,
+      metalness: 0.7,
+    });
+
+    const pLen = 1.65; // délka modulu po spádu (m)
+    const pWid = 1.02; // šířka modulu podél hřebene (m)
+    const pThick = 0.035; // tloušťka panelu (m)
+    const gapZ = 0.05; // mezera mezi panely podél Z (m)
+    const lift = 0.06; // vyvýšení nad střešní krytinu (m)
+    const rowCenters = [1.55, 3.25]; // vzdálenost středů řad od hřebene po spádu (m)
+
+    const pGeo = new THREE.BoxGeometry(pLen, pThick, pWid);
+    const fGeo = new THREE.BoxGeometry(pLen + 0.02, pThick * 0.9, pWid + 0.02);
+    const nx = -Math.sin(slopeAngle);
+    const ny = Math.cos(slopeAngle);
+
+    for (let rIdx = 0; rIdx < rowCenters.length; rIdx++) {
+      const s = rowCenters[rIdx];
+      const cx = -s * Math.cos(slopeAngle) + lift * nx;
+      const cy = height + dyThick - s * Math.sin(slopeAngle) + lift * ny;
+
+      for (let cIdx = 0; cIdx < 8; cIdx++) {
+        const cz = -3.745 + cIdx * (pWid + gapZ);
+
+        const frameMesh = new THREE.Mesh(fGeo, fMat);
+        frameMesh.position.set(cx, cy - 0.005, cz);
+        frameMesh.rotation.z = slopeAngle;
+        frameMesh.castShadow = true;
+        group.add(frameMesh);
+
+        const panelMesh = new THREE.Mesh(pGeo, pMat);
+        panelMesh.position.set(cx, cy, cz);
+        panelMesh.rotation.z = slopeAngle;
+        panelMesh.castShadow = true;
+        panelMesh.receiveShadow = true;
+
+        panelMesh.userData.bim = {
+          type: 'IfcEnergyConversionDevice (FVE)',
+          name: `Fotovoltaický panel ${rIdx * 8 + cIdx + 1}/16 (450 Wp)`,
+          floor: 'Střecha',
+          description: 'Celočerný monokrystalický modul FVE elektrárny na střeše domu',
+          parameters: {
+            'Instalovaný výkon': '7,2 kWp (16× 450 Wp)',
+            'Rozměry panelu': `${pLen} × ${pWid} m`,
+            'Orientace a sklon': 'JZ (západní střešní rovina), sklon 25,4°',
+            'Střídač': 'Hybridní 3f střídač 10 kW (technická m. 1.02)',
+            'Bateriové úložiště': 'LiFePO4 10,6 kWh (technická m. 1.02)',
+            'Odhadovaná roční výroba': 'cca 7 200 kWh/rok',
+          },
+        };
+        group.add(panelMesh);
+      }
+    }
+  }
 
   return group;
 }

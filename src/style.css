@@ -1874,7 +1874,7 @@ body {
   top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 60;
+  z-index: 75;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1889,10 +1889,21 @@ body {
   font-size: 13px;
   pointer-events: auto;
   user-select: none;
+  cursor: default;
   max-width: calc(100vw - 32px);
   flex-wrap: wrap;
   justify-content: center;
   animation: hudFadeIn 0.18s ease-out;
+}
+
+.drawings-measure-hud * {
+  cursor: default;
+}
+
+.drawings-measure-hud button,
+.drawings-measure-hud .btn {
+  cursor: pointer !important;
+  pointer-events: auto !important;
 }
 
 @keyframes hudFadeIn {
@@ -1941,7 +1952,9 @@ body {
 
 .measure-hud-readout .measure-hud-prompt {
   color: #94a3b8;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   font-weight: 500;
 }
 
@@ -2160,7 +2173,11 @@ body {
 }
 
 .budget-cost-highlight {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(16, 185, 129, 0.16));
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.22),
+    rgba(16, 185, 129, 0.16)
+  );
   border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: 12px;
   padding: 12px 14px;

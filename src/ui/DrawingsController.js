@@ -376,6 +376,7 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
     'wheel',
     (e) => {
       if (!isOpen) return;
+      if (e.target?.closest?.('#drawings-measure-hud')) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.14 : 1 / 1.14;
       zoomAt(zoom * factor, e.clientX, e.clientY);
@@ -385,6 +386,7 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
 
   // Unified multi-touch pinch-to-zoom, 1-finger / mouse drag pan, and double-tap zoom/reset
   viewport?.addEventListener('pointerdown', (e) => {
+    if (e.target?.closest?.('#drawings-measure-hud')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     viewport.setPointerCapture?.(e.pointerId);
@@ -404,6 +406,7 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
   });
 
   viewport?.addEventListener('pointermove', (e) => {
+    if (e.target?.closest?.('#drawings-measure-hud')) return;
     const prev = activePointers.get(e.pointerId);
     if (!prev) {
       if (measureController?.isActive()) {
@@ -454,6 +457,7 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
   });
 
   const endPointer = (e, cancelled = false) => {
+    if (e.target?.closest?.('#drawings-measure-hud')) return;
     const hadPointer = activePointers.has(e.pointerId);
     activePointers.delete(e.pointerId);
 

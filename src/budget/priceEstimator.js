@@ -176,6 +176,7 @@ export function priceItem(item) {
     [/Vnitřní kanalizace/, 35000, 76000],
     [/Venkovní zahradní ventil/, 1950, 3800],
     [/Svislý shoz prádla/, 18000, 29000],
+    [/Rozvod užitkové dešťové vody/, 18500, 32000],
 
     // 12 Vytápění a větrání
     [/Tepelné čerpadlo vzduch–voda/, 195000, 275000],
@@ -203,6 +204,7 @@ export function priceItem(item) {
     [/Datové zásuvky/, 590, 1480],
     [/Rozvaděč RD/, 31000, 58000],
     [/Elektroinstalace – kabeláž/, 62000, 148000],
+    [/Fotovoltaická elektrárna|FVE/i, 260000, 320000],
     [/Hromosvod – jímací vedení/, 195, 460],
     [/Hromosvod – svody/, 260, 590],
     [/Zemnící páska/, 155, 340],
@@ -246,6 +248,13 @@ export function priceItem(item) {
     [/oplechování atiky a závětrné lišty/i, 320, 620],
     [/podokapní žlab R125 \+ svod/i, 420, 840],
     [/Vrata do dílny/, 31000, 46000],
+    [/Dílna – zateplení stěn ETICS/, 680, 1550],
+    [/Dílna – XPS pod podlahovou deskou/, 420, 780],
+    [/Dílna – izolace střechy minerální vata/, 620, 1250],
+    [/Dílna – SDK podhled/, 460, 1080],
+    [/Dílna – split klimatizace/, 32000, 44000],
+    [/Dílna – odsávání prachu/, 18000, 26000],
+    [/Dílna – gumová podlaha/, 780, 1250],
     [/Dveře \+ okno dílny/, 17500, 26500],
     [/Kryté loubí – střešní plášť/, 920, 1680],
     [/Kryté loubí – sloupky/, 3500, 6200],
@@ -263,6 +272,7 @@ export function priceItem(item) {
     [/Elektropřípojka/, 1050, 2600],
     [/Datová přípojka/, 380, 1050],
     [/Vjezd ke krytému stání/, 740, 1680],
+    [/Podzemní samonosná nádrž na dešťovou vodu/i, 78000, 115000],
     [/Vsakovací objekt/, 7200, 12800],
     [/Dešťová kanalizace/, 460, 1250],
 

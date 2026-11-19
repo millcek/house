@@ -836,8 +836,18 @@ export function buildAreaAndTechnicalSummary({
     },
     {
       code: 'K09',
-      element: 'TZB a vytápění',
-      description: `Teplovodní podlahové vytápění s tepelným čerpadlem, řízené větrání s rekuperací tepla, zásobník TV ${spec.tzb.hotWaterBase + 2 * spec.tzb.hotWaterPerBathroom} l`,
+      element: 'TZB, vytápění a FVE',
+      description: `Teplovodní podlahové vytápění s tepelným čerpadlem, řízené větrání s rekuperací tepla, střešní FVE 7,2 kWp (16 panelů) s hybridním střídačem 10 kW a baterií 10,6 kWh, zásobník TV ${spec.tzb.hotWaterBase + 2 * spec.tzb.hotWaterPerBathroom} l`,
+    },
+    {
+      code: 'K10',
+      element: 'Hospodaření s dešťovou vodou',
+      description: `Podzemní akumulační nádrž 7,0 m³ s automatickou vodárnou pro zálivku zahrady a splachování toalet v 1.NP, bezpečnostní přepad do vsakovacích boxů`,
+    },
+    {
+      code: 'K11',
+      element: 'Dveřní kování a ochrana proti kolizím',
+      description: `Skryté integrované omezovače úhlu otevření (95–100°) v zárubních interiérových i vchodových dveří zamezující poškození nábytku a sanity`,
     },
   ];
 

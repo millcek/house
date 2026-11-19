@@ -64,6 +64,44 @@ export function buildPlot(plotGroup, siteConfig, materials) {
   frontRoad.receiveShadow = true;
   plotGroup.add(frontRoad);
 
+  // Podzemní akumulační nádrž na dešťovou vodu (7 m³)
+  const tankX = 1.5;
+  const tankZ = -7.5;
+  const tankGroup = new THREE.Group();
+  tankGroup.name = 'rainwater-retention-tank';
+  tankGroup.position.set(tankX, 0, tankZ);
+
+  // Podzemní těleso nádrže (průměr 2,4 m, výška 2,0 m, uložené pod terénem)
+  const tankBodyGeo = new THREE.CylinderGeometry(1.2, 1.2, 2.0, 24);
+  const tankBodyMat = materials.rainwaterTank || materials.auxWall;
+  const tankBodyMesh = new THREE.Mesh(tankBodyGeo, tankBodyMat);
+  tankBodyMesh.position.y = -1.1;
+  tankGroup.add(tankBodyMesh);
+
+  // Pochozí revizní poklop nádrže (průměr 0,70 m, výška 0,05 m na úrovni terénu)
+  const coverGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.05, 24);
+  const coverMat = materials.rainwaterTank || materials.auxPillar;
+  const coverMesh = new THREE.Mesh(coverGeo, coverMat);
+  coverMesh.position.y = 0.035;
+  coverMesh.castShadow = true;
+  coverMesh.receiveShadow = true;
+
+  coverMesh.userData.bim = {
+    type: 'IfcDistributionChamberElement (Dešťová nádrž)',
+    name: 'Podzemní akumulační nádrž na dešťovou vodu (7 m³)',
+    floor: 'Pozemek',
+    description: 'Samonosná podzemní nádrž pro zálivku zahrady a splachování toalet v 1.NP',
+    parameters: {
+      'Užitný objem': '7 000 l (7,0 m³)',
+      'Průměr a hloubka': 'Ø 2,4 m, hloubka 2,0 m (poklop Ø 0,70 m)',
+      'Využití vody': 'Zálivka zahrady + splachování WC 1.03 v 1.NP',
+      'Vybavení': 'Ponorné automatické tlakové čerpadlo, filtrační koš, bezpečnostní přepad',
+      'Přepad': 'Bezpečnostní přepad do vsakovacích boxů',
+    },
+  };
+  tankGroup.add(coverMesh);
+  plotGroup.add(tankGroup);
+
   return { gridHelper, groundMesh };
 }
 
@@ -107,6 +145,38 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
     },
   };
   group.add(workshop);
+
+  // 1b. Otvory dílny (vrata, dveře, okna) jako panely mírně předsazené před líc zdi
+  const openingMats = {
+    gate: new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.5 }),
+    door: new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.5 }),
+    window: materials.glass,
+  };
+  for (const o of auxConfig.workshopOpenings ?? []) {
+    const t = 0.06;
+    const alongX = o.wall === 'S' || o.wall === 'N';
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(alongX ? o.width : t, o.height, alongX ? t : o.width),
+      openingMats[o.kind] ?? openingMats.door
+    );
+    const y = o.sill + o.height / 2;
+    const half = (alongX ? depth : workshopWidth) / 2 + t / 2 - 0.01;
+    if (o.wall === 'S') mesh.position.set(workshopRelX + o.offset, y, half);
+    if (o.wall === 'N') mesh.position.set(workshopRelX + o.offset, y, -half);
+    if (o.wall === 'E') mesh.position.set(workshopRelX + half, y, o.offset);
+    if (o.wall === 'W') mesh.position.set(workshopRelX - half, y, o.offset);
+    mesh.userData.bim = {
+      type: o.kind === 'window' ? 'IfcWindow' : 'IfcDoor',
+      name: o.name,
+      floor: 'Pozemek',
+      description: `Otvor dílny ${o.id}`,
+      parameters: {
+        Rozměr: `${Math.round(o.width * 1000)} × ${Math.round(o.height * 1000)} mm`,
+        Parapet: `${Math.round(o.sill * 1000)} mm`,
+      },
+    };
+    group.add(mesh);
+  }
 
   // 2. Covered Parking (East section)
   const parkRelX = totalWidth / 2 - parkWidth / 2;

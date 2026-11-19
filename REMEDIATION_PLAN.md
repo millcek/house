@@ -11,6 +11,7 @@ Tento dokument zachycuje kompletní akční plán nápravy technických, dispozi
 - [x] **Bod 3:** Zrušení krbu/komína, redukce přehřívání ZJZ, optimalizace oken a venkovní stínění
 - [x] **Bod 4:** Pročištění 1.NP, komfortnější schodiště a oprava parkování / exteriéru
 - [x] **Bod 5:** Zlevnění vedlejší stavby & kompletní narovnání rozpočtu, BOM, UI a testů
+- [x] **Bod 6:** Zapracování FVE, hospodaření s dešťovou vodou a dveřních omezovačů
 
 ---
 
@@ -160,3 +161,25 @@ Tento dokument zachycuje kompletní akční plán nápravy technických, dispozi
    - `npm run analyze`: **0 chyb (error) | 0 varování (warning)**.
    - `npm test`: **43/43 testů prošlo (100 % pass)**.
    - `npm run lint` i `npm run build`: **bez chyb**.
+
+---
+
+## Bod 6: Zapracování FVE, hospodaření s dešťovou vodou a dveřních omezovačů
+**Stav:** ✅ Hotovo
+
+**Popis a přínosy úpravy:**
+1. **Fotovoltaická elektrárna (FVE 7,2 kWp) na střeše:**
+   - 16 ks celočerných monokrystalických panelů (450 Wp) osazených na západní střešní rovině (JZ expozice po započtení pootočení parcely +26,5°).
+   - 3D model i BIM prvky (`IfcEnergyConversionDevice`) s detailními parametry výkonu, střídače a baterie.
+   - Hybridní třífázový střídač 10 kW a bateriové úložiště LiFePO4 10,6 kWh umístěny v technické místnosti `1.02`.
+   - Položka zapracována do výkazu výměr BOM (oddíl 13 Elektroinstalace) i ceníku.
+2. **Podzemní akumulační nádrž na dešťovou vodu (7,0 m³):**
+   - Samonosná monolitická nádrž osazena na pozemku v severní zahradě (`x = 1,5 m`, `z = -7,5 m`) v těsné blízkosti svodů střechy domu i dílny.
+   - Vybavena automatickou domácí vodárnou / ponorným tlakovým čerpadlem s plovoucím sáním a jemným filtrem.
+   - Napojení na splachování toalety v 1.NP (`1.03`) a fasádní nezámrzný ventil pro zálivku zahrady.
+   - Bezpečnostní přepad sveden do vsakovacích boxů; objekt zakreslen do 3D modelu i situace v DXF (`A-SITE-BUILD`).
+   - Položka zapracována do BOM (oddíl 17 Venkovní úpravy a oddíl 11 Zdravotechnika) i ceníku.
+3. **Trvalý záznam požadavku na dveřní omezovače (95–100°):**
+   - Zaznamenáno do architektonických směrnic projektu `AGENTS.md` (Pravidlo 4), specifikace kování `src/budget/specifications.js` i technického listu `src/exports/ProjectSchedules.js`.
+   - Všech 7 kolizních dveří (vchodové `1.01`, koupelna `1.03`, zádveří `1.05`, obývák `1.07`, pokoj `2.03`, dětské pokoje `2.07` a `2.08`) má v kování specifikovány skryté integrované omezovače úhlu otevření (95–100°) v horním pantu či zárubni.
+   - Zabraňuje nárazu křídla do nábytku, sanity či sousedních dveří při průvanu nebo prudkém otevření.
