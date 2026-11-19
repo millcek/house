@@ -1,6 +1,6 @@
 import { computeRoomSchedule } from "../builders/RoomBuilder.js";
 import { updateSetbackDimensions } from "../builders/SiteBuilder.js";
-import { DESIGN_VARIANTS, getDesignVariant } from "../designs/index.js";
+import { defaultDesign } from "../designs/index.js";
 
 const VALID_TABS = new Set(["floors", "sun", "site", "model", "bim", "budget"]);
 const DISCRETE_KEYS = [
@@ -9,7 +9,6 @@ const DISCRETE_KEYS = [
   "activeRoomId",
   "sidebarOpen",
   "activeTab",
-  "activeModelId",
   "drawings",
   "labelsVisible",
   "furnitureVisible",
@@ -63,6 +62,23 @@ function parseViewParam(rawView, rawSheet, rawParams) {
   if (isDrawings) {
     let sheet = "1np";
     if (
+      normalizedSheet === "sections" ||
+      normalizedSheet === "rezy" ||
+      normalizedSheet === "rez" ||
+      normalized.endsWith("-sections") ||
+      normalized.endsWith("-rezy")
+    ) {
+      sheet = "sections";
+    } else if (
+      normalizedSheet === "elevations" ||
+      normalizedSheet === "pohledy" ||
+      normalizedSheet === "pohled" ||
+      normalizedSheet === "fasady" ||
+      normalized.endsWith("-elevations") ||
+      normalized.endsWith("-pohledy")
+    ) {
+      sheet = "elevations";
+    } else if (
       normalizedSheet === "2np" ||
       normalizedSheet === "2.np" ||
       normalizedSheet === "floor2"
@@ -94,11 +110,18 @@ function parseViewParam(rawView, rawSheet, rawParams) {
     const showFurniture = rawParams?.get("dfurniture") !== "0";
     const showOpeningTags = rawParams?.get("tags") !== "0";
     const showHatches = rawParams?.get("hatches") !== "0";
+    const showAnalysis = rawParams?.get("analysis") === "1";
 
-    const floorMode = sheet === "2np" ? "2np" : "1np";
+    const floorMode =
+      sheet === "elevations" || sheet === "sections"
+        ? "all"
+        : sheet === "2np"
+          ? "2np"
+          : "1np";
+    const activeScheduleFloor = sheet === "2np" ? "2np" : "1np";
     return {
       floorMode,
-      activeScheduleFloor: floorMode,
+      activeScheduleFloor,
       isTopDownPreset: false,
       isTopDown: false,
       drawings: {
@@ -110,6 +133,7 @@ function parseViewParam(rawView, rawSheet, rawParams) {
         showFurniture,
         showOpeningTags,
         showHatches,
+        showAnalysis,
       },
     };
   }
@@ -191,9 +215,9 @@ function parseViewParam(rawView, rawSheet, rawParams) {
   };
 }
 
-function findRoomById(modelId, roomId) {
+function findRoomById(roomId) {
   if (!roomId) return null;
-  const design = getDesignVariant(modelId);
+  const design = defaultDesign;
   const f1 = computeRoomSchedule(
     design.floor1?.rooms || [],
     design.floor1,
@@ -231,6 +255,7 @@ export function buildSearchString(state, sceneManager, siteConfig) {
     if (state.drawings.showFurniture === false) params.set("dfurniture", "0");
     if (state.drawings.showOpeningTags === false) params.set("tags", "0");
     if (state.drawings.showHatches === false) params.set("hatches", "0");
+    if (state.drawings.showAnalysis === true) params.set("analysis", "1");
   } else if (state.isTopDown) {
     params.set("view", state.floorMode === "2np" ? "pudorys-2np" : "pudorys");
   } else {
@@ -274,13 +299,6 @@ export function buildSearchString(state, sceneManager, siteConfig) {
   if (!state.site?.gridVisible) params.set("grid", "0");
   if (!state.site?.plotVisible) params.set("plot", "0");
 
-  if (
-    state.activeModelId !== "concept" &&
-    DESIGN_VARIANTS[state.activeModelId]
-  ) {
-    params.set("model", state.activeModelId);
-  }
-
   return `?${params.toString().replace(/%2C/gi, ",")}`;
 }
 
@@ -292,7 +310,6 @@ export function initUrlController({
   store,
   sceneManager,
   sunSystem,
-  ifcController,
   gridHelper,
   siteConfig,
   auxiliaryBuildingConfig,
@@ -343,25 +360,8 @@ export function initUrlController({
 
     try {
       const params = new URLSearchParams(window.location.search);
-      const currentState = store.getState();
 
-      // 1. Built-in design variant (`model`)
-      const modelParam = params.get("model");
-      if (modelParam && DESIGN_VARIANTS[modelParam]) {
-        if (currentState.activeModelId !== modelParam) {
-          ifcController.loadConceptVariant(modelParam);
-        }
-      } else if (
-        !modelParam &&
-        currentState.activeModelId !== "concept" &&
-        DESIGN_VARIANTS[currentState.activeModelId]
-      ) {
-        ifcController.loadConceptVariant("concept");
-      }
-
-      const activeModelId = store.getState().activeModelId;
-
-      // 2. View (`view`), Sheet (`sheet`) & Room (`room`)
+      // 1. View (`view`), Sheet (`sheet`) & Room (`room`)
       let { floorMode, activeScheduleFloor, isTopDownPreset, isTopDown, drawings } = parseViewParam(
         params.get("view"),
         params.get("sheet"),
@@ -371,7 +371,7 @@ export function initUrlController({
       let activeRoomId = null;
       let matchedRoom = null;
       const roomParam = params.get("room");
-      const roomMatch = findRoomById(activeModelId, roomParam);
+      const roomMatch = findRoomById(roomParam);
       if (roomMatch) {
         activeRoomId = roomMatch.room.id;
         matchedRoom = roomMatch.room;

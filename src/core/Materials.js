@@ -62,6 +62,25 @@ export function createMaterials(clipPlane = houseClipPlane) {
       clippingPlanes,
       clipShadows: true,
     }),
+    doorLeaf: new THREE.MeshStandardMaterial({
+      color: 0xb89368, // warm oak interior door leaf
+      roughness: 0.45,
+      clippingPlanes,
+      clipShadows: true,
+    }),
+    doorLeafExt: new THREE.MeshStandardMaterial({
+      color: 0x273449, // insulated anthracite exterior entrance door
+      roughness: 0.45,
+      clippingPlanes,
+      clipShadows: true,
+    }),
+    doorHandle: new THREE.MeshStandardMaterial({
+      color: 0xcbd5e1, // brushed steel door handle
+      roughness: 0.25,
+      metalness: 0.8,
+      clippingPlanes,
+      clipShadows: true,
+    }),
     roof: new THREE.MeshStandardMaterial({
       color: 0x2b2f38, // dark roof
       roughness: 0.45,

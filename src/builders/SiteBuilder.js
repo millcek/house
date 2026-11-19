@@ -79,6 +79,7 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
     workshopWidth,
     depth,
     wallHeight,
+    roofType = 'gable',
     roofHeight,
     position,
     canopy,
@@ -136,33 +137,83 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
   backWall.receiveShadow = true;
   group.add(backWall);
 
-  const pillarGeo = new THREE.BoxGeometry(0.25, wallHeight, 0.25);
   const pillars = [
     [parkRelX + parkWidth / 2 - 0.15, depth / 2 - 0.15],
     [parkRelX + parkWidth / 2 - 0.15, -depth / 2 + 0.15],
     [parkRelX - parkWidth / 2 + 0.15, depth / 2 - 0.15],
   ];
   for (const [px, pz] of pillars) {
-    const col = new THREE.Mesh(pillarGeo, materials.auxPillar);
-    col.position.set(px, wallHeight / 2, pz);
+    const colH =
+      roofType === 'mono'
+        ? wallHeight + roofHeight * ((pz + depth / 2) / depth)
+        : wallHeight;
+    const col = new THREE.Mesh(new THREE.BoxGeometry(0.25, colH, 0.25), materials.auxPillar);
+    col.position.set(px, colH / 2, pz);
     col.castShadow = true;
     group.add(col);
   }
 
-  // 3. Common gable roof (perpendicular ridge along X)
-  const roof = buildGableRoof(
-    {
-      width: totalWidth,
-      length: depth,
-      height: roofHeight,
-      y: wallHeight,
-      ridgeAxis: 'x',
-      name: 'Střecha dílny a stání',
-    },
-    materials.auxRoof,
-    materials.auxWall
-  );
-  group.add(roof);
+  // 3. Common roof (low mono-pitch sloping North or traditional gable ridge along X)
+  if (roofType === 'mono') {
+    const roofGroup = new THREE.Group();
+    roofGroup.name = 'Střecha dílny a stání (pultová)';
+    const over = 0.35;
+    const slopeAngle = Math.atan2(roofHeight, depth);
+    const slopeLen = (depth + over * 2) / Math.cos(slopeAngle);
+    const roofSlab = new THREE.Mesh(
+      new THREE.BoxGeometry(totalWidth + over * 2, 0.22, slopeLen),
+      materials.auxRoof
+    );
+    roofSlab.position.set(0, wallHeight + roofHeight / 2 + 0.11, 0);
+    roofSlab.rotation.x = -slopeAngle;
+    roofSlab.castShadow = true;
+    roofSlab.receiveShadow = true;
+    roofSlab.userData.bim = {
+      type: 'IfcRoof',
+      name: 'Pultová střecha dílny a stání',
+      floor: 'Pozemek',
+      description: 'Nízká pultová střecha se spádem k severu',
+      parameters: {
+        Rozměry: `${(totalWidth + over * 2).toFixed(1)} × ${slopeLen.toFixed(1)} m`,
+        Sklon: `${((slopeAngle * 180) / Math.PI).toFixed(1)}°`,
+      },
+    };
+    roofGroup.add(roofSlab);
+
+    // Zděný klín nad dílnou pod zvednutou jižní hranou pultové střechy
+    const wedgeShape = new THREE.Shape();
+    wedgeShape.moveTo(-depth / 2, 0);
+    wedgeShape.lineTo(depth / 2, 0);
+    wedgeShape.lineTo(depth / 2, roofHeight);
+    wedgeShape.closePath();
+    const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, {
+      depth: workshopWidth,
+      bevelEnabled: false,
+    });
+    wedgeGeo.translate(0, 0, -workshopWidth / 2);
+    const wedgeMesh = new THREE.Mesh(wedgeGeo, materials.auxWall);
+    wedgeMesh.rotation.y = -Math.PI / 2;
+    wedgeMesh.position.set(workshopRelX, wallHeight, 0);
+    wedgeMesh.castShadow = true;
+    wedgeMesh.receiveShadow = true;
+    roofGroup.add(wedgeMesh);
+
+    group.add(roofGroup);
+  } else {
+    const roof = buildGableRoof(
+      {
+        width: totalWidth,
+        length: depth,
+        height: roofHeight,
+        y: wallHeight,
+        ridgeAxis: 'x',
+        name: 'Střecha dílny a stání',
+      },
+      materials.auxRoof,
+      materials.auxWall
+    );
+    group.add(roof);
+  }
 
   // 4. Covered walkway / canopy connecting parking to house
   if (canopy) {
@@ -215,6 +266,77 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
 }
 
 /**
+ * Pure computation of site bounding coordinates and setback distances (in meters)
+ * between the house (with optional terrace), auxiliary building, and plot boundaries.
+ */
+export function computeSiteSetbacks(
+  siteConfig,
+  housePos = { x: 0, z: 0, rotY: 0 },
+  auxConfig,
+  houseFootprint = { width: 8, length: 12 },
+  houseDesign = null
+) {
+  const hw = siteConfig.width / 2; // 13.5
+  const hd = siteConfig.depth / 2; // 20.0
+
+  const fpW = houseDesign?.footprint?.width ?? houseFootprint.width ?? 8;
+  const fpL = houseDesign?.footprint?.length ?? houseFootprint.length ?? 12;
+
+  const rad = ((housePos.rotY || 0) * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const halfExtX = Math.abs((fpW / 2) * cos) + Math.abs((fpL / 2) * sin);
+  const halfExtZ = Math.abs((fpW / 2) * sin) + Math.abs((fpL / 2) * cos);
+
+  const houseMinX = housePos.x - halfExtX;
+  const houseMaxX = housePos.x + halfExtX;
+  const houseMinZ = housePos.z - halfExtZ;
+  const houseMaxZ = housePos.z + halfExtZ;
+
+  const auxTotalWidth = auxConfig.parkWidth + auxConfig.workshopWidth;
+  const auxMinX = auxConfig.position[0] - auxTotalWidth / 2;
+  const auxMaxX = auxConfig.position[0] + auxTotalWidth / 2;
+  const auxMinZ = auxConfig.position[2] - auxConfig.depth / 2;
+  const auxMaxZ = auxConfig.position[2] + auxConfig.depth / 2;
+
+  let terraceNeighborWest = null;
+  const terraceFinish = houseDesign?.floor1?.finishes?.find((f) => f.material === 'terrace');
+  if (terraceFinish?.size && terraceFinish?.pos) {
+    const [tw, td] = terraceFinish.size;
+    const [tcx, tcz] = terraceFinish.pos;
+    const corners = [
+      [tcx - tw / 2, tcz - td / 2],
+      [tcx + tw / 2, tcz - td / 2],
+      [tcx + tw / 2, tcz + td / 2],
+      [tcx - tw / 2, tcz + td / 2],
+    ];
+    const terraceMinX = Math.min(...corners.map(([lx, lz]) => housePos.x + lx * cos + lz * sin));
+    terraceNeighborWest = Number((terraceMinX - -hw).toFixed(1));
+  }
+
+  return {
+    streetRight: Number((hw - houseMaxX).toFixed(1)),
+    houseWorkshopGap: Number((houseMinZ - auxMaxZ).toFixed(1)),
+    houseTop: Number((houseMinZ - -hd).toFixed(1)),
+    workshopTop: Number((auxMinZ - -hd).toFixed(1)),
+    houseFront: Number((hd - houseMaxZ).toFixed(1)),
+    neighborWest: Number((houseMinX - -hw).toFixed(1)),
+    workshopStreetRight: Number((hw - auxMaxX).toFixed(1)),
+    workshopNeighborWest: Number((auxMinX - -hw).toFixed(1)),
+    terraceNeighborWest,
+    houseMinX: Number(houseMinX.toFixed(3)),
+    houseMaxX: Number(houseMaxX.toFixed(3)),
+    houseMinZ: Number(houseMinZ.toFixed(3)),
+    houseMaxZ: Number(houseMaxZ.toFixed(3)),
+    auxMinX: Number(auxMinX.toFixed(3)),
+    auxMaxX: Number(auxMaxX.toFixed(3)),
+    auxMinZ: Number(auxMinZ.toFixed(3)),
+    auxMaxZ: Number(auxMaxZ.toFixed(3)),
+  };
+}
+
+/**
  * Dynamically updates the dashed setback dimension lines in `setbackGroup`
  * based on the current house position/rotation and returns live distance metrics.
  */
@@ -223,23 +345,7 @@ export function updateSetbackDimensions(setbackGroup, siteConfig, housePos, auxC
 
   const hw = siteConfig.width / 2; // 13.5
   const hd = siteConfig.depth / 2; // 20.0
-
-  const rad = THREE.MathUtils.degToRad(housePos.rotY || 0);
-  const halfExtX =
-    Math.abs((houseFootprint.width / 2) * Math.cos(rad)) +
-    Math.abs((houseFootprint.length / 2) * Math.sin(rad));
-  const halfExtZ =
-    Math.abs((houseFootprint.width / 2) * Math.sin(rad)) +
-    Math.abs((houseFootprint.length / 2) * Math.cos(rad));
-
-  const houseMaxX = housePos.x + halfExtX;
-  const houseMinZ = housePos.z - halfExtZ;
-  const houseMaxZ = housePos.z + halfExtZ;
-
-  const auxTotalWidth = auxConfig.parkWidth + auxConfig.workshopWidth;
-  const auxMaxX = auxConfig.position[0] + auxTotalWidth / 2;
-  const auxMinZ = auxConfig.position[2] - auxConfig.depth / 2;
-  const auxMaxZ = auxConfig.position[2] + auxConfig.depth / 2;
+  const sb = computeSiteSetbacks(siteConfig, housePos, auxConfig, houseFootprint);
 
   const lineMatRed = new THREE.LineDashedMaterial({
     color: 0xef4444,
@@ -263,23 +369,23 @@ export function updateSetbackDimensions(setbackGroup, siteConfig, housePos, auxC
   };
 
   // 1. House top setback (Z = -hd to houseMinZ)
-  addDashedLine([houseMaxX, -hd], [houseMaxX, houseMinZ], lineMatRed);
+  addDashedLine([sb.houseMaxX, -hd], [sb.houseMaxX, sb.houseMinZ], lineMatRed);
 
   // 2. House right street setback (houseMaxX to hw)
-  addDashedLine([houseMaxX, housePos.z], [hw, housePos.z], lineMatRed);
+  addDashedLine([sb.houseMaxX, housePos.z], [hw, housePos.z], lineMatRed);
 
   // 3. Auxiliary building right street setback (auxMaxX to hw)
-  addDashedLine([auxMaxX, auxConfig.position[2]], [hw, auxConfig.position[2]], lineMatRed);
+  addDashedLine([sb.auxMaxX, auxConfig.position[2]], [hw, auxConfig.position[2]], lineMatRed);
 
   // 4. Gap between auxiliary building and house (auxMaxZ to houseMinZ)
-  addDashedLine([housePos.x, auxMaxZ], [housePos.x, houseMinZ], lineMatBlue);
+  addDashedLine([housePos.x, sb.auxMaxZ], [housePos.x, sb.houseMinZ], lineMatBlue);
 
   return {
-    streetRight: Number((hw - houseMaxX).toFixed(1)),
-    houseWorkshopGap: Number((houseMinZ - auxMaxZ).toFixed(1)),
-    houseTop: Number((houseMinZ - -hd).toFixed(1)),
-    workshopTop: Number((auxMinZ - -hd).toFixed(1)),
-    houseFront: Number((hd - houseMaxZ).toFixed(1)),
+    streetRight: sb.streetRight,
+    houseWorkshopGap: sb.houseWorkshopGap,
+    houseTop: sb.houseTop,
+    workshopTop: sb.workshopTop,
+    houseFront: sb.houseFront,
   };
 }
 

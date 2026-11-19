@@ -116,7 +116,11 @@ function collectWalls(design) {
         wallId: w.id,
         wallName: w.name,
         wallT: t,
+        wallConstruction: w.construction || "masonry",
         isExt,
+        portalType: o.portalType || null,
+        shaded: !!o.shaded,
+        fixed: !!o.fixed,
         kind:
           o.type === "window"
             ? o.sliding
@@ -154,6 +158,7 @@ function collectWalls(design) {
         t,
         isExt,
         structural: !!w.structural,
+        construction: w.construction || "masonry",
         gross: len * w.height,
         openA,
         net: len * w.height - openA,
@@ -194,6 +199,35 @@ export function gableRoofGeometry(roofDef) {
     gableArea: span * height, // oba štíty dohromady (2 × trojúhelník)
     eaveSoffit: 2 * run * (eaveOverhang / cos),
     gableSoffit: 2 * 2 * slopeLen * gableOverhang,
+  };
+}
+
+/** Low mono-pitch roof geometry sloping North (auxiliary building). */
+export function monoRoofGeometry(roofDef) {
+  const {
+    width,
+    length,
+    height,
+    eaveOverhang = 0.35,
+    gableOverhang = 0.35,
+  } = roofDef;
+  const span = width + 2 * gableOverhang;
+  const run = length;
+  const slope = Math.atan2(height, run);
+  const cos = Math.cos(slope);
+  const slopeLen = (run + 2 * eaveOverhang) / cos;
+  const area = span * slopeLen;
+  return {
+    type: "mono",
+    span,
+    run,
+    height,
+    pitchDeg: (slope * 180) / Math.PI,
+    slopeLen,
+    shellDepth: span,
+    area,
+    planArea: span * (run + 2 * eaveOverhang),
+    gableArea: length * height,
   };
 }
 
@@ -263,6 +297,7 @@ export function computeBillOfMaterials({
     terrace: bom.section("15", "Terasa a pergola"),
     aux: bom.section("16", "Vedlejší stavba – dílna a kryté stání"),
     site: bom.section("17", "Venkovní úpravy a přípojky"),
+    eng: bom.section("18", "Projektová dokumentace, inženýring a technický dozor"),
   };
 
   const W = design.footprint.width;
@@ -305,6 +340,20 @@ export function computeBillOfMaterials({
     unit: "m³",
     qty: stripVol,
     calc: `pasy pod obvodovými a nosnými stěnami Σ ${fmt(stripLen)} m × ${fmt(F.stripWidth)} × ${fmt(F.stripDepth)}`,
+  });
+  bom.add(S.earth, {
+    name: "Odvoz přebytečné zeminy + uložení na skládku (vč. naložení)",
+    spec: "Zemina z výkopu pasů po odečtení zásypu a rozprostření na pozemku (~70 %)",
+    unit: "m³",
+    qty: stripVol * 0.7,
+    calc: `${fmt(stripVol)} m³ × 0,7`,
+  });
+  bom.add(S.earth, {
+    name: "Zařízení staveniště, lešení a přesun hmot",
+    spec: "Oplocení staveniště, mobilní WC, staveništní přípojky, fasádní lešení a přesuny",
+    unit: "kpl",
+    qty: 1,
+    calc: "paušál stavby",
   });
 
   bom.add(S.found, {
@@ -373,8 +422,10 @@ export function computeBillOfMaterials({
     calc: `obvod ${fmt(outerPerimeter)} m × ${fmt(F.perimeterInsulationHeight)} m`,
   });
 
-  // ============================================================ 03 ZDIVO (DŮM)
-  const masonryGroups = groupBy(walls, (w) => {
+  // ============================================================ 03 ZDIVO & SDK (DŮM)
+  const masonryWalls = walls.filter((w) => w.construction !== "sdk");
+  const sdkWalls = walls.filter((w) => w.construction === "sdk");
+  const masonryGroups = groupBy(masonryWalls, (w) => {
     const rule = masonryRule(spec, w.t);
     return `${spec.masonry.indexOf(rule)}|${w.t.toFixed(3)}|${w.isExt ? "ext" : w.structural ? "str" : "part"}`;
   });
@@ -386,6 +437,7 @@ export function computeBillOfMaterials({
       !w0.isExt && w0.structural && rule.labelStructural
         ? rule.labelStructural
         : rule.label;
+    const brickT = w0.isExt && rule.coreThickness ? rule.coreThickness : w0.t;
     const net = sum(group, (w) => w.net);
     const pcsPerM2 = 1 / (rule.format[0] * rule.format[1]);
     const byFloor = groupBy(group, (w) => w.floor);
@@ -401,15 +453,15 @@ export function computeBillOfMaterials({
         ? "vnitřní nosné"
         : "příčky";
     bom.add(S.walls, {
-      name: `Zdivo ${role} tl. ${mm(w0.t)} mm`,
+      name: `Zdivo ${role} tl. ${mm(brickT)} mm`,
       spec: `${label}; ${rule.mortar}`,
       unit: "m²",
       qty: net,
       calc,
     });
     bom.add(S.walls, {
-      name: `Tvárnice ${role} tl. ${mm(w0.t)} mm`,
-      spec: `formát ${mm(rule.format[0])}×${mm(w0.t)}×${mm(rule.format[1])} mm, ${fmt(pcsPerM2, 1)} ks/m²`,
+      name: `Tvárnice ${role} tl. ${mm(brickT)} mm`,
+      spec: `formát ${mm(rule.format[0])}×${mm(brickT)}×${mm(rule.format[1])} mm, ${fmt(pcsPerM2, 1)} ks/m²`,
       unit: "ks",
       qty: net * pcsPerM2,
       waste: rule.waste,
@@ -417,20 +469,33 @@ export function computeBillOfMaterials({
     });
   }
 
+  if (sdkWalls.length > 0) {
+    const sdkNet = sum(sdkWalls, (w) => w.net);
+    bom.add(S.walls, {
+      name: "Akustické SDK příčky W112 tl. 125 mm (2.NP)",
+      spec: spec.sdk.wallType,
+      unit: "m²",
+      qty: sdkNet,
+      waste: spec.sdk.waste,
+      calc: `${sdkWalls.length} příček Σ ${fmt(sum(sdkWalls, (w) => w.len))} m, plocha ${fmt(sum(sdkWalls, (w) => w.gross))} − otvory ${fmt(sum(sdkWalls, (w) => w.openA))} m²`,
+    });
+  }
+
   // Štítové zdivo
   const roofGeo = design.roof ? gableRoofGeometry(design.roof) : null;
   if (roofGeo) {
-    const rule = masonryRule(spec, T);
+    const gableT = design.roof.gableThickness ?? 0.24;
+    const rule = masonryRule(spec, gableT);
     const pcsPerM2 = 1 / (rule.format[0] * rule.format[1]);
     bom.add(S.walls, {
-      name: `Štítové zdivo tl. ${mm(T)} mm`,
+      name: `Štítové zdivo tl. ${mm(gableT)} mm`,
       spec: `${rule.label} (štíty sedlové střechy)`,
       unit: "m²",
       qty: roofGeo.gableArea,
       calc: `2 štíty × ${fmt(roofGeo.span)} × ${fmt(roofGeo.height)} / 2`,
     });
     bom.add(S.walls, {
-      name: `Tvárnice štítové tl. ${mm(T)} mm`,
+      name: `Tvárnice štítové tl. ${mm(gableT)} mm`,
       spec: `${fmt(pcsPerM2, 1)} ks/m², vč. dořezů do sklonu ${fmt(roofGeo.pitchDeg, 1)}°`,
       unit: "ks",
       qty: roofGeo.gableArea * pcsPerM2,
@@ -439,11 +504,14 @@ export function computeBillOfMaterials({
     });
   }
 
-  // Překlady
+  // Překlady (pouze zděné stěny)
   const LT = spec.lintel;
-  const lintelGroups = groupBy(openings, (o) => {
+  const masonryOpenings = openings.filter((o) => o.wallConstruction !== "sdk");
+  const lintelGroups = groupBy(masonryOpenings, (o) => {
     const len = ceilTo(o.width + 2 * LT.bearing, LT.module);
-    return `${len.toFixed(3)}|${o.wallT.toFixed(3)}`;
+    const rule = masonryRule(spec, o.wallT);
+    const brickT = o.isExt && rule.coreThickness ? rule.coreThickness : o.wallT;
+    return `${len.toFixed(3)}|${brickT.toFixed(3)}`;
   });
   for (const [key, ops] of [...lintelGroups.entries()].sort()) {
     const [len, t] = key.split("|").map(Number);
@@ -611,23 +679,34 @@ export function computeBillOfMaterials({
     const ridgeLen = geo.shellDepth;
     const pre = label ? `${label} – ` : "";
 
-    bom.add(sectionRoof, {
-      name: cap(`${pre}krokve`),
-      spec: `řezivo C24 ${mm(R.rafterSection[0])}×${mm(R.rafterSection[1])} mm, á ${mm(R.rafterSpacing)} mm, délka ${fmt(rafterLen)} m, sklon ${fmt(geo.pitchDeg, 1)}°`,
-      unit: "ks",
-      qty: rafters,
-      scope,
-      calc: `2 × (${fmt(geo.shellDepth)} / ${fmt(R.rafterSpacing)} + 1) = ${rafters} ks (${fmt(rafterVol, 3)} m³)`,
-    });
-    bom.add(sectionRoof, {
-      name: cap(`${pre}řezivo krovu celkem (krokve, pozednice, kleštiny)`),
-      spec: "Řezivo C24, hoblované, impregnované",
-      unit: "m³",
-      qty: rafterVol + plateVol + collarVol,
-      waste: 0.1,
-      scope,
-      calc: `krokve ${fmt(rafterVol, 3)} + pozednice 2×${fmt(geo.run)} m ${fmt(plateVol, 3)} + kleštiny ${raftersPerSide}× ${fmt(collarVol, 3)} m³`,
-    });
+    if (roofDef?.truss) {
+      bom.add(sectionRoof, {
+        name: cap(`${pre}příhradové vazníky (nosný strop 2.NP + krov)`),
+        spec: `Impregnované vazníky C24 s ocelovými styčníkovými deskami, vč. zavětrování a montáže jeřábem (sklon ${fmt(geo.pitchDeg, 1)}°)`,
+        unit: "m²",
+        qty: geo.planArea,
+        scope,
+        calc: `půdorys vč. přesahů ${fmt(geo.planArea, 1)} m²`,
+      });
+    } else {
+      bom.add(sectionRoof, {
+        name: cap(`${pre}krokve`),
+        spec: `řezivo C24 ${mm(R.rafterSection[0])}×${mm(R.rafterSection[1])} mm, á ${mm(R.rafterSpacing)} mm, délka ${fmt(rafterLen)} m, sklon ${fmt(geo.pitchDeg, 1)}°`,
+        unit: "ks",
+        qty: rafters,
+        scope,
+        calc: `2 × (${fmt(geo.shellDepth)} / ${fmt(R.rafterSpacing)} + 1) = ${rafters} ks (${fmt(rafterVol, 3)} m³)`,
+      });
+      bom.add(sectionRoof, {
+        name: cap(`${pre}řezivo krovu celkem (krokve, pozednice, kleštiny)`),
+        spec: "Řezivo C24, hoblované, impregnované",
+        unit: "m³",
+        qty: rafterVol + plateVol + collarVol,
+        waste: 0.1,
+        scope,
+        calc: `krokve ${fmt(rafterVol, 3)} + pozednice 2×${fmt(geo.run)} m ${fmt(plateVol, 3)} + kleštiny ${raftersPerSide}× ${fmt(collarVol, 3)} m³`,
+      });
+    }
     bom.add(sectionRoof, {
       name: cap(`${pre}pojistná hydroizolace (difuzní fólie)`),
       spec: "Difuzně otevřená fólie, Sd ≤ 0,02 m",
@@ -792,16 +871,27 @@ export function computeBillOfMaterials({
   const WS = spec.windows;
   const windowGroups = groupBy(
     openings.filter((o) => o.kind === "window" || o.kind === "hs"),
-    (o) => `${o.kind}|${mm(o.width)}|${mm(o.height)}`,
+    (o) => `${o.kind}|${o.portalType || ""}|${mm(o.width)}|${mm(o.height)}`,
   );
   for (const [key, ops] of [...windowGroups.entries()].sort()) {
-    const [kind, w, h] = key.split("|");
+    const [kind, pType, w, h] = key.split("|");
+    const isPsk = kind === "hs" && pType === "psk";
     bom.add(S.openings, {
-      name: `${kind === "hs" ? "HS portál" : "Okno"} ${w} × ${h} mm`,
-      spec: kind === "hs" ? WS.slidingLabel : WS.label,
+      name: `${isPsk ? "Terasový portál PSK" : kind === "hs" ? "HS portál" : "Okno"} ${w} × ${h} mm`,
+      spec: isPsk ? WS.pskLabel : kind === "hs" ? WS.slidingLabel : WS.label,
       unit: "ks",
       qty: ops.length,
       calc: ops.map((o) => `${o.floor}: ${o.name}`).join("; "),
+    });
+  }
+  const shadedWindows = openings.filter((o) => o.shaded);
+  if (shadedWindows.length > 0) {
+    bom.add(S.openings, {
+      name: "Venkovní žaluzie Z90 s motorickým pohonem + podomítkový kastlík",
+      spec: WS.blindsLabel,
+      unit: "m²",
+      qty: sum(shadedWindows, openingArea),
+      calc: shadedWindows.map((o) => `${o.floor}: ${o.name} (${fmt(openingArea(o))} m²)`).join("; "),
     });
   }
   const extDoors = groupBy(
@@ -820,13 +910,19 @@ export function computeBillOfMaterials({
   }
   const intDoors = groupBy(
     openings.filter((o) => o.kind === "intDoor"),
-    (o) => `${mm(o.width)}|${mm(o.height)}|${mm(o.wallT)}`,
+    (o) => `${o.sliding ? "pocket" : "hinged"}|${mm(o.width)}|${mm(o.height)}|${mm(o.wallT)}|${o.glazed ? "glazed" : "solid"}`,
   );
   for (const [key, ops] of [...intDoors.entries()].sort()) {
-    const [w, h, t] = key.split("|");
+    const [mode, w, h, t, glass] = key.split("|");
+    const isPocket = mode === "pocket";
+    const isGlazed = glass === "glazed";
     bom.add(S.openings, {
-      name: `Vnitřní dveře ${w} × ${h} mm (zárubeň pro stěnu ${t} mm)`,
-      spec: `${WS.intDoorLabel}; kování klika-klika, strana otevírání dle výkresu`,
+      name: `Vnitřní dveře${isGlazed ? " prosklené" : ""} ${w} × ${h} mm (${isPocket ? "stavební pouzdro" : "zárubeň"} pro stěnu ${t} mm)`,
+      spec: isPocket
+        ? "Akustické prosklené posuvné křídlo + stavební pouzdro do zdiva, mušle/madlo"
+        : isGlazed
+          ? `${WS.glazedDoorLabel}; kování klika-klika, strana otevírání dle výkresu`
+          : `${WS.intDoorLabel}; kování klika-klika, strana otevírání dle výkresu`,
       unit: "ks",
       qty: ops.length,
       calc: ops.map((o) => `${o.floor}: ${o.name}`).join("; "),
@@ -880,65 +976,98 @@ export function computeBillOfMaterials({
     (f) => f.material === "woodFloor" || f.material === "tileFloor",
   );
 
-  for (const mat of ["woodFloor", "tileFloor"]) {
-    const fs = interiorFinishes.filter((f) => f.material === mat);
-    const area = sum(fs, finishArea);
-    const calc = fs
-      .map((f) => `${f.floor} ${f.name}: ${fmt(finishArea(f))} m²`)
-      .join("; ");
-    if (mat === "woodFloor") {
-      bom.add(S.floors, {
-        name: "Dřevěná podlaha – dub (vícevrstvá, lepená na potěr)",
-        spec: "tl. 14–15 mm, vhodná pro podlahové topení",
-        unit: "m²",
-        qty: area,
-        waste: FL.woodWaste,
-        calc,
-      });
-      bom.add(S.floors, {
-        name: "Lepidlo na dřevěné podlahy",
-        spec: "Elastické MS lepidlo, ~1,1 kg/m²",
-        unit: "kg",
-        qty: area * 1.1,
-        waste: 0.05,
-        calc: `${fmt(area)} m² × 1,1`,
-      });
-    } else {
-      bom.add(S.floors, {
-        name: "Dlažba keramická / slinutá",
-        spec: "Rektifikovaná, R10 v mokrých provozech",
-        unit: "m²",
-        qty: area,
-        waste: FL.tileWaste,
-        calc,
-      });
-      bom.add(S.floors, {
-        name: "Flexibilní lepidlo C2TE S1 – dlažba",
-        spec: `${fmt(FL.tileAdhesiveKgPerM2, 1)} kg/m²`,
-        unit: "kg",
-        qty: area * FL.tileAdhesiveKgPerM2,
-        waste: 0.05,
-        calc: `${fmt(area)} m² × ${fmt(FL.tileAdhesiveKgPerM2, 1)}`,
-      });
-      bom.add(S.floors, {
-        name: "Spárovací hmota – dlažba",
-        spec: "CG2WA",
-        unit: "kg",
-        qty: area * FL.groutKgPerM2,
-        waste: 0.1,
-        calc: `${fmt(area)} m² × ${fmt(FL.groutKgPerM2, 1)}`,
-      });
-    }
+  // Skutečné přiřazení krytin po místnostech (čistá plocha místností bez zbytečného přídavku pod příčkami)
+  const WOOD_LIVING_IDS = new Set(["1.06", "1.07"]);
+  const roomsWithFinish = interiorRooms.map((r) => {
+    const fin = interiorFinishes.find(
+      (f) =>
+        f.floor === r.floor &&
+        Array.isArray(r.pos) &&
+        pointInFinish(f, r.pos[0], r.pos[2]),
+    );
+    const rawMat = fin?.material || "woodFloor";
+    const finishMaterial =
+      rawMat === "woodFloor" && !WOOD_LIVING_IDS.has(r.id) ? "vinylFloor" : rawMat;
+    return {
+      ...r,
+      finishMaterial,
+      floorThickness: fin?.thickness ?? (r.floor === "1.NP" ? 0.22 : 0.12),
+      perimeter: roomPerimeter(r),
+    };
+  });
+
+  const woodRoomsOnly = roomsWithFinish.filter((r) => r.finishMaterial === "woodFloor");
+  const vinylRoomsOnly = roomsWithFinish.filter((r) => r.finishMaterial === "vinylFloor");
+  const tileRoomsOnly = roomsWithFinish.filter((r) => r.finishMaterial === "tileFloor");
+
+  const woodArea = sum(woodRoomsOnly, (r) => r.areaSqm);
+  if (woodArea > EPS) {
+    bom.add(S.floors, {
+      name: "Dřevěná podlaha – dub (vícevrstvá, lepená na potěr)",
+      spec: "tl. 14–15 mm, vhodná pro podlahové topení (obývací část)",
+      unit: "m²",
+      qty: woodArea,
+      waste: FL.woodWaste,
+      calc: woodRoomsOnly.map((r) => `${r.id} ${fmt(r.areaSqm, 1)} m²`).join(", "),
+    });
+    bom.add(S.floors, {
+      name: "Lepidlo na dřevěné podlahy",
+      spec: "Elastické MS lepidlo, ~1,1 kg/m²",
+      unit: "kg",
+      qty: woodArea * 1.1,
+      waste: 0.05,
+      calc: `${fmt(woodArea)} m² × 1,1`,
+    });
   }
 
-  const screedArea = sum(interiorFinishes, finishArea);
+  const vinylArea = sum(vinylRoomsOnly, (r) => r.areaSqm);
+  if (vinylArea > EPS) {
+    bom.add(S.floors, {
+      name: "Lepený vinyl (LVT/Rigid) vč. samonivelační stěrky a lepidla",
+      spec: FL.vinylLabel || "Lepený vinyl, vhodný na podlahové topení",
+      unit: "m²",
+      qty: vinylArea,
+      waste: FL.vinylWaste ?? 0.07,
+      calc: vinylRoomsOnly.map((r) => `${r.id} ${fmt(r.areaSqm, 1)} m²`).join(", "),
+    });
+  }
+
+  const tileArea = sum(tileRoomsOnly, (r) => r.areaSqm);
+  if (tileArea > EPS) {
+    bom.add(S.floors, {
+      name: "Dlažba keramická / slinutá",
+      spec: "Rektifikovaná, R10 v mokrých provozech",
+      unit: "m²",
+      qty: tileArea,
+      waste: FL.tileWaste,
+      calc: tileRoomsOnly.map((r) => `${r.id} ${fmt(r.areaSqm, 1)} m²`).join(", "),
+    });
+    bom.add(S.floors, {
+      name: "Flexibilní lepidlo C2TE S1 – dlažba",
+      spec: `${fmt(FL.tileAdhesiveKgPerM2, 1)} kg/m²`,
+      unit: "kg",
+      qty: tileArea * FL.tileAdhesiveKgPerM2,
+      waste: 0.05,
+      calc: `${fmt(tileArea)} m² × ${fmt(FL.tileAdhesiveKgPerM2, 1)}`,
+    });
+    bom.add(S.floors, {
+      name: "Spárovací hmota – dlažba",
+      spec: "CG2WA",
+      unit: "kg",
+      qty: tileArea * FL.groutKgPerM2,
+      waste: 0.1,
+      calc: `${fmt(tileArea)} m² × ${fmt(FL.groutKgPerM2, 1)}`,
+    });
+  }
+
+  const screedArea = interiorArea;
   bom.add(S.floors, {
     name: "Anhydritový lité potěr",
     spec: `CA-C25-F5, tl. ${mm(FL.screedThickness)} mm (s podlahovým topením)`,
     unit: "m³",
     qty: screedArea * FL.screedThickness,
     waste: 0.05,
-    calc: `${fmt(screedArea)} m² × ${fmt(FL.screedThickness)}`,
+    calc: `Σ ploch místností ${fmt(screedArea)} m² × ${fmt(FL.screedThickness)}`,
   });
   bom.add(S.floors, {
     name: "Separační PE fólie pod potěr",
@@ -949,53 +1078,40 @@ export function computeBillOfMaterials({
     calc: `${fmt(screedArea)} m²`,
   });
 
-  const insulationGroups = groupBy(interiorFinishes, (f) => {
+  const insulationGroups = groupBy(roomsWithFinish, (r) => {
     const ins = Math.max(
       0,
-      Math.round((f.thickness - FL.screedThickness - 0.015) * 200) / 200,
+      Math.round((r.floorThickness - FL.screedThickness - 0.015) * 200) / 200,
     );
-    return `${f.floor}|${ins.toFixed(3)}`;
+    return `${r.floor}|${ins.toFixed(3)}|${r.floorThickness.toFixed(3)}`;
   });
-  for (const [key, fs] of insulationGroups.entries()) {
-    const [floor, insStr] = key.split("|");
+  for (const [key, rs] of insulationGroups.entries()) {
+    const [floor, insStr, thickStr] = key.split("|");
     const ins = Number(insStr);
+    const thickMm = mm(Number(thickStr));
     if (ins <= 0.005) {
       bom.warn(
-        `${floor}: skladba podlahy (${mm(fs[0].thickness)} mm) nenechává místo pro izolaci.`,
+        `${floor}: skladba podlahy (${thickMm} mm) nenechává místo pro izolaci.`,
       );
       continue;
     }
     const isGround = floor === "1.NP";
     if (isGround && ins < FL.minGroundInsulation) {
       bom.warn(
-        `1.NP: izolace podlahy vychází jen ${mm(ins)} mm (skladba ${mm(fs[0].thickness)} mm v modelu) – doporučeno ≥ ${mm(FL.minGroundInsulation)} mm.`,
+        `1.NP: izolace podlahy vychází jen ${mm(ins)} mm (skladba ${thickMm} mm v modelu) – doporučeno ≥ ${mm(FL.minGroundInsulation)} mm.`,
       );
     }
-    const area = sum(fs, finishArea);
+    const area = sum(rs, (r) => r.areaSqm);
     bom.add(S.floors, {
       name: `Tepelná / kročejová izolace podlahy ${floor} tl. ${mm(ins)} mm`,
       spec: isGround ? FL.groundFloorInsulation : FL.upperFloorInsulation,
       unit: "m²",
       qty: area,
       waste: 0.05,
-      calc: `skladba ${mm(fs[0].thickness)} − potěr ${mm(FL.screedThickness)} − nášlap = ${mm(ins)} mm; ${fmt(area)} m²`,
+      calc: `skladba ${thickMm} − potěr ${mm(FL.screedThickness)} − nášlap = ${mm(ins)} mm; ${fmt(area)} m²`,
     });
   }
 
-  // Room-level: skirting, perimeter strip, wet rooms
-  const roomsWithFinish = interiorRooms.map((r) => {
-    const fin = interiorFinishes.find(
-      (f) =>
-        f.floor === r.floor &&
-        Array.isArray(r.pos) &&
-        pointInFinish(f, r.pos[0], r.pos[2]),
-    );
-    return {
-      ...r,
-      finishMaterial: fin?.material || "woodFloor",
-      perimeter: roomPerimeter(r),
-    };
-  });
   const totalRoomPerimeter = sum(roomsWithFinish, (r) => r.perimeter);
   bom.add(S.floors, {
     name: "Dilatační obvodový pásek",
@@ -1006,16 +1122,16 @@ export function computeBillOfMaterials({
     calc: `Σ obvodů ${roomsWithFinish.length} místností`,
   });
 
-  const woodRooms = roomsWithFinish.filter(
-    (r) => r.finishMaterial === "woodFloor",
+  const skirtingRooms = roomsWithFinish.filter(
+    (r) => r.finishMaterial === "woodFloor" || r.finishMaterial === "vinylFloor",
   );
   bom.add(S.floors, {
     name: "Soklové lišty k dřevěné podlaze",
-    spec: "MDF / dub, výška 60 mm",
+    spec: "MDF / dub / PVC dle krytiny, výška 60 mm",
     unit: "m",
-    qty: sum(woodRooms, (r) => r.perimeter),
+    qty: sum(skirtingRooms, (r) => r.perimeter),
     waste: 0.1,
-    calc: woodRooms.map((r) => `${r.id} ${fmt(r.perimeter, 1)} m`).join(", "),
+    calc: skirtingRooms.map((r) => `${r.id} ${fmt(r.perimeter, 1)} m`).join(", "),
   });
 
   const WR = spec.wetRooms;
@@ -1039,17 +1155,19 @@ export function computeBillOfMaterials({
   // ============================================================ 09 POVRCHY
   const P = spec.plaster;
   const extWalls = walls.filter((w) => w.isExt);
-  const intWalls = walls.filter((w) => !w.isExt);
+  const intMasonryWalls = walls.filter((w) => !w.isExt && w.construction !== "sdk");
+  const intSdkWalls = walls.filter((w) => !w.isExt && w.construction === "sdk");
   const extInner = sum(extWalls, (w) => w.innerLen * w.h - w.openA);
-  const intFaces = sum(intWalls, (w) => 2 * (w.len * w.h - w.openA));
+  const intFaces = sum(intMasonryWalls, (w) => 2 * (w.len * w.h - w.openA));
+  const sdkFaces = sum(intSdkWalls, (w) => 2 * (w.len * w.h - w.openA));
   const revealsExt = sum(
     openings.filter((o) => o.isExt),
     (o) =>
-      (2 * o.height + o.width + (o.sill >= WS.minSillForParapet ? 0 : 0)) *
+      (2 * o.height + o.width) *
       Math.max(0.05, o.wallT - P.revealDepthOffset),
   );
   const revealsPassages = sum(
-    openings.filter((o) => o.kind === "passage"),
+    openings.filter((o) => o.kind === "passage" && o.wallConstruction !== "sdk"),
     (o) => (2 * o.height + o.width) * o.wallT,
   );
   const ceilingSlabArea = sum(
@@ -1065,16 +1183,18 @@ export function computeBillOfMaterials({
     unit: "m²",
     qty: interiorPlaster,
     waste: 0.05,
-    calc: `obvodové zevnitř ${fmt(extInner)} + vnitřní stěny 2 strany ${fmt(intFaces)} + ostění ${fmt(revealsExt + revealsPassages)} m²`,
+    calc: `obvodové zevnitř ${fmt(extInner)} + zděné stěny 2 strany ${fmt(intFaces)} + ostění ${fmt(revealsExt + revealsPassages)} m²`,
   });
-  bom.add(S.surfaces, {
-    name: "Vnitřní omítka stropu 1.NP (štuk na ŽB)",
-    spec: "Sádrová stropní omítka",
-    unit: "m²",
-    qty: ceilingSlabArea,
-    waste: 0.05,
-    calc: "Σ ploch místností 1.NP",
-  });
+  if (!design.ceiling1Sdk) {
+    bom.add(S.surfaces, {
+      name: "Vnitřní omítka stropu 1.NP (štuk na ŽB)",
+      spec: "Sádrová stropní omítka",
+      unit: "m²",
+      qty: ceilingSlabArea,
+      waste: 0.05,
+      calc: "Σ ploch místností 1.NP",
+    });
+  }
   bom.add(S.surfaces, {
     name: "Rohové a APU lišty (vnitřní omítky)",
     spec: "Nerez / plast, APU lišty u oken",
@@ -1085,7 +1205,7 @@ export function computeBillOfMaterials({
         (o) => 2 * o.height + 2 * o.width,
       ) +
       sum(
-        openings.filter((o) => o.kind === "passage"),
+        openings.filter((o) => o.kind === "passage" && o.wallConstruction !== "sdk"),
         (o) => 2 * o.height + o.width,
       ),
     waste: 0.1,
@@ -1093,7 +1213,7 @@ export function computeBillOfMaterials({
   });
 
   const facadeHeight =
-    (design.roof?.y ?? 5.67) - (design.floor1?.elevation ?? 0);
+    (design.roof?.y ?? 6.12) - (design.floor1?.elevation ?? 0);
   const extOpenA = sum(
     openings.filter((o) => o.isExt),
     openingArea,
@@ -1101,8 +1221,16 @@ export function computeBillOfMaterials({
   const facade =
     outerPerimeter * facadeHeight + (roofGeo?.gableArea ?? 0) - extOpenA;
   bom.add(S.surfaces, {
+    name: "Kontaktní zateplovací systém ETICS – EPS 70F tl. 140 mm",
+    spec: spec.etics.label,
+    unit: "m²",
+    qty: facade,
+    waste: spec.etics.waste,
+    calc: `obvod ${fmt(outerPerimeter)} × ${fmt(facadeHeight)} + štíty ${fmt(roofGeo?.gableArea ?? 0)} − otvory ${fmt(extOpenA)} m²`,
+  });
+  bom.add(S.surfaces, {
     name: "Vnější omítka fasády",
-    spec: P.exterior,
+    spec: "Silikonová probarvená omítka na ETICS (vč. penetrace)",
     unit: "m²",
     qty: facade,
     waste: 0.05,
@@ -1147,6 +1275,14 @@ export function computeBillOfMaterials({
   let waterproof = 0;
   const tileCalc = [];
   for (const r of wetRooms) {
+    if (r.id === "1.02") {
+      // Technická místnost: obložena jen stěna za výlevkou a pračkou (~4,5 m²), zbytek omyvatelný nátěr
+      const a = 4.5;
+      wallTile += a;
+      waterproof += r.areaSqm + r.perimeter * 0.15;
+      tileCalc.push(`${r.id} ${r.name}: zástěna 4,5 m²`);
+      continue;
+    }
     const hasShower = (r.fixtures || []).some(
       (f) => f === "sprcha" || f === "vana",
     );
@@ -1188,9 +1324,9 @@ export function computeBillOfMaterials({
     name: "Ukončovací lišty obkladů",
     spec: "Hliník / nerez",
     unit: "m",
-    qty: sum(wetRooms, (r) => r.perimeter),
+    qty: sum(wetRooms.filter((r) => r.id !== "1.02"), (r) => r.perimeter) + 3.0,
     waste: 0.1,
-    calc: "obvody mokrých místností",
+    calc: "obvody koupelen a WC + zástěna TM",
   });
 
   const ceiling2 = sum(
@@ -1198,19 +1334,33 @@ export function computeBillOfMaterials({
       [],
     (r) => r.areaSqm,
   );
-  const paintArea = interiorPlaster - wallTile + ceilingSlabArea + ceiling2;
+  const paintArea = interiorPlaster + sdkFaces - wallTile + ceilingSlabArea + ceiling2;
   bom.add(S.surfaces, {
     name: "Malba stěn a stropů",
     spec: spec.paint.label,
     unit: "m²",
     qty: paintArea,
     waste: 0.05,
-    calc: `omítky stěn ${fmt(interiorPlaster)} − obklady ${fmt(wallTile)} + stropy ${fmt(ceilingSlabArea + ceiling2)} m²`,
+    calc: `omítky stěn ${fmt(interiorPlaster)} + SDK stěny ${fmt(sdkFaces)} − obklady ${fmt(wallTile)} + stropy ${fmt(ceilingSlabArea + ceiling2)} m²`,
   });
 
   // ============================================================ 10 PODHLED + IZOLACE
   const R = spec.roof;
   const innerPlan = (W - 2 * T) * (L - 2 * T);
+  const p2Perimeter = sum(
+    roomsWithFinish.filter((r) => r.floor === "2.NP"),
+    (r) => r.perimeter,
+  );
+  if (design.ceiling1Sdk) {
+    bom.add(S.ceiling, {
+      name: "SDK podhled stropu 1.NP (pro rozvody VZT) – desky + rastr CD/UD",
+      spec: "Sádrokarton 12,5 mm + dvojitý rošt CD/UD (100 mm pod ŽB stropem)",
+      unit: "m²",
+      qty: ceilingSlabArea,
+      waste: 0.08,
+      calc: "Σ ploch místností 1.NP",
+    });
+  }
   bom.add(S.ceiling, {
     name: "SDK podhled stropu 2.NP – desky",
     spec: "Sádrokarton 12,5 mm (v koupelnách impregnovaný H2)",
@@ -1231,9 +1381,9 @@ export function computeBillOfMaterials({
     name: "SDK podhled – UD obvodové profily",
     spec: "UD 28/27",
     unit: "m",
-    qty: totalRoomPerimeter / 2,
+    qty: p2Perimeter,
     waste: 0.05,
-    calc: "obvody místností 2.NP",
+    calc: "Σ obvodů místností 2.NP",
   });
   bom.add(S.ceiling, {
     name: "Parotěsná fólie pod izolací",
@@ -1301,6 +1451,13 @@ export function computeBillOfMaterials({
     qty: 1,
     calc: "předpoklad",
   });
+  bom.add(S.zti, {
+    name: "Svislý shoz prádla z 2.NP (2.04) do prádelny (1.02)",
+    spec: "Nerezové / PP hladké potrubí DN 300 vč. dvířek v 2.04 a sběrného koše",
+    unit: "kpl",
+    qty: 1,
+    calc: "1 šachta 2.04 → 1.02",
+  });
 
   // ============================================================ 12 VYTÁPĚNÍ & VZT
   const heatKw = (interiorArea * TZ.heatLossWPerM2) / 1000;
@@ -1323,8 +1480,8 @@ export function computeBillOfMaterials({
     calc: `${TZ.hotWaterBase} l + ${bathrooms} koupelny × ${TZ.hotWaterPerBathroom} l`,
   });
   bom.add(S.heat, {
-    name: "Podlahové topení – systémová deska s nopy",
-    spec: "tl. dle skladby, vč. okrajových pásů",
+    name: "Podlahové topení – systém Tacker (fólie s rastrem + příchytky)",
+    spec: "Systémová deska / reflexní fólie na EPS bez nopů",
     unit: "m²",
     qty: screedArea,
     waste: 0.05,
@@ -1349,16 +1506,14 @@ export function computeBillOfMaterials({
     });
   }
   bom.add(S.heat, {
-    name: "Prostorové termostaty / regulace místností",
-    spec: "Pokojové termostaty + servopohony",
-    unit: "ks",
-    qty: interiorRooms.filter(
-      (r) => !NON_HABITABLE.test(r.name) || (r.fixtures || []).length,
-    ).length,
-    calc: "obytné a mokré místnosti",
+    name: "Ekvitermní regulace TČ + 2× referenční prostorové čidlo (1.NP + 2.NP)",
+    spec: "Samoregulační efekt potěru s ekvitermní křivkou bez zónových servopohonů",
+    unit: "kpl",
+    qty: 1,
+    calc: "2 referenční zóny (1.NP + 2.NP)",
   });
 
-  const avgClear = 2.6;
+  const avgClear = 2.65;
   const airflow = ceilTo(interiorArea * avgClear * TZ.ventilationAirChange, 10);
   const supplyRooms = interiorRooms.filter(
     (r) => !NON_HABITABLE.test(r.name) && !(r.fixtures || []).length,
@@ -1544,24 +1699,45 @@ export function computeBillOfMaterials({
   const EX = spec.exterior;
   for (const f of allFinishes.filter((x) => x.material === "terrace")) {
     const a = finishArea(f);
-    bom.add(S.terrace, {
-      name: `${f.name} – terasová prkna`,
-      spec: "Thermo borovice / jasan, tl. 26 mm",
-      unit: "m²",
-      qty: a,
-      waste: EX.deckWaste,
-      scope: "exterior",
-      calc: `${fmt(f.size[0])} × ${fmt(f.size[1])}`,
-    });
-    bom.add(S.terrace, {
-      name: "Terasa – nosný rošt (hranoly 45×70)",
-      spec: `á ${mm(EX.deckJoistSpacing)} mm`,
-      unit: "m",
-      qty: a / EX.deckJoistSpacing,
-      waste: 0.1,
-      scope: "exterior",
-      calc: `${fmt(a)} m² / ${fmt(EX.deckJoistSpacing)}`,
-    });
+    if (/thermo|dřev/i.test(f.name)) {
+      bom.add(S.terrace, {
+        name: `${f.name} – terasová prkna`,
+        spec: "Thermo borovice / jasan, tl. 26 mm",
+        unit: "m²",
+        qty: a,
+        waste: EX.deckWaste,
+        scope: "exterior",
+        calc: `${fmt(f.size[0])} × ${fmt(f.size[1])}`,
+      });
+      bom.add(S.terrace, {
+        name: "Terasa – nosný rošt (hranoly 45×70)",
+        spec: `á ${mm(EX.deckJoistSpacing)} mm`,
+        unit: "m",
+        qty: a / EX.deckJoistSpacing,
+        waste: 0.1,
+        scope: "exterior",
+        calc: `${fmt(a)} m² / ${fmt(EX.deckJoistSpacing)}`,
+      });
+      bom.add(S.terrace, {
+        name: "Terasa – skryté spony a vruty (nerez)",
+        spec: "Systémové",
+        unit: "m²",
+        qty: a,
+        waste: 0.05,
+        scope: "exterior",
+        calc: `${fmt(a)} m²`,
+      });
+    } else {
+      bom.add(S.terrace, {
+        name: "Zahradní terasa – velkoformátová betonová dlažba 60×60×4 cm",
+        spec: EX.terracePaverLabel,
+        unit: "m²",
+        qty: a,
+        waste: EX.terracePaverWaste,
+        scope: "exterior",
+        calc: `${fmt(f.size[0])} × ${fmt(f.size[1])}`,
+      });
+    }
     bom.add(S.terrace, {
       name: "Terasa – rektifikační terče",
       spec: "Stavitelné podložky",
@@ -1569,15 +1745,6 @@ export function computeBillOfMaterials({
       qty: a * EX.deckPadsPerM2,
       scope: "exterior",
       calc: `${fmt(a)} m² × ${EX.deckPadsPerM2}`,
-    });
-    bom.add(S.terrace, {
-      name: "Terasa – skryté spony a vruty (nerez)",
-      spec: "Systémové",
-      unit: "m²",
-      qty: a,
-      waste: 0.05,
-      scope: "exterior",
-      calc: `${fmt(a)} m²`,
     });
     bom.add(S.terrace, {
       name: "Terasa – geotextilie + štěrkové lože",
@@ -1653,6 +1820,7 @@ export function computeBillOfMaterials({
       workshopWidth,
       depth,
       wallHeight,
+      roofType = "gable",
       roofHeight,
       canopy,
       eastWalkway,
@@ -1662,7 +1830,7 @@ export function computeBillOfMaterials({
     const wallLen = workshopPerim + parkWidth;
     const rule = masonryRule(spec, A.wallThickness);
     const pcs = 1 / (rule.format[0] * rule.format[1]);
-    const gableA = depth * roofHeight; // západní štít + dělicí štít dílna / stání
+    const gableA = depth * roofHeight; // u pultu dva klíny nad dílnou; u sedlové dva štíty
     const masonryA = wallLen * wallHeight + gableA;
     const sc = "aux";
 
@@ -1763,6 +1931,23 @@ export function computeBillOfMaterials({
       calc: "shodně se zdivem (1 strana)",
     });
     bom.add(S.aux, {
+      name: "Vnitřní omítka / nátěr zdiva dílny",
+      spec: "Jednovrstvá vápenocementová omítka + bílý omyvatelný nátěr",
+      unit: "m²",
+      qty: workshopPerim * wallHeight,
+      waste: 0.05,
+      scope: sc,
+      calc: `obvod dílny ${fmt(workshopPerim)} × ${fmt(wallHeight)} m`,
+    });
+    bom.add(S.aux, {
+      name: "Elektroinstalace dílny + příprava pro wallbox (3×400 V) ve stání",
+      spec: "Podružný rozvaděč, zásuvky 230/400 V, světla a chránička CYKY 5×6 pro EV wallbox",
+      unit: "kpl",
+      qty: 1,
+      scope: sc,
+      calc: "1 kpl",
+    });
+    bom.add(S.aux, {
       name: "Vrata do dílny",
       spec: "Sekční / křídlová – rozměr k upřesnění (v modelu nejsou otvory)",
       unit: "ks",
@@ -1781,6 +1966,9 @@ export function computeBillOfMaterials({
     bom.warn(
       "Vedlejší stavba: otvory (vrata, dveře, okna) nejsou v modelu – zdivo je bez odečtu otvorů.",
     );
+    bom.warn(
+      "DPH u vedlejší stavby: samostatně stojící dílna může být posouzena v základní sazbě 21 % DPH namísto 12 % (§ 48 odst. 5 ZDPH).",
+    );
 
     const auxRoofDef = {
       width: totalWidth,
@@ -1790,16 +1978,68 @@ export function computeBillOfMaterials({
       eaveOverhang: A.eaveOverhang,
       gableOverhang: A.gableOverhang,
     };
-    const auxGeo = gableRoofGeometry(auxRoofDef);
-    emitRoof({
-      roofDef: auxRoofDef,
-      geo: auxGeo,
-      label: "Střecha dílny a stání",
-      scope: sc,
-      eaveHeight: wallHeight,
-      sectionRoof: S.aux,
-      sectionTin: S.aux,
-    });
+    if (roofType === "mono") {
+      const auxGeo = monoRoofGeometry(auxRoofDef);
+      const R = spec.roof;
+      const rafters = Math.ceil(auxGeo.span / R.rafterSpacing - EPS) + 1;
+      const rafterVol = rafters * auxGeo.slopeLen * 0.08 * 0.20;
+      const purlinVol = 2 * auxGeo.span * 0.16 * 0.16;
+      bom.add(S.aux, {
+        name: "Střecha dílny a stání – krokve a vaznice pultové střechy (C24)",
+        spec: `Řezivo C24, sklon ${fmt(auxGeo.pitchDeg, 1)}° ke severu (${rafters} krokví)`,
+        unit: "m³",
+        qty: rafterVol + purlinVol,
+        waste: 0.1,
+        scope: sc,
+        calc: `${rafters} krokví × ${fmt(auxGeo.slopeLen)} m + 2 vaznice ${fmt(auxGeo.span)} m`,
+      });
+      bom.add(S.aux, {
+        name: "Střecha dílny a stání – OSB záklop + pojistná hydroizolace",
+        spec: "OSB3 22 mm / bednění + difuzní fólie",
+        unit: "m²",
+        qty: auxGeo.area * 1.08,
+        scope: sc,
+        calc: `${fmt(auxGeo.area)} m² × 1,08`,
+      });
+      bom.add(S.aux, {
+        name: "Střecha dílny a stání – falcovaná plechová krytina (pultová)",
+        spec: `Falcovaný/klik plech pro nízký sklon (${fmt(auxGeo.pitchDeg, 1)}°)`,
+        unit: "m²",
+        qty: auxGeo.area,
+        waste: 0.08,
+        scope: sc,
+        calc: `${fmt(auxGeo.span)} × ${fmt(auxGeo.slopeLen)} m`,
+      });
+      bom.add(S.aux, {
+        name: "Střecha dílny a stání – oplechování atiky a závětrné lišty",
+        spec: "Poplastovaný / titanzinkový plech",
+        unit: "m",
+        qty: auxGeo.span + 2 * auxGeo.slopeLen,
+        waste: 0.05,
+        scope: sc,
+        calc: `jižní hrana ${fmt(auxGeo.span)} + 2 boky ${fmt(auxGeo.slopeLen)} m`,
+      });
+      bom.add(S.aux, {
+        name: "Střecha dílny a stání – podokapní žlab R125 + svod Ø90",
+        spec: "Na severní okapové hraně vč. háků, kotlíku a kolen",
+        unit: "m",
+        qty: auxGeo.span + 2 * (wallHeight + 0.3),
+        waste: 0.05,
+        scope: sc,
+        calc: `žlab ${fmt(auxGeo.span)} m + 2 svody ${fmt(wallHeight + 0.3)} m`,
+      });
+    } else {
+      const auxGeo = gableRoofGeometry(auxRoofDef);
+      emitRoof({
+        roofDef: auxRoofDef,
+        geo: auxGeo,
+        label: "Střecha dílny a stání",
+        scope: sc,
+        eaveHeight: wallHeight,
+        sectionRoof: S.aux,
+        sectionTin: S.aux,
+      });
+    }
 
     if (canopy) {
       const [cw, , cd] = canopy.size;
@@ -1960,11 +2200,13 @@ export function computeBillOfMaterials({
     const roofsPlan =
       (roofGeo?.planArea ?? 0) +
       (auxConfig
-        ? gableRoofGeometry({
+        ? (auxConfig.roofType === "mono" ? monoRoofGeometry : gableRoofGeometry)({
             width: auxConfig.parkWidth + auxConfig.workshopWidth,
             length: auxConfig.depth,
             height: auxConfig.roofHeight,
             ridgeAxis: "x",
+            eaveOverhang: spec.aux.eaveOverhang,
+            gableOverhang: spec.aux.gableOverhang,
           }).planArea
         : 0);
     bom.add(S.site, {
@@ -1985,6 +2227,22 @@ export function computeBillOfMaterials({
     });
   }
 
+  // ============================================================ 18 PROJEKT & TDI
+  bom.add(S.eng, {
+    name: "Projektová dokumentace (DSP/DPS), statika, PENB a radonový průzkum",
+    spec: "Architektonická a stavební část, statický výpočet, TZB, PENB, radon + geologie",
+    unit: "kpl",
+    qty: 1,
+    calc: "paušál přípravy stavby",
+  });
+  bom.add(S.eng, {
+    name: "Technický dozor investora (TDI), geodetické zaměření a Blower-Door test",
+    spec: "Vytyčení stavby, kontrola armování/stropů/střechy, test neprůvzdušnosti",
+    unit: "kpl",
+    qty: 1,
+    calc: "paušál realizace",
+  });
+
   // ============================================================ SUMMARY
   const sections = bom.result();
   const windowsList = openings.filter(
@@ -1996,7 +2254,7 @@ export function computeBillOfMaterials({
     itemCount: sum(sections, (s) => s.items.length),
     builtUpArea: footprintArea,
     interiorArea,
-    masonryArea: sum(walls, (w) => w.net) + (roofGeo?.gableArea ?? 0),
+    masonryArea: sum(masonryWalls, (w) => w.net) + (roofGeo?.gableArea ?? 0),
     windowCount: windowsList.length,
     windowArea: sum(windowsList, openingArea),
     doorCount: openings.filter(

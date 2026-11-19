@@ -2,8 +2,11 @@
 <html lang="cs">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Dream House - IFC 3D Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Vojáčkovi Troubelice - IFC 3D Viewer</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -13,30 +16,43 @@
     <!-- Top Navigation Header -->
     <header class="app-header">
       <!-- Brand Badge -->
-      <div class="brand-badge">
-        <h1>🏡 Dream House</h1>
-        <p>40 × 27 m (1 076 m²) · Zastavěno 205 m² (19.1 %)</p>
+      <div id="brand-badge" class="brand-badge" role="button" tabindex="0" title="Zobrazit přehled pozemku a bilanci zastavění">
+        <h1>🏡 Vojáčkovi Troubelice</h1>
+        <p>40 × 27 m (1 076 m²) · Zastavěno 184.3 m² (17.1 %)</p>
       </div>
 
-      <!-- Quick Floating Toolbar for Primary 1-Click Floor & View Actions -->
+      <!-- Quick Floating Toolbar (Floor Switcher + Primary Modes) -->
       <div class="quick-toolbar glass-panel">
-        <button id="btn-fit" class="btn btn-sm" title="Vycentrovat pohled na dům">🎯 Fit</button>
-        <div class="toolbar-divider"></div>
-        <button id="btn-floor-all" class="btn btn-sm btn-primary" title="Celý dům (exteriér včetně střechy)">🏢 Dům</button>
-        <button id="btn-floor-1np" class="btn btn-sm" title="1.NP Přízemí (řez v přízemí)">🏠 1.NP</button>
-        <button id="btn-floor-2np" class="btn btn-sm" title="2.NP Patro (řez v patře)">🛏️ 2.NP</button>
-        <button id="btn-floor-topdown" class="btn btn-sm" title="Půdorysný 2D pohled shora">📐 Půdorys</button>
-        <button id="btn-quick-drawings" class="btn btn-sm" title="Technické 2D výkresy půdorysů (SVG / PDF)">📄 Výkresy</button>
-        <button id="btn-quick-budget" class="btn btn-sm" title="Soupis materiálu a výkaz výměr (CSV)">📋 Rozpočet</button>
-        <button id="btn-quick-labels" class="btn btn-sm btn-primary" title="Zobrazit / skrýt 3D popisky místností">🏷️ Popisky</button>
-        <button id="btn-quick-furniture" class="btn btn-sm btn-primary" title="Zobrazit / skrýt 3D nábytek a vybavení">🛋️ Nábytek</button>
-        <button id="btn-quick-footprint" class="btn btn-sm" title="Zobrazit zastavěnou plochu pozemku">📊 Zastavění</button>
-        <div class="toolbar-divider"></div>
-        <button id="btn-quick-sun" class="btn btn-sm" title="Rychlé nastavení slunce a stínů">☀️ Slunce</button>
+        <div class="floor-segment" role="group" aria-label="Podlaží">
+          <button id="btn-floor-all" class="btn btn-sm btn-primary" title="Celý dům (exteriér včetně střechy)">🏢 Dům</button>
+          <button id="btn-floor-1np" class="btn btn-sm" title="1.NP Přízemí (řez v přízemí)">🏠 1.NP</button>
+          <button id="btn-floor-2np" class="btn btn-sm" title="2.NP Patro (řez v patře)">🛏️ 2.NP</button>
+        </div>
+        <div class="toolbar-divider desktop-only"></div>
+        <div class="mode-shortcuts desktop-only" role="group" aria-label="Nástroje">
+          <button id="btn-quick-drawings" class="btn btn-sm" title="Technické 2D výkresy půdorysů (SVG / DXF / PDF)">📄 Výkresy</button>
+          <button id="btn-quick-budget" class="btn btn-sm" title="Soupis materiálu a výkaz výměr (CSV)">📋 Rozpočet</button>
+          <button id="btn-quick-sun" class="btn btn-sm" title="Rychlé nastavení slunce a stínů">☀️ Slunce</button>
+        </div>
       </div>
 
-      <!-- Header Right: Compass & Sidebar Drawer Toggle -->
+      <!-- Header Right Actions (Desktop Cluster / Mobile Vertical Right Rail) -->
       <div class="header-actions">
+        <button id="btn-layers" class="btn-rail" aria-haspopup="true" aria-expanded="false" title="Vrstvy scény a plynulý řez">
+          <span class="rail-icon">👁️</span>
+          <span class="rail-label">Vrstvy</span>
+          <span id="layers-active-dot" class="badge-dot" style="display: none;"></span>
+        </button>
+
+        <button id="btn-floor-topdown" class="btn-rail" title="Přepnout půdorysný pohled shora / 3D">
+          <span class="rail-icon">📐</span>
+          <span class="rail-label">Shora</span>
+        </button>
+
+        <button id="btn-fit" class="btn-rail btn-rail-icon-only" title="Vycentrovat pohled na dům">
+          <span class="rail-icon">🎯</span>
+        </button>
+
         <!-- Floating Compass HUD (North Indicator) -->
         <div id="compass-badge" title="Klikněte pro zarovnání pohledu na Sever">
           <div class="compass-dial" id="compass-dial">
@@ -46,13 +62,120 @@
           </div>
         </div>
 
-        <!-- Sidebar Toggle Button -->
-        <button id="btn-toggle-sidebar" class="btn-panel-toggle" title="Zobrazit / skrýt ovládací panel">
+        <!-- Sidebar Toggle Button (Desktop) -->
+        <button id="btn-toggle-sidebar" class="btn-panel-toggle desktop-only" title="Zobrazit / skrýt ovládací panel">
           <span class="toggle-icon">🎛️</span>
-          <span class="toggle-text">Ovládání</span>
+          <span class="toggle-text">Panel</span>
         </button>
       </div>
     </header>
+
+    <!-- Floating Layers & Live Slice Popover -->
+    <div id="layers-popover" class="layers-popover glass-panel" role="dialog" aria-label="Vrstvy scény" aria-hidden="true">
+      <div class="popover-header">
+        <span>Vrstvy a řez</span>
+        <button id="btn-close-layers" class="btn-icon" type="button" title="Zavřít (Esc)">✕</button>
+      </div>
+      <div class="layers-toggle-list">
+        <button id="btn-layer-labels" class="layer-toggle-row active" type="button" aria-pressed="true">
+          <span class="layer-row-label">🏷️ Popisky místností</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </button>
+        <button id="btn-layer-furniture" class="layer-toggle-row active" type="button" aria-pressed="true">
+          <span class="layer-row-label">🛋️ 3D Nábytek</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </button>
+        <button id="btn-layer-footprint" class="layer-toggle-row" type="button" aria-pressed="false">
+          <span class="layer-row-label">📊 Zastavěná plocha (3D)</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </button>
+        <div class="popover-divider"></div>
+        <button id="btn-layer-grid" class="layer-toggle-row active" type="button" aria-pressed="true">
+          <span class="layer-row-label">⊞ Pomocná mřížka</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </button>
+        <button id="btn-layer-plot" class="layer-toggle-row active" type="button" aria-pressed="true">
+          <span class="layer-row-label">🗺️ Pozemek a ulice</span>
+          <span class="toggle-pill"><span class="toggle-knob"></span></span>
+        </button>
+      </div>
+      <div class="popover-divider"></div>
+      <div class="quick-slice-block">
+        <div class="slice-header">
+          <label for="quick-slice-slider" class="field-label">✂️ Plynulý řez:</label>
+          <div class="quick-slice-meta">
+            <span id="quick-slice-val" class="field-val-highlight">Vše</span>
+            <button id="btn-quick-slice-reset" class="btn-link-sm" type="button" style="display: none;">Reset</button>
+          </div>
+        </div>
+        <input type="range" id="quick-slice-slider" min="0.2" max="9.0" step="0.05" value="9.0" class="range-slider" />
+      </div>
+    </div>
+
+    <!-- Floating Compact Sun & Shadows Bar (No Backdrop - Keeps 3D Scene Visible) -->
+    <div id="sun-quick-bar" class="sun-quick-bar glass-panel" aria-hidden="true">
+      <div class="sun-bar-top">
+        <div class="sun-bar-seasons" role="group" aria-label="Roční období">
+          <button id="quick-season-summer" class="btn btn-sm btn-primary" type="button" title="Letní slunovrat (21.6.)">☀️ Léto</button>
+          <button id="quick-season-equinox" class="btn btn-sm" type="button" title="Rovnodennost (21.3. / 23.9.)">🍂 Jaro/Podz.</button>
+          <button id="quick-season-winter" class="btn btn-sm" type="button" title="Zimní slunovrat (21.12.)">❄️ Zima</button>
+        </div>
+        <div class="sun-bar-actions">
+          <span id="quick-sun-time-val" class="time-badge">14:00</span>
+          <button id="btn-sun-more-details" class="btn-icon" type="button" title="Podrobnosti a výběr měsíce">⋯</button>
+          <button id="btn-close-sun-bar" class="btn-icon" type="button" title="Zavřít lištu slunce">✕</button>
+        </div>
+      </div>
+      <div class="sun-bar-slider-row">
+        <input type="range" id="quick-sun-slider" min="5" max="21" step="0.25" value="14" class="range-slider" aria-label="Denní čas" />
+      </div>
+      <div class="sun-bar-telemetry">
+        <span id="quick-sun-elevation">Výška: 57.0°</span>
+        <span class="telemetry-sep">·</span>
+        <span id="quick-sun-azimuth">218° (JZ)</span>
+        <span id="quick-sun-status" class="quick-sun-status"></span>
+      </div>
+    </div>
+
+    <!-- Floating Compact BIM Quick Card (Shown on Mesh Tap/Click) -->
+    <div id="bim-quick-card" class="bim-quick-card glass-panel" aria-hidden="true">
+      <div class="bim-quick-info">
+        <div class="bim-quick-head">
+          <span id="bim-quick-type" class="bim-type-pill"></span>
+          <strong id="bim-quick-name" class="bim-quick-name"></strong>
+        </div>
+        <div id="bim-quick-meta" class="bim-quick-meta"></div>
+      </div>
+      <div class="bim-quick-actions">
+        <button id="btn-bim-quick-detail" class="btn btn-sm btn-primary" type="button">Detail</button>
+        <button id="btn-bim-quick-close" class="btn-icon" type="button" title="Zrušit výběr">✕</button>
+      </div>
+    </div>
+
+    <!-- Mobile Fixed Bottom Navigation Bar (< 768px) -->
+    <nav id="mobile-bottom-nav" class="mobile-bottom-nav" aria-label="Hlavní navigace">
+      <button id="nav-mobile-3d" class="mobile-nav-item active" type="button">
+        <span class="mobile-nav-icon">🏠</span>
+        <span class="mobile-nav-label">3D</span>
+      </button>
+      <button id="nav-mobile-drawings" class="mobile-nav-item" type="button">
+        <span class="mobile-nav-icon">📄</span>
+        <span class="mobile-nav-label">Výkresy</span>
+      </button>
+      <button id="nav-mobile-sun" class="mobile-nav-item" type="button">
+        <span class="mobile-nav-icon">☀️</span>
+        <span class="mobile-nav-label">Slunce</span>
+      </button>
+      <button id="nav-mobile-budget" class="mobile-nav-item" type="button">
+        <span class="mobile-nav-icon">📋</span>
+        <span class="mobile-nav-label">Rozpočet</span>
+      </button>
+      <button id="nav-mobile-more" class="mobile-nav-item" type="button">
+        <span class="mobile-nav-icon">🎛️</span>
+        <span class="mobile-nav-label">Panel</span>
+        <span id="mobile-more-badge-dot" class="badge-dot" style="display: none;"></span>
+      </button>
+    </nav>
 
     <!-- Collapsible App Sidebar / Drawer -->
     <aside id="app-sidebar" class="app-sidebar">
@@ -89,7 +212,7 @@
           <span class="nav-tab-icon">⚙️</span>
           <span class="nav-tab-label">Model</span>
         </button>
-        <button class="sidebar-nav-tab" data-tab="bim" title="BIM vlastnosti prvku">
+        <button id="sidebar-tab-bim" class="sidebar-nav-tab" data-tab="bim" title="BIM vlastnosti prvku">
           <span class="nav-tab-icon">ℹ️</span>
           <span class="nav-tab-label">BIM</span>
           <span id="bim-badge-dot" class="badge-dot" style="display: none;"></span>
@@ -104,33 +227,6 @@
       <div class="sidebar-body">
         <!-- ==================== TAB 1: PODLAŽÍ & MÍSTNOSTI ==================== -->
         <div id="tab-pane-floors" class="tab-pane active">
-          <!-- Floor Switcher Grid inside Sidebar -->
-          <div class="glass-panel card">
-            <div class="card-title">
-              <span>Zobrazení domu</span>
-              <span class="card-badge" id="active-floor-badge">1.NP Přízemí</span>
-            </div>
-            <div class="floor-button-grid">
-              <button id="btn-sidebar-all" class="btn btn-sm">🏢 Celý dům</button>
-              <button id="btn-sidebar-1np" class="btn btn-sm">🏠 1.NP Přízemí</button>
-              <button id="btn-sidebar-2np" class="btn btn-sm">🛏️ 2.NP Patro</button>
-              <button id="btn-sidebar-topdown" class="btn btn-sm">📐 Půdorys shora</button>
-            </div>
-            <button id="btn-toggle-labels" class="btn btn-sm btn-full" title="Zobrazit / skrýt 3D popisky místností">
-              🏷️ Popisky místností: ON
-            </button>
-            <button id="btn-toggle-furniture" class="btn btn-sm btn-full" style="margin-top: 4px;" title="Zobrazit / skrýt 3D nábytek a vybavení">
-              🛋️ Nábytek a vybavení: ON
-            </button>
-            <div class="form-row" style="margin-top: 6px;">
-              <label for="floorplan-variant-select" class="field-label">Varianta půdorysu 2.NP:</label>
-              <select id="floorplan-variant-select" class="select-custom" style="width: 100%;" title="Porovnat varianty půdorysu 2.NP"></select>
-            </div>
-            <button id="btn-sidebar-drawings" class="btn btn-sm btn-primary btn-full" style="margin-top: 6px;" title="Otevřít kótované 2D výkresy půdorysů v SVG">
-              📄 2D Výkresy půdorysů (SVG)
-            </button>
-          </div>
-
           <!-- Floor Plan & Room Schedule Card -->
           <div class="glass-panel card" id="floorplan-card">
             <div class="card-title">
@@ -154,8 +250,31 @@
                 <label for="slice-slider" class="field-label">Plynulý řez (výška Y):</label>
                 <span id="slice-val" class="field-val-highlight">2.95 m</span>
               </div>
-              <input type="range" id="slice-slider" min="0.2" max="8.5" step="0.05" value="2.95" class="range-slider" />
+              <input type="range" id="slice-slider" min="0.2" max="9.0" step="0.05" value="2.95" class="range-slider" />
             </div>
+          </div>
+
+          <!-- Floor Switcher Grid inside Sidebar -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Zobrazení domu</span>
+              <span class="card-badge" id="active-floor-badge">1.NP Přízemí</span>
+            </div>
+            <div class="floor-button-grid">
+              <button id="btn-sidebar-all" class="btn btn-sm">🏢 Celý dům</button>
+              <button id="btn-sidebar-1np" class="btn btn-sm">🏠 1.NP Přízemí</button>
+              <button id="btn-sidebar-2np" class="btn btn-sm">🛏️ 2.NP Patro</button>
+              <button id="btn-sidebar-topdown" class="btn btn-sm">📐 Půdorys shora</button>
+            </div>
+            <button id="btn-toggle-labels" class="btn btn-sm btn-full" title="Zobrazit / skrýt 3D popisky místností">
+              🏷️ Popisky místností: ON
+            </button>
+            <button id="btn-toggle-furniture" class="btn btn-sm btn-full" style="margin-top: 4px;" title="Zobrazit / skrýt 3D nábytek a vybavení">
+              🛋️ Nábytek a vybavení: ON
+            </button>
+            <button id="btn-sidebar-drawings" class="btn btn-sm btn-primary btn-full" style="margin-top: 6px;" title="Otevřít kótované 2D výkresy půdorysů v SVG / DXF">
+              📄 2D Výkresy půdorysů (SVG / DXF)
+            </button>
           </div>
         </div>
 
@@ -244,19 +363,19 @@
           <div class="glass-panel card" id="builtup-area-card">
             <div class="card-title">
               <span>Zastavěná plocha pozemku</span>
-              <span class="card-badge" id="builtup-ratio-badge">19.1 % (205.0 m²)</span>
+              <span class="card-badge" id="builtup-ratio-badge">17.1 % (184.3 m²)</span>
             </div>
 
             <!-- Stacked Proportion Bar -->
             <div class="builtup-progress-bar" aria-label="Poměr zastavění pozemku">
-              <div id="bar-seg-buildings" class="builtup-segment seg-buildings" style="width: 16.1%;" title="Stavby pod střechou: 173.0 m² (16.1 %)"></div>
-              <div id="bar-seg-accessories" class="builtup-segment seg-accessories" style="width: 3.0%;" title="Terasa &amp; loubí: 32.0 m² (3.0 %)"></div>
-              <div id="bar-seg-free" class="builtup-segment seg-free" style="width: 80.9%;" title="Volná zahrada: 871.0 m² (80.9 %)"></div>
+              <div id="bar-seg-buildings" class="builtup-segment seg-buildings" style="width: 15.0%;" title="Stavby pod střechou: 161.0 m² (15.0 %)"></div>
+              <div id="bar-seg-accessories" class="builtup-segment seg-accessories" style="width: 2.2%;" title="Terasa &amp; loubí: 23.3 m² (2.2 %)"></div>
+              <div id="bar-seg-free" class="builtup-segment seg-free" style="width: 82.9%;" title="Volná zahrada: 891.7 m² (82.9 %)"></div>
             </div>
             <div class="builtup-legend">
-              <span class="legend-item"><span class="legend-dot seg-buildings"></span>Stavby <span id="legend-buildings-pct">16.1 %</span></span>
-              <span class="legend-item"><span class="legend-dot seg-accessories"></span>Terasa &amp; loubí <span id="legend-accessories-pct">3.0 %</span></span>
-              <span class="legend-item"><span class="legend-dot seg-free"></span>Zahrada <span id="legend-free-pct">80.9 %</span></span>
+              <span class="legend-item"><span class="legend-dot seg-buildings"></span>Stavby <span id="legend-buildings-pct">15.0 %</span></span>
+              <span class="legend-item"><span class="legend-dot seg-accessories"></span>Terasa &amp; loubí <span id="legend-accessories-pct">2.2 %</span></span>
+              <span class="legend-item"><span class="legend-dot seg-free"></span>Zahrada <span id="legend-free-pct">82.9 %</span></span>
             </div>
 
             <ul class="info-list">
@@ -269,37 +388,40 @@
                 <span id="area-house" class="info-val">96.0 m² (8.9 %)</span>
               </li>
               <li>
-                <span class="info-label"><span class="footprint-swatch" style="background:#10b981;"></span>Zahradní dílna (6 × 7 m):</span>
-                <span id="area-workshop" class="info-val">42.0 m² (3.9 %)</span>
+                <span class="info-label"><span class="footprint-swatch" style="background:#10b981;"></span>Zahradní dílna (4 × 6,5 m):</span>
+                <span id="area-workshop" class="info-val">26.0 m² (2.4 %)</span>
               </li>
               <li>
-                <span class="info-label"><span class="footprint-swatch" style="background:#06b6d4;"></span>Kryté parkování (5 × 7 m):</span>
-                <span id="area-parking" class="info-val">35.0 m² (3.3 %)</span>
+                <span class="info-label"><span class="footprint-swatch" style="background:#06b6d4;"></span>Kryté parkování (6 × 6,5 m):</span>
+                <span id="area-parking" class="info-val">39.0 m² (3.6 %)</span>
               </li>
               <li class="info-list-subtotal">
                 <span class="info-label">Stavby pod střechou celkem:</span>
-                <span id="area-buildings-subtotal" class="info-val" style="color:#60a5fa; font-weight:600;">173.0 m² (16.1 %)</span>
+                <span id="area-buildings-subtotal" class="info-val" style="color:#60a5fa; font-weight:600;">161.0 m² (15.0 %)</span>
               </li>
               <li>
                 <span class="info-label"><span class="footprint-swatch" style="background:#f59e0b;"></span>Zahradní terasa (JZ):</span>
-                <span id="area-terrace" class="info-val">24.0 m² (2.2 %)</span>
+                <span id="area-terrace" class="info-val">15.8 m² (1.5 %)</span>
               </li>
               <li>
                 <span class="info-label"><span class="footprint-swatch" style="background:#a855f7;"></span>Kryté vstupní loubí:</span>
-                <span id="area-canopy" class="info-val">8.0 m² (0.7 %)</span>
+                <span id="area-canopy" class="info-val">7.5 m² (0.7 %)</span>
               </li>
               <li class="info-list-total">
                 <span class="info-label" style="color:#fff; font-weight:600;">Zastavěná plocha celkem:</span>
-                <span id="area-builtup-total" class="info-val" style="color:#fbbf24; font-weight:700;">205.0 m² (19.1 %)</span>
+                <span id="area-builtup-total" class="info-val" style="color:#fbbf24; font-weight:700;">184.3 m² (17.1 %)</span>
               </li>
               <li>
                 <span class="info-label">Volná nezastavěná zahrada:</span>
-                <span id="area-free-garden" class="info-val" style="color:#34d399; font-weight:600;">871.0 m² (80.9 %)</span>
+                <span id="area-free-garden" class="info-val" style="color:#34d399; font-weight:600;">891.7 m² (82.9 %)</span>
               </li>
             </ul>
 
             <button id="btn-toggle-footprint" class="btn btn-sm btn-full" style="margin-top: 8px;" title="Zvýraznit půdorysy zastavěných objektů přímo na pozemku v 3D">
               📐 Zvýraznit zastavěnou plochu v 3D: OFF
+            </button>
+            <button id="btn-site-export-dxf" class="btn btn-sm btn-primary btn-full" style="margin-top: 6px;" title="Stáhnout situační výkres osazení na pozemek v CAD formátu .DXF (1:1 v mm)">
+              🗺️ Exportovat situaci pozemku (.DXF 1:1)
             </button>
           </div>
 
@@ -465,12 +587,8 @@
             </div>
 
             <div class="form-stack">
-              <div class="form-row">
-                <label for="budget-variant-select" class="field-label">Varianta domu:</label>
-                <select id="budget-variant-select" class="select-custom" style="width: 100%;"></select>
-              </div>
               <div id="budget-ifc-note" class="hint-card" style="display: none;">
-                ℹ️ Zobrazený model je vlastní IFC soubor; výkaz výměr níže se počítá z parametrického modelu vybrané varianty.
+                ℹ️ Zobrazený model je vlastní IFC soubor; výkaz výměr níže se počítá z výchozího parametrického modelu domu.
               </div>
               <div class="budget-scope-chips" role="group" aria-label="Rozsah soupisu">
                 <button type="button" class="btn btn-sm btn-primary budget-scope-chip active" data-scope="house">🏠 Hlavní dům</button>
@@ -478,6 +596,31 @@
                 <button type="button" class="btn btn-sm btn-primary budget-scope-chip active" data-scope="exterior">🌿 Terasa & pozemek</button>
               </div>
             </div>
+          </div>
+
+          <!-- Exporty pro projektanty a architekty -->
+          <div class="glass-panel card">
+            <div class="card-title">
+              <span>Exporty pro projektanty</span>
+              <span class="card-badge">CAD / TZ / Výpisy</span>
+            </div>
+            <div class="architect-exports-grid">
+              <button id="btn-export-openings-csv" type="button" class="btn btn-sm btn-primary" title="Poptávkový a podrobný výpis oken a dveří se značkami a orientací L/P (.csv)">🪟 Výpis oken &amp; dveří (.CSV)</button>
+              <button id="btn-export-tech-csv" type="button" class="btn btn-sm" title="Bilance ploch, objemy, výškové kóty, odstupy a skladby konstrukcí (.csv)">📊 Bilance &amp; TZ (.CSV)</button>
+              <button id="btn-export-tech-print" type="button" class="btn btn-sm" title="Tiskový technický list (A4 / PDF) pro architekta a stavební úřad">📄 Technický list (PDF)</button>
+              <button id="btn-export-cad-dxf" type="button" class="btn btn-sm" title="Kompletní 2D CAD výkres 1.NP + 2.NP + 4 Pohledy + 2 Řezy + Situace na pozemku v měřítku 1:1 mm (.dxf)">📐 Komplet CAD (.DXF)</button>
+            </div>
+            <div id="architect-openings-summary" class="hint-card" style="margin-top: 8px;"></div>
+            <details class="budget-section" style="margin-top: 6px;">
+              <summary class="budget-section-summary">
+                <span class="budget-section-title">
+                  <span class="budget-section-code">O/D</span>
+                  <span>Náhled výpisu oken a dveří</span>
+                </span>
+                <span class="budget-section-count">značky</span>
+              </summary>
+              <div id="architect-openings-table" class="budget-compare-scroll"></div>
+            </details>
           </div>
 
           <!-- Orientační cena, Obestavěný prostor a m3 -->
@@ -504,13 +647,6 @@
               <span>Souhrn klíčových výměr</span>
             </div>
             <div id="budget-summary-grid" class="budget-summary-grid"></div>
-          </div>
-
-          <div class="glass-panel card">
-            <div class="card-title">
-              <span>Porovnání variant</span>
-            </div>
-            <div id="budget-compare-container" class="budget-compare-scroll"></div>
           </div>
 
           <div class="glass-panel card">
@@ -559,34 +695,42 @@
         <div class="drawings-title-group">
           <span class="drawings-title-icon">📐</span>
           <div>
-            <h2>Technické výkresy — Půdorysy (SVG)</h2>
+            <h2>Technické výkresy — Půdorysy, Pohledy &amp; Řezy (SVG / DXF)</h2>
             <p>Kótované výkresy generované z parametrického modelu · Kolečko = Zoom · Tažení = Posun</p>
           </div>
         </div>
 
         <div class="drawings-toolbar">
-          <select id="drawings-variant-select" class="select-custom" title="Porovnat varianty půdorysu 2.NP"></select>
-
-          <div class="toolbar-divider"></div>
-
           <div class="drawings-segment" role="group" aria-label="Volba výkresu">
-            <button class="btn btn-sm btn-primary" data-sheet="1np">1.NP Přízemí</button>
-            <button class="btn btn-sm" data-sheet="2np">2.NP Patro</button>
-            <button class="btn btn-sm" data-sheet="both">1.NP + 2.NP společně</button>
+            <button class="btn btn-sm btn-primary" data-sheet="1np">1.NP <span class="hide-sm">Přízemí</span></button>
+            <button class="btn btn-sm" data-sheet="2np">2.NP <span class="hide-sm">Patro</span></button>
+            <button class="btn btn-sm" data-sheet="both">1.NP + 2.NP <span class="hide-sm">společně</span></button>
+            <button class="btn btn-sm" data-sheet="elevations">Pohledy <span class="hide-sm">(4×)</span></button>
+            <button class="btn btn-sm" data-sheet="sections">Řezy <span class="hide-sm">(A-A' / B-B')</span></button>
           </div>
 
-          <div class="toolbar-divider"></div>
+          <div class="toolbar-divider drawings-desktop-sep"></div>
 
-          <div class="drawings-layers" role="group" aria-label="Vrstvy výkresu">
-            <button class="btn btn-sm layer-chip active" data-layer="showDimensions" title="Vnější kótovací řetězce">Kóty</button>
-            <button class="btn btn-sm layer-chip active" data-layer="showInteriorDims" title="Vnitřní světlé kóty místností a stěn">Vnitřní kóty</button>
-            <button class="btn btn-sm layer-chip active" data-layer="showFurniture" title="2D symboly nábytku a sanity">Nábytek</button>
-            <button class="btn btn-sm layer-chip active" data-layer="showOpeningTags" title="Rozměry oken a dveří">Popisy otvorů</button>
-            <button class="btn btn-sm layer-chip active" data-layer="showHatches" title="Šrafování zdiva a podlah">Šrafy</button>
-            <button id="btn-drawings-units" class="btn btn-sm" title="Přepnout jednotky kót (mm / m)">Jednotky: mm</button>
+          <div class="drawings-popover-anchor">
+            <button id="btn-drawings-layers-toggle" class="btn btn-sm drawings-mobile-toggle" type="button" aria-expanded="false">Vrstvy</button>
+            <div id="drawings-layers-panel" class="drawings-layers" role="group" aria-label="Vrstvy výkresu">
+              <button class="btn btn-sm layer-chip active" data-layer="showDimensions" title="Vnější kótovací řetězce">Kóty</button>
+              <button class="btn btn-sm layer-chip active" data-layer="showInteriorDims" title="Vnitřní světlé kóty místností a stěn">Vnitřní kóty</button>
+              <button class="btn btn-sm layer-chip active" data-layer="showFurniture" title="2D symboly nábytku a sanity">Nábytek</button>
+              <button class="btn btn-sm layer-chip active" data-layer="showOpeningTags" title="Rozměry oken a dveří">Popisy otvorů</button>
+              <button class="btn btn-sm layer-chip active" data-layer="showHatches" title="Šrafování zdiva a podlah">Šrafy</button>
+              <button class="btn btn-sm layer-chip" data-layer="showAnalysis" title="Automatická kontrola kolizí, dveří a odstupů nábytku">Kontrola</button>
+              <button id="btn-drawings-units" class="btn btn-sm" title="Přepnout jednotky kót (mm / m)">Jednotky: mm</button>
+            </div>
           </div>
 
-          <div class="toolbar-divider"></div>
+          <div class="toolbar-divider drawings-desktop-sep"></div>
+
+          <div class="drawings-measure-group">
+            <button id="btn-drawings-measure-toggle" class="btn btn-sm" type="button" title="Měření vzdálenosti a plochy (klávesa M)" aria-pressed="false">📏 Měření</button>
+          </div>
+
+          <div class="toolbar-divider drawings-desktop-sep"></div>
 
           <div class="drawings-zoom-group">
             <button id="btn-drawings-zoom-out" class="btn btn-sm" title="Oddálit">−</button>
@@ -594,17 +738,49 @@
             <button id="btn-drawings-zoom-in" class="btn btn-sm" title="Přiblížit">+</button>
           </div>
 
-          <div class="toolbar-divider"></div>
+          <div class="toolbar-divider drawings-desktop-sep"></div>
 
           <div class="drawings-actions">
-            <button id="btn-drawings-download" class="btn btn-sm btn-primary" title="Stáhnout čistý vektorový soubor .SVG">⬇️ Stáhnout SVG</button>
-            <button id="btn-drawings-print" class="btn btn-sm" title="Vytisknout nebo uložit jako PDF">🖨️ Tisk / PDF</button>
+            <div class="drawings-popover-anchor">
+              <button id="btn-drawings-export-toggle" class="btn btn-sm drawings-mobile-toggle" type="button" aria-expanded="false">Export</button>
+              <div id="drawings-actions-menu" class="drawings-actions-menu">
+                <button id="btn-drawings-download" class="btn btn-sm" title="Stáhnout čistý vektorový soubor .SVG">Stáhnout SVG</button>
+                <button id="btn-drawings-download-dxf" class="btn btn-sm" title="Stáhnout 2D CAD výkres .DXF (1:1 v mm, po hladinách)">DXF</button>
+                <button id="btn-drawings-download-dxf-all" class="btn btn-sm" title="Stáhnout kompletní CAD .DXF (1.NP + 2.NP + 4 Pohledy + 2 Řezy + Situace na pozemku)">DXF Komplet</button>
+                <button id="btn-drawings-print" class="btn btn-sm" title="Vytisknout nebo uložit jako PDF">Tisk / PDF</button>
+              </div>
+            </div>
             <button id="btn-drawings-close" class="btn-icon" title="Zavřít (Esc)">✕</button>
           </div>
         </div>
       </div>
 
       <div id="drawings-viewport" class="drawings-viewport">
+        <!-- Floating Measure HUD Bar -->
+        <div id="drawings-measure-hud" class="drawings-measure-hud" hidden>
+          <div class="measure-hud-modes" role="group" aria-label="Režim měření">
+            <button id="btn-measure-mode-dist" class="btn btn-sm btn-primary" type="button" title="Měření vzdálenosti a délek (2 body)">📏 Vzdálenost</button>
+            <button id="btn-measure-mode-area" class="btn btn-sm" type="button" title="Měření plochy a obvodu (mnohoúhelník)">📐 Plocha</button>
+          </div>
+
+          <div class="measure-hud-divider"></div>
+
+          <div class="measure-hud-readout" id="measure-hud-readout">
+            <span class="measure-hud-prompt">Klikněte do výkresu pro zadání prvního bodu</span>
+          </div>
+
+          <div class="measure-hud-divider"></div>
+
+          <div class="measure-hud-controls">
+            <button id="btn-measure-snap" class="btn btn-sm active" type="button" title="Přichytávat k rohům stěn a bodům (OSNAP)">🧲 Přichytávání</button>
+            <button id="btn-measure-ortho" class="btn btn-sm" type="button" title="Pravoúhlé vedení 0° / 90° (Shift)">⏊ Ortho</button>
+            <button id="btn-measure-finish" class="btn btn-sm" type="button" title="Dokončit polygon (Enter nebo dvojklik)" disabled>✓ Dokončit</button>
+            <button id="btn-measure-undo" class="btn btn-sm" type="button" title="Krok zpět (odstranit bod)" disabled>↩ Zpět</button>
+            <button id="btn-measure-clear" class="btn btn-sm" type="button" title="Smazat všechna měření">🗑️ Smazat</button>
+            <button id="btn-measure-close" class="btn-icon btn-sm" type="button" title="Zavřít měření (Esc)">✕</button>
+          </div>
+        </div>
+
         <div id="drawings-svg-stage" class="drawings-svg-stage"></div>
       </div>
     </div>

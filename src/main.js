@@ -6,7 +6,7 @@ import { buildPlot, buildAuxiliaryBuilding } from "./builders/SiteBuilder.js";
 import { buildHouseModel } from "./builders/HouseBuilder.js";
 import { siteConfig } from "./designs/siteConfig.js";
 import { auxiliaryBuildingConfig } from "./designs/auxiliaryBuilding.js";
-import { getDesignVariant } from "./designs/index.js";
+import { defaultDesign } from "./designs/index.js";
 import { IfcController } from "./bim/IfcController.js";
 import { initSidebarController } from "./ui/SidebarController.js";
 import { initToolbarController } from "./ui/ToolbarController.js";
@@ -39,27 +39,25 @@ const ifcController = new IfcController({
   materials,
   store,
   auxBuilding,
-  buildConceptFn: (variantId) =>
-    buildHouseModel(getDesignVariant(variantId), materials),
+  buildConceptFn: () => buildHouseModel(defaultDesign, materials),
 });
 
 // Load initial Concept House model
-ifcController.loadConceptVariant("concept");
+ifcController.loadConceptModel();
 
 // 4. UI Controllers (all decoupled via reactive store)
 initSidebarController(store);
 initToolbarController(store, sceneManager);
-initFloorPlanController(store, sceneManager, () => ifcController.currentModel, ifcController);
+initFloorPlanController(store, sceneManager, () => ifcController.currentModel);
 initSunController(store, sunSystem);
 initSiteController(store, sceneManager, siteConfig, auxiliaryBuildingConfig);
 initModelAndBimController(store, sceneManager, ifcController, gridHelper);
-initDrawingsController(store, ifcController);
-initBudgetController(store, { siteConfig, auxiliaryBuildingConfig, ifcController });
+initDrawingsController(store, { siteConfig, auxiliaryBuildingConfig });
+initBudgetController(store, { siteConfig, auxiliaryBuildingConfig });
 initUrlController({
   store,
   sceneManager,
   sunSystem,
-  ifcController,
   gridHelper,
   siteConfig,
   auxiliaryBuildingConfig,

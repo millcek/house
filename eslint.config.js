@@ -18,6 +18,15 @@ export default [
     },
   },
   {
+    files: ['scripts/**/*.js', 'test/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+      },
+    },
+  },
+  {
     ignores: ['dist/**', 'node_modules/**'],
   },
 ];

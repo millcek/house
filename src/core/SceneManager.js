@@ -17,6 +17,7 @@ export class SceneManager {
     this.canvas = canvas;
     this.clipPlane = houseClipPlane;
     this.tickCallbacks = new Set();
+    this._preTopDownState = null;
 
     // Scene
     this.scene = new THREE.Scene();
@@ -138,12 +139,30 @@ export class SceneManager {
     this.controls.update();
   }
 
+  savePreTopDownCamera() {
+    this._preTopDownState = {
+      pos: this.camera.position.clone(),
+      target: this.controls.target.clone(),
+    };
+  }
+
   setTopDownView(targetObject = this.houseContainer) {
     const worldPos = new THREE.Vector3();
     targetObject.getWorldPosition(worldPos);
     this.camera.position.set(worldPos.x, 26, worldPos.z + 0.001);
     this.controls.target.copy(worldPos);
     this.controls.update();
+  }
+
+  exitTopDownView() {
+    if (this._preTopDownState) {
+      this.camera.position.copy(this._preTopDownState.pos);
+      this.controls.target.copy(this._preTopDownState.target);
+      this._preTopDownState = null;
+      this.controls.update();
+      return;
+    }
+    this.fitCameraToObject(this.houseContainer);
   }
 
   /**

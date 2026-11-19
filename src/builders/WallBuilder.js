@@ -63,6 +63,131 @@ function buildAperture(opening, wallThickness, materials, floorName, wallName, f
 }
 
 /**
+ * Creates a 3D door assembly (obložková zárubeň, plné/prosklené křídlo, klika)
+ * with IfcDoor BIM metadata in local wall coordinates.
+ */
+function buildDoorAssembly(opening, wallDef, materials, floorName, wallName, floorY = 0) {
+  const group = new THREE.Group();
+  const width = opening.width;
+  const height = opening.height;
+  const sill = opening.sill ?? 0;
+  const at = resolveOpeningCenter(opening);
+  const wallThickness = wallDef.thickness ?? 0.16;
+  const isExterior = (wallDef.material || 'wall') === 'wall';
+  const isGlazed = Boolean(opening.glazed);
+  const isSliding = Boolean(opening.sliding);
+
+  const frameThick = 0.045;
+  const frameDepth = wallThickness + 0.03;
+  const frameMat = isExterior ? materials.frame : materials.doorLeaf || materials.frame;
+  const leafMat = isExterior
+    ? materials.doorLeafExt || materials.frame
+    : materials.doorLeaf || materials.stair || materials.frame;
+  const handleMat = materials.doorHandle || materials.frame;
+
+  const swingInfo = opening.swing
+    ? `${opening.swing.hinge === 'end' ? 'panty u konce' : 'panty u začátku'} → ${opening.swing.dir}`
+    : isSliding
+      ? 'Posuvné'
+      : 'Otočné';
+  const variantLabel = isExterior
+    ? 'Vchodové tepelněizolační dveře'
+    : isGlazed
+      ? 'Vnitřní prosklené dveře'
+      : 'Vnitřní plné dveře';
+
+  const bimData = {
+    type: 'IfcDoor',
+    name: opening.name || 'Dveře',
+    floor: floorName,
+    description: `${variantLabel} ve stěně "${wallName}"`,
+    parameters: {
+      Šířka: `${width.toFixed(2)} m`,
+      Výška: `${height.toFixed(2)} m`,
+      Práh: `${sill.toFixed(2)} m`,
+      Provedení: variantLabel,
+      Otevírání: swingInfo,
+    },
+  };
+
+  const addPart = (w, h, d, x, y, z, mat) => {
+    if (w <= 0.005 || h <= 0.005 || d <= 0.005) return;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.bim = bimData;
+    mesh.userData.wallSlice = {
+      worldYBottom: floorY + y - h / 2,
+      worldYTop: floorY + y + h / 2,
+      yBottom: y - h / 2,
+      yTop: y + h / 2,
+    };
+    group.add(mesh);
+  };
+
+  // 1. Casing frame (boční stojky + nadpraží obložkové zárubně)
+  addPart(frameThick, height, frameDepth, at - width / 2 + frameThick / 2, sill + height / 2, 0, frameMat);
+  addPart(frameThick, height, frameDepth, at + width / 2 - frameThick / 2, sill + height / 2, 0, frameMat);
+  addPart(
+    Math.max(0.05, width - 2 * frameThick),
+    frameThick,
+    frameDepth,
+    at,
+    sill + height - frameThick / 2,
+    0,
+    frameMat
+  );
+
+  // 2. Door leaf (křídlo tl. 45 mm)
+  const leafW = Math.max(0.1, width - 2 * frameThick);
+  const leafH = Math.max(0.1, height - frameThick);
+  const leafT = 0.045;
+  const leafCenterY = sill + leafH / 2;
+
+  if (isGlazed) {
+    const stile = Math.min(0.11, leafW * 0.2);
+    const railTop = 0.11;
+    const railBottom = 0.16;
+    const glassW = Math.max(0.08, leafW - 2 * stile);
+    const glassH = Math.max(0.1, leafH - railTop - railBottom);
+    const glassCenterY = sill + railBottom + glassH / 2;
+
+    addPart(stile, leafH, leafT, at - leafW / 2 + stile / 2, leafCenterY, 0, leafMat);
+    addPart(stile, leafH, leafT, at + leafW / 2 - stile / 2, leafCenterY, 0, leafMat);
+    addPart(glassW, railTop, leafT, at, sill + leafH - railTop / 2, 0, leafMat);
+    addPart(glassW, railBottom, leafT, at, sill + railBottom / 2, 0, leafMat);
+    addPart(glassW, glassH, 0.02, at, glassCenterY, 0, materials.glass);
+  } else if (isExterior && width >= 1.05) {
+    // Main entrance door with vertical glazed strip on latch side
+    const latchSign = opening.swing?.hinge === 'end' ? -1 : 1;
+    const stripW = 0.14;
+    const stripH = Math.max(0.2, leafH - 0.36);
+    const stripX = at + latchSign * (leafW * 0.22);
+    const leftEdge = at - leafW / 2;
+    const rightEdge = at + leafW / 2;
+    const sLeft = stripX - stripW / 2;
+    const sRight = stripX + stripW / 2;
+
+    addPart(Math.max(0.05, sLeft - leftEdge), leafH, leafT, (leftEdge + sLeft) / 2, leafCenterY, 0, leafMat);
+    addPart(Math.max(0.05, rightEdge - sRight), leafH, leafT, (sRight + rightEdge) / 2, leafCenterY, 0, leafMat);
+    addPart(stripW, 0.18, leafT, stripX, sill + leafH - 0.09, 0, leafMat);
+    addPart(stripW, 0.18, leafT, stripX, sill + 0.09, 0, leafMat);
+    addPart(stripW, stripH, 0.025, stripX, leafCenterY, 0, materials.glass);
+  } else {
+    addPart(leafW, leafH, leafT, at, leafCenterY, 0, leafMat);
+  }
+
+  // 3. Door handle on latch side (klika ve výšce 1050 mm nad prahem)
+  const latchSign = opening.swing?.hinge === 'end' ? -1 : 1;
+  const handleX = at + latchSign * (leafW / 2 - 0.075);
+  const handleY = sill + Math.min(1.05, leafH * 0.52);
+  addPart(0.11, 0.028, leafT + 0.07, handleX - latchSign * 0.035, handleY, 0, handleMat);
+
+  return group;
+}
+
+/**
  * Builds a single parametric wall segment from `from: [x1, z1]` to `to: [x2, z2]`
  * and automatically slices openings (windows, doors, open passages) with sills and lintels.
  *
@@ -164,8 +289,12 @@ export function buildWall(wallDef, materials, floorY = 0, floorName = '1.NP') {
       addSolidBox(op.start, op.end, opTop, height);
     }
 
-    // Glazed/framed aperture unless it's a pure open passage
-    if (op.type !== 'opening') {
+    // Glazed/framed window or 3D door assembly
+    const isDoor =
+      op.type === 'door' || Boolean(op.swing) || (op.type !== 'window' && Boolean(op.sliding));
+    if (isDoor) {
+      wallGroup.add(buildDoorAssembly(op, wallDef, materials, floorName, wallName, floorY));
+    } else if (op.type !== 'opening') {
       wallGroup.add(buildAperture(op, thickness, materials, floorName, wallName, floorY));
     }
 

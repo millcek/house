@@ -1,4 +1,4 @@
-# 🏡 Dream House — 3D & IFC Web Viewer
+# 🏡 Vojáčkovi Troubelice — 3D & IFC Web Viewer
 
 A fast, lightweight web viewer for Industry Foundation Classes (`.ifc`) building models, integrated with Three.js and your **40 × 27 m** plot.
 
@@ -9,7 +9,7 @@ A fast, lightweight web viewer for Industry Foundation Classes (`.ifc`) building
 - **Drag & Drop Revisions**: Drop any `.ifc` file directly onto the window to render it instantly.
 - **House Placement Adjustments**: Sliders to adjust Position (X, Z) and Orientation (Rotation Y) directly on your parcel.
 - **BIM Element Inspector**: Click any wall, slab, window, or door in the IFC model to highlight it and view its IFC type, GlobalId, dimensions, and property sets.
-- **Version Management**: Easy workflow to compare iterations as you refine your dream house design.
+- **Version Management**: Easy workflow to compare iterations as you refine your house design (Vojáčkovi Troubelice).
 
 ---
 

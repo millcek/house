@@ -9,6 +9,8 @@ function assembleFloorGroup(name, floorConfig, materials, floorLabel) {
   group.name = name;
 
   const y = floorConfig.elevation ?? 0;
+  const finishThickness =
+    (floorConfig.finishes || []).find((f) => f.material !== 'terrace')?.thickness ?? 0;
 
   if (floorConfig.finishes?.length) {
     group.add(buildFloorFinishes(floorConfig.finishes, materials, y, floorLabel));
@@ -22,7 +24,16 @@ function assembleFloorGroup(name, floorConfig, materials, floorLabel) {
   furnitureGroup.name = `furniture-${floorLabel.toLowerCase().replace('.', '')}`;
 
   for (const item of floorConfig.furniture || []) {
-    const mesh = buildFurnitureItem(item, materials, y, floorLabel);
+    const isStructuralOrExterior =
+      item.type === 'stairs' ||
+      item.type === 'canopy' ||
+      item.type === 'pergola';
+    const itemBaseY = isStructuralOrExterior ? y : y + finishThickness;
+    const itemForBuild =
+      !isStructuralOrExterior && item.type === 'railing' && item.yOffset === finishThickness
+        ? { ...item, yOffset: 0 }
+        : item;
+    const mesh = buildFurnitureItem(itemForBuild, materials, itemBaseY, floorLabel);
     if (
       item.type === 'stairs' ||
       item.type === 'canopy' ||

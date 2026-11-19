@@ -1,26 +1,36 @@
 import { generateFloorPlanSvg } from '../builders/FloorPlanSvgGenerator.js';
-import { getDesignVariant, listDesignVariants } from '../designs/index.js';
+import { defaultDesign } from '../designs/index.js';
+import { downloadFloorPlanDxf } from '../exports/DxfGenerator.js';
+import { initDrawingMeasureController } from './DrawingMeasureController.js';
+
+const VALID_SHEETS = new Set(['1np', '2np', 'both', 'elevations', 'sections']);
 
 /**
- * Manages the interactive 2D SVG floor plan modal: sheet selection (`1np` / `2np` / `both`),
- * architectural layer toggles, units toggle (`mm` / `m`), pan & wheel zoom,
- * standalone SVG download, and print-to-PDF.
+ * Manages the interactive 2D SVG drawings modal: sheet selection (`1np` / `2np` / `both` / `elevations` / `sections`),
+ * architectural layer toggles, units toggle (`mm` / `m`), pan, wheel zoom, pinch-to-zoom,
+ * double-tap zoom/reset, mobile header popovers, standalone SVG/DXF download, and print-to-PDF.
  */
-export function initDrawingsController(store, ifcController) {
+export function initDrawingsController(store, { siteConfig = null, auxiliaryBuildingConfig = null } = {}) {
   const modal = document.getElementById('drawings-modal');
   const viewport = document.getElementById('drawings-viewport');
   const stage = document.getElementById('drawings-svg-stage');
-  const variantSelect = document.getElementById('drawings-variant-select');
 
   const btnQuickDrawings = document.getElementById('btn-quick-drawings');
   const btnSidebarDrawings = document.getElementById('btn-sidebar-drawings');
   const btnClose = document.getElementById('btn-drawings-close');
   const btnDownload = document.getElementById('btn-drawings-download');
+  const btnDownloadDxf = document.getElementById('btn-drawings-download-dxf');
+  const btnDownloadDxfAll = document.getElementById('btn-drawings-download-dxf-all');
   const btnPrint = document.getElementById('btn-drawings-print');
   const btnUnits = document.getElementById('btn-drawings-units');
   const btnZoomOut = document.getElementById('btn-drawings-zoom-out');
   const btnZoomReset = document.getElementById('btn-drawings-zoom-reset');
   const btnZoomIn = document.getElementById('btn-drawings-zoom-in');
+
+  const btnLayersToggle = document.getElementById('btn-drawings-layers-toggle');
+  const layersPanel = document.getElementById('drawings-layers-panel');
+  const btnExportToggle = document.getElementById('btn-drawings-export-toggle');
+  const exportMenu = document.getElementById('drawings-actions-menu');
 
   const sheetButtons = modal?.querySelectorAll('[data-sheet]') || [];
   const layerButtons = modal?.querySelectorAll('[data-layer]') || [];
@@ -32,6 +42,7 @@ export function initDrawingsController(store, ifcController) {
     showFurniture: true,
     showOpeningTags: true,
     showHatches: true,
+    showAnalysis: false,
     units: 'mm',
   };
 
@@ -40,11 +51,16 @@ export function initDrawingsController(store, ifcController) {
   let zoom = 1;
   let panX = 0;
   let panY = 0;
-  let isPanning = false;
-  let panStartX = 0;
-  let panStartY = 0;
-  let panOriginX = 0;
-  let panOriginY = 0;
+
+  const measureController = initDrawingMeasureController(stage, viewport, {
+    getUnits: () => viewOpts.units,
+    getSheet: () => viewOpts.sheet,
+  });
+
+  // Multi-touch & pointer tracking for pan, pinch-to-zoom, and double-tap
+  const activePointers = new Map();
+  let pointerDownMeta = null;
+  let lastTapMeta = null;
 
   function applyTransform() {
     if (!stage) return;
@@ -76,47 +92,61 @@ export function initDrawingsController(store, ifcController) {
     applyTransform();
   }
 
+  function closePopovers() {
+    layersPanel?.classList.remove('open');
+    btnLayersToggle?.classList.remove('active');
+    btnLayersToggle?.setAttribute('aria-expanded', 'false');
+    exportMenu?.classList.remove('open');
+    btnExportToggle?.classList.remove('active');
+    btnExportToggle?.setAttribute('aria-expanded', 'false');
+  }
+
+  function togglePopover(panel, toggleBtn, otherPanel, otherBtn) {
+    if (!panel) return;
+    const willOpen = !panel.classList.contains('open');
+    otherPanel?.classList.remove('open');
+    otherBtn?.classList.remove('active');
+    otherBtn?.setAttribute('aria-expanded', 'false');
+
+    panel.classList.toggle('open', willOpen);
+    toggleBtn?.classList.toggle('active', willOpen);
+    toggleBtn?.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  }
+
   function syncToolbarUi() {
+    const isNonPlan = viewOpts.sheet === 'elevations' || viewOpts.sheet === 'sections';
     sheetButtons.forEach((btn) => {
       btn.classList.toggle('btn-primary', btn.dataset.sheet === viewOpts.sheet);
     });
     layerButtons.forEach((btn) => {
       const key = btn.dataset.layer;
+      const isFloorOnly = key === 'showFurniture' || key === 'showAnalysis';
+      btn.disabled = isNonPlan && isFloorOnly;
       const active = Boolean(viewOpts[key]);
       btn.classList.toggle('active', active);
-      btn.classList.toggle('btn-primary', active);
     });
     if (btnUnits) {
       btnUnits.textContent = `Jednotky: ${viewOpts.units}`;
-    }
-    if (variantSelect) {
-      const variants = listDesignVariants();
-      if (variantSelect.options.length !== variants.length) {
-        variantSelect.innerHTML = variants
-          .map((v) => `<option value="${v.id}">${v.label}</option>`)
-          .join('');
-      }
-      const { activeModelId } = store.getState();
-      if (variants.some((v) => v.id === activeModelId)) {
-        variantSelect.value = activeModelId;
-      }
     }
   }
 
   function renderDrawing() {
     if (!stage) return;
-    const { activeModelId } = store.getState();
-    const design = getDesignVariant(activeModelId);
-    currentSvgMarkup = generateFloorPlanSvg(design, viewOpts);
+    currentSvgMarkup = generateFloorPlanSvg(defaultDesign, {
+      ...viewOpts,
+      siteConfig,
+      housePos: store.getState().site?.housePos,
+    });
     stage.innerHTML = currentSvgMarkup;
+    measureController?.onDrawingRendered();
     syncToolbarUi();
   }
 
   function openModal(requestedSheet) {
     if (!modal) return;
     const { floorMode, activeScheduleFloor, drawings } = store.getState();
-    let nextSheet = requestedSheet || drawings?.sheet;
-    if (!nextSheet || !['1np', '2np', 'both'].includes(nextSheet)) {
+    let nextSheet = typeof requestedSheet === 'string' ? requestedSheet : drawings?.sheet;
+    if (!nextSheet || !VALID_SHEETS.has(nextSheet)) {
       if (floorMode === '2np' || (floorMode === 'all' && activeScheduleFloor === '2np')) {
         nextSheet = '2np';
       } else {
@@ -125,6 +155,9 @@ export function initDrawingsController(store, ifcController) {
     }
 
     store.setState((prev) => ({
+      sidebarOpen: false,
+      sunBarOpen: false,
+      layersMenuOpen: false,
       drawings: {
         ...(prev.drawings || {}),
         isOpen: true,
@@ -135,6 +168,8 @@ export function initDrawingsController(store, ifcController) {
 
   function closeModal() {
     if (!modal) return;
+    measureController?.setActive(false);
+    closePopovers();
     const { drawings } = store.getState();
     if (!drawings?.isOpen && !isOpen) return;
     store.setState((prev) => ({
@@ -155,16 +190,14 @@ export function initDrawingsController(store, ifcController) {
       modal.setAttribute('aria-hidden', 'false');
       btnQuickDrawings?.classList.add('btn-primary');
 
-      const targetSheet =
-        drawingsState?.sheet === '2np' || drawingsState?.sheet === 'both'
-          ? drawingsState.sheet
-          : '1np';
+      const targetSheet = VALID_SHEETS.has(drawingsState?.sheet) ? drawingsState.sheet : '1np';
       const targetUnits = drawingsState?.units === 'm' ? 'm' : 'mm';
       const targetDims = drawingsState?.showDimensions !== false;
       const targetIntDims = drawingsState?.showInteriorDims !== false;
       const targetFurn = drawingsState?.showFurniture !== false;
       const targetTags = drawingsState?.showOpeningTags !== false;
       const targetHatches = drawingsState?.showHatches !== false;
+      const targetAnalysis = drawingsState?.showAnalysis === true;
 
       const changed =
         !wasOpen ||
@@ -174,7 +207,11 @@ export function initDrawingsController(store, ifcController) {
         targetIntDims !== viewOpts.showInteriorDims ||
         targetFurn !== viewOpts.showFurniture ||
         targetTags !== viewOpts.showOpeningTags ||
-        targetHatches !== viewOpts.showHatches;
+        targetHatches !== viewOpts.showHatches ||
+        targetAnalysis !== viewOpts.showAnalysis;
+
+      const sheetChanged = targetSheet !== viewOpts.sheet;
+      const unitsChanged = targetUnits !== viewOpts.units;
 
       viewOpts.sheet = targetSheet;
       viewOpts.units = targetUnits;
@@ -183,9 +220,16 @@ export function initDrawingsController(store, ifcController) {
       viewOpts.showFurniture = targetFurn;
       viewOpts.showOpeningTags = targetTags;
       viewOpts.showHatches = targetHatches;
+      viewOpts.showAnalysis = targetAnalysis;
 
       if (changed) {
         renderDrawing();
+        if (sheetChanged) {
+          measureController?.onSheetChanged();
+        }
+        if (unitsChanged) {
+          measureController?.onUnitsChanged();
+        }
         if (!wasOpen) {
           resetView();
         }
@@ -193,6 +237,7 @@ export function initDrawingsController(store, ifcController) {
         syncToolbarUi();
       }
     } else {
+      closePopovers();
       modal.classList.remove('open');
       modal.setAttribute('aria-hidden', 'true');
       btnQuickDrawings?.classList.remove('btn-primary');
@@ -208,7 +253,12 @@ export function initDrawingsController(store, ifcController) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `dream-house-pudorys-${viewOpts.sheet}.svg`;
+    link.download =
+      viewOpts.sheet === 'elevations'
+        ? 'vojackovi-troubelice-pohledy.svg'
+        : viewOpts.sheet === 'sections'
+          ? 'vojackovi-troubelice-rezy.svg'
+          : `vojackovi-troubelice-pudorys-${viewOpts.sheet}.svg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -216,17 +266,57 @@ export function initDrawingsController(store, ifcController) {
   }
 
   // Event bindings
-  variantSelect?.addEventListener('change', async (e) => {
-    if (ifcController) {
-      await ifcController.selectModel(e.target.value);
+  btnQuickDrawings?.addEventListener('click', () => openModal());
+  btnSidebarDrawings?.addEventListener('click', () => openModal());
+  btnClose?.addEventListener('click', closeModal);
+
+  btnLayersToggle?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePopover(layersPanel, btnLayersToggle, exportMenu, btnExportToggle);
+  });
+
+  btnExportToggle?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePopover(exportMenu, btnExportToggle, layersPanel, btnLayersToggle);
+  });
+
+  modal?.addEventListener('pointerdown', (e) => {
+    if (!layersPanel?.classList.contains('open') && !exportMenu?.classList.contains('open')) {
+      return;
+    }
+    const inLayers = layersPanel?.contains(e.target) || btnLayersToggle?.contains(e.target);
+    const inExport = exportMenu?.contains(e.target) || btnExportToggle?.contains(e.target);
+    if (!inLayers && !inExport) {
+      closePopovers();
     }
   });
-  btnQuickDrawings?.addEventListener('click', openModal);
-  btnSidebarDrawings?.addEventListener('click', openModal);
-  btnClose?.addEventListener('click', closeModal);
-  btnDownload?.addEventListener('click', downloadSvg);
+
+  btnDownload?.addEventListener('click', () => {
+    downloadSvg();
+    closePopovers();
+  });
+  btnDownloadDxf?.addEventListener('click', () => {
+    downloadFloorPlanDxf(defaultDesign, {
+      ...viewOpts,
+      siteConfig,
+      auxConfig: auxiliaryBuildingConfig,
+      housePos: store.getState().site?.housePos,
+    });
+    closePopovers();
+  });
+  btnDownloadDxfAll?.addEventListener('click', () => {
+    downloadFloorPlanDxf(defaultDesign, {
+      ...viewOpts,
+      sheet: 'complete',
+      siteConfig,
+      auxConfig: auxiliaryBuildingConfig,
+      housePos: store.getState().site?.housePos,
+    });
+    closePopovers();
+  });
   btnPrint?.addEventListener('click', () => {
     if (!currentSvgMarkup) renderDrawing();
+    closePopovers();
     window.print();
   });
 
@@ -293,54 +383,132 @@ export function initDrawingsController(store, ifcController) {
     { passive: false }
   );
 
-  // Pointer drag pan
+  // Unified multi-touch pinch-to-zoom, 1-finger / mouse drag pan, and double-tap zoom/reset
   viewport?.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    isPanning = true;
-    panStartX = e.clientX;
-    panStartY = e.clientY;
-    panOriginX = panX;
-    panOriginY = panY;
-    viewport.classList.add('panning');
-    viewport.setPointerCapture(e.pointerId);
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    viewport.setPointerCapture?.(e.pointerId);
+
+    if (activePointers.size === 1) {
+      pointerDownMeta = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        movedDist: 0,
+      };
+      viewport.classList.add('panning');
+    } else {
+      pointerDownMeta = null;
+      viewport.classList.remove('panning');
+    }
   });
 
   viewport?.addEventListener('pointermove', (e) => {
-    if (!isPanning) return;
-    panX = panOriginX + (e.clientX - panStartX);
-    panY = panOriginY + (e.clientY - panStartY);
-    applyTransform();
+    const prev = activePointers.get(e.pointerId);
+    if (!prev) {
+      if (measureController?.isActive()) {
+        measureController.onPointerMove(e);
+      }
+      return;
+    }
+
+    if (activePointers.size === 1) {
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      panX += dx;
+      panY += dy;
+      if (pointerDownMeta && pointerDownMeta.id === e.pointerId) {
+        pointerDownMeta.movedDist += Math.hypot(dx, dy);
+      }
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      applyTransform();
+      return;
+    }
+
+    if (activePointers.size === 2) {
+      const entries = Array.from(activePointers.entries());
+      const otherEntry = entries.find(([id]) => id !== e.pointerId);
+      if (!otherEntry) return;
+      const otherPt = otherEntry[1];
+
+      const prevMidX = (prev.x + otherPt.x) / 2;
+      const prevMidY = (prev.y + otherPt.y) / 2;
+      const prevDist = Math.hypot(prev.x - otherPt.x, prev.y - otherPt.y);
+
+      const nextPt = { x: e.clientX, y: e.clientY };
+      activePointers.set(e.pointerId, nextPt);
+
+      const currMidX = (nextPt.x + otherPt.x) / 2;
+      const currMidY = (nextPt.y + otherPt.y) / 2;
+      const currDist = Math.hypot(nextPt.x - otherPt.x, nextPt.y - otherPt.y);
+
+      panX += currMidX - prevMidX;
+      panY += currMidY - prevMidY;
+
+      if (prevDist > 8 && currDist > 8) {
+        zoomAt(zoom * (currDist / prevDist), currMidX, currMidY);
+      } else {
+        applyTransform();
+      }
+    }
   });
 
-  const endPan = (e) => {
-    if (!isPanning) return;
-    isPanning = false;
-    viewport?.classList.remove('panning');
-    if (viewport && e.pointerId !== undefined && viewport.hasPointerCapture(e.pointerId)) {
+  const endPointer = (e, cancelled = false) => {
+    const hadPointer = activePointers.has(e.pointerId);
+    activePointers.delete(e.pointerId);
+
+    if (viewport && viewport.hasPointerCapture?.(e.pointerId)) {
       viewport.releasePointerCapture(e.pointerId);
+    }
+
+    if (!cancelled && hadPointer && activePointers.size === 0 && pointerDownMeta?.id === e.pointerId) {
+      const wasTap = pointerDownMeta.movedDist < 8;
+      if (wasTap) {
+        if (measureController?.isActive()) {
+          measureController.onPointerTap(e);
+          pointerDownMeta = null;
+          viewport?.classList.remove('panning');
+          return;
+        }
+        const now = performance.now();
+        if (
+          lastTapMeta &&
+          now - lastTapMeta.time < 300 &&
+          Math.hypot(e.clientX - lastTapMeta.x, e.clientY - lastTapMeta.y) < 28
+        ) {
+          lastTapMeta = null;
+          if (zoom > 1.15) {
+            resetView();
+          } else {
+            zoomAt(2.2, e.clientX, e.clientY);
+          }
+        } else {
+          lastTapMeta = { time: now, x: e.clientX, y: e.clientY };
+        }
+      }
+    }
+
+    if (activePointers.size === 0) {
+      pointerDownMeta = null;
+      viewport?.classList.remove('panning');
     }
   };
 
-  viewport?.addEventListener('pointerup', endPan);
-  viewport?.addEventListener('pointercancel', endPan);
+  viewport?.addEventListener('pointerup', (e) => endPointer(e, false));
+  viewport?.addEventListener('pointercancel', (e) => endPointer(e, true));
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen) {
-      closeModal();
+      if (layersPanel?.classList.contains('open') || exportMenu?.classList.contains('open')) {
+        closePopovers();
+      } else {
+        closeModal();
+      }
     }
   });
 
-  store.subscribe(['drawings', 'activeModelId'], (state, _prevState, changedKeys) => {
-    if (changedKeys.has('drawings')) {
-      const drawingsState = state.drawings;
-      applyOpenState(drawingsState?.isOpen, drawingsState);
-    } else if (changedKeys.has('activeModelId')) {
-      if (isOpen) {
-        renderDrawing();
-      } else {
-        syncToolbarUi();
-      }
-    }
+  store.subscribe(['drawings'], (state) => {
+    applyOpenState(state.drawings?.isOpen, state.drawings);
   });
 
   const initialDrawings = store.getState().drawings;

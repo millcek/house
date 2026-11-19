@@ -92,17 +92,20 @@ export const INITIAL_STATE = {
   },
   selectedElement: null,
   sidebarOpen: false,
+  sunBarOpen: false,
+  layersMenuOpen: false,
   activeTab: "floors",
   isTopDown: false,
   drawings: {
     isOpen: false,
-    sheet: "1np", // '1np' | '2np' | 'both'
+    sheet: "1np", // '1np' | '2np' | 'both' | 'elevations' | 'sections'
     units: "mm", // 'mm' | 'm'
     showDimensions: true,
     showInteriorDims: true,
     showFurniture: true,
     showOpeningTags: true,
     showHatches: true,
+    showAnalysis: false,
   },
   loading: { active: false, text: "" },
 };

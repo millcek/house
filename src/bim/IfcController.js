@@ -1,8 +1,8 @@
-import * as THREE from 'three';
-import { IFCLoader } from 'web-ifc-three/IFCLoader';
+import * as THREE from "three";
+import { IFCLoader } from "web-ifc-three/IFCLoader";
 
 /**
- * Manages IFC file loading/parsing, concept variant switching,
+ * Manages IFC file loading/parsing, built-in concept model loading,
  * and unified click raycasting for both IFC models and built-in Concept elements.
  */
 export class IfcController {
@@ -11,10 +11,16 @@ export class IfcController {
    * @param {import('../core/SceneManager.js').SceneManager} deps.sceneManager
    * @param {Object} deps.materials
    * @param {Object} deps.store
-   * @param {Function} deps.buildConceptFn - `(variantId) => THREE.Group`
+   * @param {Function} deps.buildConceptFn - `() => THREE.Group`
    * @param {THREE.Object3D} [deps.auxBuilding]
    */
-  constructor({ sceneManager, materials, store, buildConceptFn, auxBuilding = null }) {
+  constructor({
+    sceneManager,
+    materials,
+    store,
+    buildConceptFn,
+    auxBuilding = null,
+  }) {
     this.sceneManager = sceneManager;
     this.materials = materials;
     this.store = store;
@@ -22,7 +28,7 @@ export class IfcController {
     this.auxBuilding = auxBuilding;
 
     this.ifcLoader = new IFCLoader();
-    this.ifcLoader.ifcManager.setWasmPath('/wasm/');
+    this.ifcLoader.ifcManager.setWasmPath("/wasm/");
 
     this.uploadedBuffers = new Map();
     this.currentModel = null;
@@ -35,21 +41,24 @@ export class IfcController {
     this._pointerDownPos = null;
 
     this._bindCanvasEvents();
-    this.store.subscribe(['site', 'sliceHeight', 'floorMode'], () =>
-      queueMicrotask(() => this._syncConceptHighlightTransform())
+    this.store.subscribe(["site", "sliceHeight", "floorMode"], () =>
+      queueMicrotask(() => this._syncConceptHighlightTransform()),
     );
   }
 
   _bindCanvasEvents() {
     const canvas = this.sceneManager.canvas;
 
-    canvas.addEventListener('pointerdown', (e) => {
+    canvas.addEventListener("pointerdown", (e) => {
       this._pointerDownPos = { x: e.clientX, y: e.clientY };
     });
 
-    canvas.addEventListener('pointerup', (e) => {
+    canvas.addEventListener("pointerup", (e) => {
       if (!this._pointerDownPos) return;
-      const dist = Math.hypot(e.clientX - this._pointerDownPos.x, e.clientY - this._pointerDownPos.y);
+      const dist = Math.hypot(
+        e.clientX - this._pointerDownPos.x,
+        e.clientY - this._pointerDownPos.y,
+      );
       this._pointerDownPos = null;
       if (dist <= 5 && e.button === 0) {
         this.pickElementAtEvent(e);
@@ -57,17 +66,17 @@ export class IfcController {
     });
   }
 
-  loadConceptVariant(variantId = 'concept') {
+  loadConceptModel() {
     this.clearSelection();
     this._clearCurrentModel();
 
-    const model = this.buildConceptFn(variantId);
+    const model = this.buildConceptFn();
     this.currentModel = model;
     this.sceneManager.houseContainer.add(model);
     this.sceneManager.applyWallSlice(model);
 
     this.store.setState({
-      activeModelId: variantId,
+      activeModelId: "concept",
       selectedElement: null,
     });
 
@@ -95,7 +104,9 @@ export class IfcController {
           child.castShadow = true;
           child.receiveShadow = true;
           if (child.material) {
-            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            const mats = Array.isArray(child.material)
+              ? child.material
+              : [child.material];
             for (const m of mats) {
               m.clippingPlanes = [this.sceneManager.clipPlane];
               m.clipShadows = true;
@@ -116,7 +127,9 @@ export class IfcController {
       this.sceneManager.houseContainer.add(ifcModel);
 
       const existing = this.store.getState().uploadedModels;
-      const uploadedModels = existing.includes(fileName) ? existing : [...existing, fileName];
+      const uploadedModels = existing.includes(fileName)
+        ? existing
+        : [...existing, fileName];
 
       this.store.setState({
         activeModelId: fileName,
@@ -126,11 +139,11 @@ export class IfcController {
 
       this.sceneManager.fitCameraToObject(this.sceneManager.houseContainer);
     } catch (err) {
-      console.error('Error loading IFC:', err);
+      console.error("Error loading IFC:", err);
       alert(`Failed to parse IFC file: ${err.message}`);
     } finally {
       this.store.setState({
-        loading: { active: false, text: '' },
+        loading: { active: false, text: "" },
       });
     }
   }
@@ -141,7 +154,7 @@ export class IfcController {
       await this.loadIfcFromBuffer(buffer, modelId);
       return;
     }
-    this.loadConceptVariant(modelId);
+    this.loadConceptModel();
   }
 
   async pickElementAtEvent(event) {
@@ -160,11 +173,17 @@ export class IfcController {
   }
 
   async _pickIfcElement() {
-    const intersects = this.raycaster.intersectObject(this.currentIfcModel, false);
+    const intersects = this.raycaster.intersectObject(
+      this.currentIfcModel,
+      false,
+    );
     if (intersects.length === 0) return;
 
     const item = intersects[0];
-    const expressID = this.ifcLoader.ifcManager.getExpressId(item.object.geometry, item.faceIndex);
+    const expressID = this.ifcLoader.ifcManager.getExpressId(
+      item.object.geometry,
+      item.faceIndex,
+    );
     if (expressID === undefined) return;
 
     try {
@@ -178,16 +197,18 @@ export class IfcController {
 
       const props = await this.ifcLoader.ifcManager.getItemProperties(
         this.currentIfcModel.modelID,
-        expressID
+        expressID,
       );
       if (!props) return;
 
       const extraParams = {};
       const extraKeys = Object.keys(props).filter(
         (k) =>
-          !['expressID', 'type', 'GlobalId', 'Name', 'Description'].includes(k) &&
-          typeof props[k] === 'object' &&
-          props[k]?.value !== undefined
+          !["expressID", "type", "GlobalId", "Name", "Description"].includes(
+            k,
+          ) &&
+          typeof props[k] === "object" &&
+          props[k]?.value !== undefined,
       );
       for (const key of extraKeys.slice(0, 8)) {
         extraParams[key] = props[key].value;
@@ -195,17 +216,18 @@ export class IfcController {
 
       this.store.setState({
         selectedElement: {
-          type: props.__proto__?.constructor?.name || props.type || 'IFC Element',
-          name: props.Name?.value || props.ObjectType?.value || 'Unnamed',
-          globalId: props.GlobalId?.value || String(props.expressID || '—'),
-          description: props.Description?.value || '—',
+          type:
+            props.__proto__?.constructor?.name || props.type || "IFC Element",
+          name: props.Name?.value || props.ObjectType?.value || "Unnamed",
+          globalId: props.GlobalId?.value || String(props.expressID || "—"),
+          description: props.Description?.value || "—",
           parameters: extraParams,
         },
-        activeTab: 'bim',
+        activeTab: "bim",
         sidebarOpen: true,
       });
     } catch (err) {
-      console.warn('Property query failed:', err);
+      console.warn("Property query failed:", err);
     }
   }
 
@@ -237,13 +259,13 @@ export class IfcController {
         type: bim.type,
         name: bim.name,
         globalId: mesh.uuid.slice(0, 12),
-        description: bim.description || '—',
+        description: bim.description || "—",
         parameters: {
-          Podlaží: bim.floor || '—',
+          Podlaží: bim.floor || "—",
           ...(bim.parameters || {}),
         },
       },
-      activeTab: 'bim',
+      activeTab: "bim",
       sidebarOpen: true,
     });
   }
@@ -276,7 +298,9 @@ export class IfcController {
       this.conceptHighlightMesh.visible = visible;
       if (visible) {
         this._highlightedSourceMesh.updateWorldMatrix(true, false);
-        this.conceptHighlightMesh.matrix.copy(this._highlightedSourceMesh.matrixWorld);
+        this.conceptHighlightMesh.matrix.copy(
+          this._highlightedSourceMesh.matrixWorld,
+        );
       }
     }
   }

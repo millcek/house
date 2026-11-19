@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "node --test",
-    "test:drawings": "node --test test/drawings.test.js"
+    "test:drawings": "node --test test/drawings.test.js",
+    "test:layout": "node --test test/layout.test.js",
+    "analyze": "node scripts/analyzeLayout.js"
   },
   "dependencies": {
     "lil-gui": "^0.19.1",

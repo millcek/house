@@ -3,7 +3,8 @@ import {
   updateFootprintOverlay,
   updateSetbackDimensions,
 } from '../builders/SiteBuilder.js';
-import { getDesignVariant } from '../designs/index.js';
+import { defaultDesign } from '../designs/index.js';
+import { downloadFloorPlanDxf } from '../exports/DxfGenerator.js';
 
 function formatArea(val, decimals = 1) {
   const fixed = decimals === 0 ? String(Math.round(val)) : val.toFixed(decimals);
@@ -32,6 +33,7 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
   const setbackHouseFront = document.getElementById('setback-house-front');
 
   const btnToggleFootprint = document.getElementById('btn-toggle-footprint');
+  const btnSiteExportDxf = document.getElementById('btn-site-export-dxf');
   const builtupRatioBadge = document.getElementById('builtup-ratio-badge');
   const barSegBuildings = document.getElementById('bar-seg-buildings');
   const barSegAccessories = document.getElementById('bar-seg-accessories');
@@ -92,9 +94,18 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
     });
   });
 
-  function render({ site, activeModelId }) {
+  btnSiteExportDxf?.addEventListener('click', () => {
+    downloadFloorPlanDxf(defaultDesign, {
+      sheet: 'site',
+      siteConfig,
+      auxConfig,
+      housePos: store.getState().site.housePos,
+    });
+  });
+
+  function render({ site }) {
     const { housePos, setbacks, footprintVisible } = site;
-    const houseDesign = getDesignVariant(activeModelId);
+    const houseDesign = defaultDesign;
     const metrics = computeBuiltUpArea(siteConfig, auxConfig, houseDesign);
 
     if (valPosX) valPosX.textContent = `${housePos.x}m`;
@@ -164,7 +175,7 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
     }
   }
 
-  store.subscribe(['site', 'activeModelId'], (state) => render(state));
+  store.subscribe(['site'], (state) => render(state));
   // Compute initial setbacks & built-up area metrics
   applyHouseTransform({});
 }

@@ -1,7 +1,7 @@
 # Project Instructions & CAD Floor Plan Guidelines
 
 ## Overview
-This repository contains a 3D IFC and 2D CAD architectural viewer for residential house designs (currently **Rodinný dům 6+kk · Dream House**).
+This repository contains a 3D IFC and 2D CAD architectural viewer for residential house designs (currently **Rodinný dům 6+kk · Vojáčkovi Troubelice**).
 
 ## Skills & Automated Tools
 - **Floor Plan Drawings Skill**: See [.agents/skills/floorplan-drawings/SKILL.md](file:///.agents/skills/floorplan-drawings/SKILL.md) for detailed procedures on generating, rendering, and visually inspecting 2D CAD floor plans.

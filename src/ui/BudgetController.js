@@ -1,7 +1,17 @@
 import { computeBillOfMaterials, filterBomByScope } from '../budget/BillOfMaterials.js';
 import { downloadBomCsv } from '../budget/CsvExporter.js';
-import { estimateBomPrices, computeHouseVolume } from '../budget/priceEstimator.js';
-import { getDesignVariant, listDesignVariants } from '../designs/index.js';
+import { estimateBomPrices } from '../budget/priceEstimator.js';
+import { defaultDesign } from '../designs/index.js';
+import { downloadFloorPlanDxf } from '../exports/DxfGenerator.js';
+import {
+  buildAreaAndTechnicalSummary,
+  buildOpeningSchedule,
+} from '../exports/ProjectSchedules.js';
+import {
+  downloadOpeningsCsv,
+  downloadTechnicalSummaryCsv,
+  openTechnicalReportPrintWindow,
+} from '../exports/ScheduleExporters.js';
 
 const ALL_SCOPES = ['house', 'aux', 'exterior'];
 
@@ -30,31 +40,21 @@ function fmtMoney(val) {
   return `${new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.round(val))} Kč`;
 }
 
-function shortVariantName(variant) {
-  if (variant.id === 'concept') return 'Var. A (6+kk)';
-  if (variant.id === 'v5kk') return 'Var. B (5+kk)';
-  if (variant.id === 'original') return 'Původní';
-  return variant.label || variant.id;
-}
-
-function sumMatchingItems(bom, sectionCode, nameRegex, unit = null) {
-  const sec = bom.sections.find((s) => s.code === sectionCode);
-  if (!sec) return 0;
-  return sec.items
-    .filter((i) => nameRegex.test(i.name) && (!unit || i.unit === unit))
-    .reduce((acc, i) => acc + i.qty, 0);
-}
-
 /**
  * Manages the Rozpočet / Výkaz výměr sidebar tab: live quantity takeoff from geometry,
  * scope filtering (house / aux / exterior), price mode (turnkey vs. self-build),
- * volume per m3 metrics, variant comparison, search, and CSV export.
+ * volume per m3 metrics, search, and CSV export.
  */
-export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfig, ifcController }) {
-  const variantSelect = document.getElementById('budget-variant-select');
+export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfig }) {
   const ifcNoteEl = document.getElementById('budget-ifc-note');
   const btnCsv = document.getElementById('btn-budget-csv');
   const btnCsvPriced = document.getElementById('btn-budget-csv-priced');
+  const btnExportOpeningsCsv = document.getElementById('btn-export-openings-csv');
+  const btnExportTechCsv = document.getElementById('btn-export-tech-csv');
+  const btnExportTechPrint = document.getElementById('btn-export-tech-print');
+  const btnExportCadDxf = document.getElementById('btn-export-cad-dxf');
+  const openingsSummaryEl = document.getElementById('architect-openings-summary');
+  const openingsTableEl = document.getElementById('architect-openings-table');
   const scopeButtons = document.querySelectorAll('.budget-scope-chip');
 
   const btnModeTurnkey = document.getElementById('btn-mode-turnkey');
@@ -63,7 +63,6 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
   const volumeGridEl = document.getElementById('budget-volume-grid');
 
   const summaryGrid = document.getElementById('budget-summary-grid');
-  const compareContainer = document.getElementById('budget-compare-container');
   const searchInput = document.getElementById('budget-search');
   const btnToggleAll = document.getElementById('btn-budget-toggle-all');
   const sectionsContainer = document.getElementById('budget-sections-container');
@@ -75,29 +74,8 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
   let searchQuery = '';
   let lastFilteredBom = null;
   let lastPricingResult = null;
-
-  function getActiveDesign(activeModelId) {
-    const variants = listDesignVariants();
-    const matched = variants.find((v) => v.id === activeModelId);
-    return {
-      design: matched || getDesignVariant('concept'),
-      isCustomIfc: !matched,
-    };
-  }
-
-  function renderVariantSelect(activeModelId, isCustomIfc) {
-    if (!variantSelect) return;
-    const variants = listDesignVariants();
-    if (variantSelect.options.length !== variants.length) {
-      variantSelect.innerHTML = variants
-        .map((v) => `<option value="${esc(v.id)}">${esc(v.label)}</option>`)
-        .join('');
-    }
-    variantSelect.value = isCustomIfc ? 'concept' : activeModelId;
-    if (ifcNoteEl) {
-      ifcNoteEl.style.display = isCustomIfc ? 'block' : 'none';
-    }
-  }
+  let lastOpeningSchedule = null;
+  let lastTechSummary = null;
 
   function renderCostHighlight(pricing) {
     if (!costHighlightEl || !volumeGridEl) return;
@@ -130,7 +108,14 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
       ? 'Kompletní realizace generálním dodavatelem na klíč (materiál, práce, lešení, mechanizace, záruka, režie a zisk).'
       : 'Nákup materiálu svépomocí za stavební ceny + subdodávky odborných profesí (krov, okna, stříkaný potěr, instalace TČ, revize elektro).';
 
-    costHighlightEl.innerHTML = `
+      const workshopArea = auxiliaryBuildingConfig
+        ? Math.round(auxiliaryBuildingConfig.workshopWidth * auxiliaryBuildingConfig.depth)
+        : 26;
+      const parkingArea = auxiliaryBuildingConfig
+        ? Math.round(auxiliaryBuildingConfig.parkWidth * auxiliaryBuildingConfig.depth)
+        : 39;
+
+      costHighlightEl.innerHTML = `
       <div class="budget-cost-top">
         <span class="budget-cost-title">${esc(modeTitle)}</span>
         <span class="budget-cost-scope-tag">${esc(scopeLabel)}</span>
@@ -145,7 +130,7 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
           <span class="budget-breakdown-val">${fmtMoney(isTurnkey ? pricing.scopes.house.turnkey : pricing.scopes.house.self)}</span>
         </div>
         <div class="budget-breakdown-row">
-          <span class="budget-breakdown-label">🔧 Vedlejší stavba (dílna 42 m² + stání 35 m² + loubí):</span>
+          <span class="budget-breakdown-label">🔧 Vedlejší stavba (dílna ${workshopArea} m² + stání ${parkingArea} m² + loubí):</span>
           <span class="budget-breakdown-val">${fmtMoney(isTurnkey ? pricing.scopes.aux.turnkey : pricing.scopes.aux.self)}</span>
         </div>
         <div class="budget-breakdown-row">
@@ -232,103 +217,6 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
         </div>`
       )
       .join('');
-  }
-
-  function renderComparison(activeDesignId) {
-    if (!compareContainer) return;
-    const variants = listDesignVariants();
-    const boms = variants.map((v) => {
-      const bom = computeBillOfMaterials({
-        design: v,
-        auxConfig: auxiliaryBuildingConfig,
-        siteConfig,
-      });
-      const pricing = estimateBomPrices(bom, v);
-      return { variant: v, bom, pricing };
-    });
-
-    const rows = [
-      {
-        label: 'Užitná plocha',
-        val: ({ bom }) => `${fmtNum(bom.summary.interiorArea, 1)} m²`,
-      },
-      {
-        label: 'Obestavěný prostor (dům)',
-        val: ({ pricing }) => `${fmtNum(pricing.volumeInfo.totalVolume, 0)} m³`,
-      },
-      {
-        label: 'Cena na klíč (hlavní dům)',
-        val: ({ pricing }) => fmtMoney(pricing.scopes.house.turnkey),
-      },
-      {
-        label: 'Cena za m³ (na klíč)',
-        val: ({ pricing }) => `${fmtMoney(pricing.houseMetrics.turnkeyPerM3)}/m³`,
-      },
-      {
-        label: 'Cena svépomocí (hlavní dům)',
-        val: ({ pricing }) => fmtMoney(pricing.scopes.house.self),
-      },
-      {
-        label: 'Cena za m³ (svépomoc)',
-        val: ({ pricing }) => `${fmtMoney(pricing.houseMetrics.selfPerM3)}/m³`,
-      },
-      {
-        label: 'Zdivo celkem',
-        val: ({ bom }) => `${fmtNum(bom.summary.masonryArea, 1)} m²`,
-      },
-      {
-        label: 'Nosné vnitřní zdivo',
-        val: ({ bom }) => `${fmtNum(sumMatchingItems(bom, '03', /^Zdivo vnitřní nosné/, 'm²'), 1)} m²`,
-      },
-      {
-        label: 'Příčky 160 mm',
-        val: ({ bom }) => `${fmtNum(sumMatchingItems(bom, '03', /^Zdivo příčky/, 'm²'), 1)} m²`,
-      },
-      {
-        label: 'Okna',
-        val: ({ bom }) => `${bom.summary.windowCount} ks (${fmtNum(bom.summary.windowArea, 1)} m²)`,
-      },
-      {
-        label: 'Dřevěná podlaha',
-        val: ({ bom }) => `${fmtNum(sumMatchingItems(bom, '08', /^Dřevěná podlaha/, 'm²'), 1)} m²`,
-      },
-      {
-        label: 'Dlažba',
-        val: ({ bom }) => `${fmtNum(sumMatchingItems(bom, '08', /^Dlažba keramická/, 'm²'), 1)} m²`,
-      },
-    ];
-
-    compareContainer.innerHTML = `
-      <table class="budget-compare-table">
-        <thead>
-          <tr>
-            <th>Ukazatel</th>
-            ${boms
-              .map(
-                ({ variant }) =>
-                  `<th class="${variant.id === activeDesignId ? 'is-active' : ''}">${esc(shortVariantName(variant))}</th>`
-              )
-              .join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${rows
-            .map(
-              (r) => `
-              <tr>
-                <td>${esc(r.label)}</td>
-                ${boms
-                  .map(
-                    (b) =>
-                      `<td class="${b.variant.id === activeDesignId ? 'is-active' : ''}">${esc(r.val(b))}</td>`
-                  )
-                  .join('')}
-              </tr>`
-            )
-            .join('')}
-        </tbody>
-      </table>
-    `;
   }
 
   function renderSections(filteredBom) {
@@ -452,19 +340,65 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
     warningsContainer.innerHTML = warningsHtml + assumptionsHtml;
   }
 
+  function renderArchitectOpeningsPreview(openingSchedule, techSummary) {
+    if (openingsSummaryEl) {
+      const s = openingSchedule.summary;
+      const gPct = techSummary?.glazing?.glazingRatioPct ?? 0;
+      openingsSummaryEl.innerHTML =
+        `🪟 <strong>${s.totalGlazingCount} ks</strong> oken a HS portálů (` +
+        `<strong>${fmtNum(s.windowAreaSqm, 2)} m²</strong>, ${fmtNum(gPct, 1)} % podl. plochy) · ` +
+        `🚪 <strong>${s.extDoorCount}</strong> vchodové + <strong>${s.intDoorCount}</strong> vnitřní dveře · ` +
+        `🧱 <strong>${fmtNum(techSummary.roomTotals.totalInteriorSqm, 1)} m²</strong> užitné plochy`;
+    }
+
+    if (openingsTableEl) {
+      const rowsHtml = openingSchedule.groupedTypes
+        .map(
+          (g) => `
+          <tr>
+            <td><span class="architect-openings-mark">${esc(g.mark)}</span></td>
+            <td>${esc(g.categoryLabel)}</td>
+            <td>${g.widthMm}×${g.heightMm}</td>
+            <td class="num">${g.sillMm}</td>
+            <td class="num"><strong>${g.count}×</strong></td>
+            <td class="num">${fmtNum(g.totalAreaSqm, 2)} m²</td>
+          </tr>`
+        )
+        .join('');
+
+      openingsTableEl.innerHTML = `
+        <table class="architect-openings-table">
+          <thead>
+            <tr>
+              <th>Zn.</th>
+              <th>Typ</th>
+              <th>Rozměr</th>
+              <th class="num">Par.</th>
+              <th class="num">Ks</th>
+              <th class="num">Plocha</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+    }
+  }
+
   function render(state) {
     const { activeModelId, site } = state;
-    const { design, isCustomIfc } = getActiveDesign(activeModelId);
-    renderVariantSelect(activeModelId, isCustomIfc);
+    const isCustomIfc = activeModelId !== defaultDesign.id;
+    if (ifcNoteEl) {
+      ifcNoteEl.style.display = isCustomIfc ? 'block' : 'none';
+    }
 
     const fullBom = computeBillOfMaterials({
-      design,
+      design: defaultDesign,
       auxConfig: auxiliaryBuildingConfig,
       siteConfig,
       housePos: site?.housePos,
     });
 
-    const pricing = estimateBomPrices(fullBom, design);
+    const pricing = estimateBomPrices(fullBom, defaultDesign);
     lastPricingResult = pricing;
 
     // Přeneseme naceněné položky do výkazu pro zobrazení a CSV export
@@ -476,6 +410,19 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
     const filteredBom = filterBomByScope(pricedBom, activeScopes);
     lastFilteredBom = filteredBom;
 
+    const openingSchedule = buildOpeningSchedule(defaultDesign, {
+      siteConfig,
+      housePos: site?.housePos,
+    });
+    const techSummary = buildAreaAndTechnicalSummary({
+      design: defaultDesign,
+      siteConfig,
+      auxConfig: auxiliaryBuildingConfig,
+      housePos: site?.housePos,
+    });
+    lastOpeningSchedule = openingSchedule;
+    lastTechSummary = techSummary;
+
     if (btnCsv) {
       btnCsv.disabled = filteredBom.sections.length === 0;
     }
@@ -483,16 +430,36 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
       btnCsvPriced.disabled = filteredBom.sections.length === 0;
     }
 
+    renderArchitectOpeningsPreview(openingSchedule, techSummary);
     renderCostHighlight(pricing);
     renderSummary(filteredBom, fullBom);
-    renderComparison(design.id);
     renderSections(filteredBom);
     renderWarningsAndAssumptions(fullBom);
   }
 
   // Event handlers
-  variantSelect?.addEventListener('change', (e) => {
-    ifcController?.loadConceptVariant(e.target.value);
+  btnExportOpeningsCsv?.addEventListener('click', () => {
+    if (!lastOpeningSchedule) return;
+    downloadOpeningsCsv(lastOpeningSchedule, defaultDesign);
+  });
+
+  btnExportTechCsv?.addEventListener('click', () => {
+    if (!lastTechSummary) return;
+    downloadTechnicalSummaryCsv(lastTechSummary);
+  });
+
+  btnExportTechPrint?.addEventListener('click', () => {
+    if (!lastTechSummary || !lastOpeningSchedule) return;
+    openTechnicalReportPrintWindow(lastTechSummary, lastOpeningSchedule);
+  });
+
+  btnExportCadDxf?.addEventListener('click', () => {
+    downloadFloorPlanDxf(defaultDesign, {
+      sheet: 'complete',
+      siteConfig,
+      auxConfig: auxiliaryBuildingConfig,
+      housePos: store.getState().site?.housePos,
+    });
   });
 
   btnCsv?.addEventListener('click', () => {

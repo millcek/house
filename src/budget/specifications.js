@@ -33,27 +33,46 @@ export const BOM_SPEC = {
   masonry: [
     {
       minT: 0.30,
-      label: 'Keramická broušená tvárnice obvodová (tepelněizolační, U ≤ 0,20 W/m²K)',
-      format: [0.248, 0.249],
-      mortar: 'Zdicí pěna / tenkovrstvá malta dle systému',
+      label: 'Keramická broušená tvárnice obvodová (tl. 240 mm + ETICS 140 mm, U ≤ 0,18 W/m²K)',
+      format: [0.375, 0.249],
+      coreThickness: 0.24,
+      eticsThickness: 0.14,
+      mortar: 'Tenkovrstvá malta / zdicí pěna dle systému',
       waste: 0.05,
     },
     {
       minT: 0.20,
-      label: 'Keramická broušená tvárnice nosná akustická',
+      label: 'Keramická broušená tvárnice nosná akustická (tl. 240 mm)',
+      format: [0.375, 0.249],
+      mortar: 'Tenkovrstvá malta dle systému',
+      waste: 0.05,
+    },
+    {
+      minT: 0.16,
+      label: 'Keramická broušená tvárnice vnitřní nosná (tl. 175 mm)',
+      labelStructural: 'Keramická broušená tvárnice vnitřní nosná (tl. 175 mm)',
       format: [0.375, 0.249],
       mortar: 'Tenkovrstvá malta dle systému',
       waste: 0.05,
     },
     {
       minT: 0.0,
-      label: 'Keramická broušená tvárnice vnitřní',
+      label: 'Keramická broušená příčkovka (tl. 140 mm)',
       labelStructural: 'Keramická broušená tvárnice vnitřní nosná',
       format: [0.50, 0.249],
       mortar: 'Tenkovrstvá malta dle systému',
       waste: 0.05,
     },
   ],
+  sdk: {
+    wallType: 'Akustická SDK příčka W112 tl. 125 mm (2× Knauf Diamant + 75 mm minerální vlna)',
+    waste: 0.08,
+  },
+  etics: {
+    thickness: 0.14,
+    label: 'Kontaktní zateplení ETICS – EPS 70F tl. 140 mm vč. lepidla, kotev a armovací vrstvy',
+    waste: 0.06,
+  },
   lintel: {
     module: 0.25, // délky překladů po 250 mm
     bearing: 0.125, // uložení na každé straně min. 125 mm
@@ -92,8 +111,12 @@ export const BOM_SPEC = {
   windows: {
     label: 'Okno dřevohliníkové / plastové, izolační trojsklo, Uw ≤ 0,8 W/m²K',
     slidingLabel: 'Zdvižně-posuvné (HS) okno / portál, izolační trojsklo',
+    pskLabel: 'Terasový portál PSK (posuvně-sklopný), izolační trojsklo, Uw ≤ 0,8 W/m²K',
+    blindsLabel: 'Venkovní žaluzie Z90 s motorickým pohonem + podomítkový kastlík',
     extDoorLabel: 'Vchodové dveře, Ud ≤ 0,9 W/m²K, bezpečnostní kování',
     intDoorLabel: 'Vnitřní dveře otočné plné + obložková zárubeň',
+    glazedDoorLabel: 'Vnitřní dveře otočné prosklené (bezpečnostní / akustické sklo) + obložková zárubeň',
+    pocketDoorLabel: 'Vnitřní dveře posuvné do stavebního pouzdra + stavební pouzdro',
     sillOverhang: 0.05, // přesah parapetu za ostění
     minSillForParapet: 0.30, // okna s parapetem nad 30 cm dostanou vnitřní parapet
   },
@@ -101,11 +124,13 @@ export const BOM_SPEC = {
   // ---------------------------------------------------------- PODLAHY & POVRCHY
   floors: {
     screedThickness: 0.05, // anhydritový potěr s podlahovým topením
-    finishThickness: { woodFloor: 0.015, tileFloor: 0.012 },
+    finishThickness: { woodFloor: 0.015, vinylFloor: 0.005, tileFloor: 0.012 },
     groundFloorInsulation: 'EPS 150 S (tl. 155 mm v systémové skladbě na terénu)',
     upperFloorInsulation: 'Kročejová izolace EPS T / akustická minerální vlna tl. 55 mm',
     minGroundInsulation: 0.14, // kontrola – varování pod touto tloušťkou
     woodWaste: 0.08,
+    vinylWaste: 0.07,
+    vinylLabel: 'Lepený vinyl (LVT/Rigid) vč. samonivelační stěrky a lepidla',
     tileWaste: 0.10,
     tileAdhesiveKgPerM2: 4.5,
     groutKgPerM2: 0.5,
@@ -156,18 +181,20 @@ export const BOM_SPEC = {
 
   // --------------------------------------------------------- VNĚJŠÍ ÚPRAVY
   exterior: {
+    terracePaverLabel: 'Velkoformátová betonová dlažba 60×60×4 cm (mrazuvzdorná, R11)',
+    terracePaverWaste: 0.08,
     deckJoistSpacing: 0.40, // rošt terasy
     deckPadsPerM2: 3,
     deckWaste: 0.10,
-    pergolaRoofing: 'Střešní plášť pergoly (polykarbonát / trapézový plech)',
+    pergolaRoofing: 'Střešní plášť pergoly (polykarbonát / bezpečnostní sklo / plech)',
     canopyGlass: 'Bezpečnostní vrstvené sklo VSG 2×8 mm',
   },
   aux: {
-    wallThickness: 0.30, // zdivo dílny a zadní stěny stání (není v modelu)
+    wallThickness: 0.24, // zdivo dílny a zadní stěny stání (není v modelu)
     pillarSection: 0.25,
     floorSlabThickness: 0.15,
     roofThickness: 0.22,
-    eaveOverhang: 0.45,
+    eaveOverhang: 0.35,
     gableOverhang: 0.35,
   },
   site: {
@@ -182,10 +209,10 @@ export const BOM_SPEC = {
 export const BOM_ASSUMPTIONS = [
   'Množství jsou odvozena z parametrického modelu (stěny, otvory, podlahy, strop, střecha, schodiště, pergola, vedlejší stavba).',
   'Skladby a přepočtové koeficienty jsou předpoklady (src/budget/specifications.js) – konkrétní výrobky a dimenze upřesní statik a projektant TZB.',
-  'Zdivo je čistá plocha bez otvorů; ks tvárnic dopočteny z formátu tvárnice. Výška stěn dle modelu.',
-  'Střecha: sedlová, krokve á 0,9 m, nevytápěné podkroví – tepelná izolace a SDK podhled na stropě 2.NP.',
-  'Podlahy: tloušťka izolace = tloušťka skladby z modelu − potěr − nášlapná vrstva.',
-  'TZB a elektro jsou orientační počty (připojovací body, vývody) – nenahrazují projekt TZB.',
-  'Vedlejší stavba: otvory dílny nejsou v modelu – vrata a dveře uvedeny jako samostatné položky k upřesnění.',
+  'Obvodové zdivo uvažováno jako 240 mm keramická cihla + 140 mm kontaktní zateplení ETICS (EPS 70F); příčky 2.NP jako akustické SDK W112 tl. 125 mm.',
+  'Střecha hlavního domu: příhradové vazníky tvořící nosný strop 2.NP i krov, nevytápěné podkroví s 350 mm minerální vaty a SDK podhledem (v 1.NP podhled 100 mm pro VZT).',
+  'Podlahy: potěr i nášlapné vrstvy (dub v obýváku s kuchyní, lepený vinyl v pokojích a 1.04, keramická dlažba v zázemí) vycházejí ze skutečné vnitřní užitné plochy místností.',
+  'TZB a elektro jsou orientační počty (podlahové topení systémem Tacker, ekvitermní regulace, shoz prádla 2.04→1.02) – nenahrazují prováděcí projekt.',
+  'Vedlejší stavba (zdivo 240 mm, nízká pultová střecha): otvory dílny nejsou v modelu; u samostatně stojící dílny mimo příslušenství RD může finanční úřad posoudit DPH 21 % namísto 12 % (§ 48 ZDPH).',
   'Sloupce „Jedn. cena“ a „Cena celkem“ vyplní dodavatel; „Množství k objednání“ zahrnuje prořez.',
 ];

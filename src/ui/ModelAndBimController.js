@@ -1,4 +1,4 @@
-import { listDesignVariants } from '../designs/index.js';
+import { defaultDesign } from '../designs/index.js';
 
 /**
  * Manages Model selection, IFC upload & drag-and-drop, scene helper toggles,
@@ -21,6 +21,13 @@ export function initModelAndBimController(store, sceneManager, ifcController, gr
   const inspectorContent = document.getElementById('inspector-content');
   const btnCloseInspector = document.getElementById('btn-close-inspector');
   const bimBadgeDot = document.getElementById('bim-badge-dot');
+
+  const bimQuickCard = document.getElementById('bim-quick-card');
+  const bimQuickType = document.getElementById('bim-quick-type');
+  const bimQuickName = document.getElementById('bim-quick-name');
+  const bimQuickMeta = document.getElementById('bim-quick-meta');
+  const btnBimQuickDetail = document.getElementById('btn-bim-quick-detail');
+  const btnBimQuickClose = document.getElementById('btn-bim-quick-close');
 
   const EMPTY_INSPECTOR_HTML = `
     <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
@@ -93,10 +100,24 @@ export function initModelAndBimController(store, sceneManager, ifcController, gr
     ifcController.clearSelection();
   });
 
+  btnBimQuickClose?.addEventListener('click', () => {
+    ifcController.clearSelection();
+  });
+
+  btnBimQuickDetail?.addEventListener('click', () => {
+    store.setState({
+      sidebarOpen: true,
+      activeTab: 'bim',
+      layersMenuOpen: false,
+      sunBarOpen: false,
+    });
+  });
+
   function renderVersionSelect(activeModelId, uploadedModels) {
     if (!versionSelect) return;
-    const variants = listDesignVariants();
-    const options = variants.map((v) => `<option value="${v.id}">${v.label}</option>`);
+    const options = [
+      `<option value="${defaultDesign.id}">${defaultDesign.label}</option>`,
+    ];
 
     if (uploadedModels.length === 0) {
       options.push('<option value="upload" disabled>-- Drop or load .ifc --</option>');
@@ -145,16 +166,37 @@ export function initModelAndBimController(store, sceneManager, ifcController, gr
     inspectorContent.innerHTML = html;
   }
 
+  function renderQuickBimCard(state) {
+    if (!bimQuickCard) return;
+    const { selectedElement, sidebarOpen, activeTab, drawings, sunBarOpen } = state;
+    const showQuickCard =
+      Boolean(selectedElement) &&
+      !(sidebarOpen && activeTab === 'bim') &&
+      !drawings?.isOpen &&
+      !sunBarOpen;
+
+    bimQuickCard.classList.toggle('open', showQuickCard);
+    bimQuickCard.setAttribute('aria-hidden', showQuickCard ? 'false' : 'true');
+
+    if (!selectedElement) return;
+    if (bimQuickType) bimQuickType.textContent = selectedElement.type || 'BIM';
+    if (bimQuickName) bimQuickName.textContent = selectedElement.name || 'Prvek';
+    if (bimQuickMeta) {
+      const vals = Object.values(selectedElement.parameters || {})
+        .filter((v) => v !== undefined && v !== null && v !== '' && v !== '—')
+        .slice(0, 3);
+      bimQuickMeta.textContent = vals.join(' · ') || selectedElement.description || '';
+    }
+  }
+
   function render(state) {
     const { activeModelId, uploadedModels, loading, selectedElement, site } = state;
 
     renderVersionSelect(activeModelId, uploadedModels);
 
     if (modelStatus) {
-      const variants = listDesignVariants();
-      const matched = variants.find((v) => v.id === activeModelId);
-      if (matched) {
-        modelStatus.textContent = matched.id === 'concept' ? 'Concept massing' : matched.label;
+      if (activeModelId === defaultDesign.id) {
+        modelStatus.textContent = 'Concept massing';
         modelStatus.style.color = '#60a5fa';
       } else {
         modelStatus.textContent = activeModelId;
@@ -167,14 +209,28 @@ export function initModelAndBimController(store, sceneManager, ifcController, gr
       loadingOverlay.classList.toggle('visible', loading.active);
     }
 
+    gridHelper.visible = Boolean(site.gridVisible);
+    sceneManager.plotGroup.visible = Boolean(site.plotVisible);
+
     if (btnToggleGrid) btnToggleGrid.textContent = `Grid: ${site.gridVisible ? 'ON' : 'OFF'}`;
     if (btnTogglePlot) btnTogglePlot.textContent = `Plot: ${site.plotVisible ? 'ON' : 'OFF'}`;
 
     renderInspector(selectedElement);
+    renderQuickBimCard(state);
   }
 
   store.subscribe(
-    ['activeModelId', 'uploadedModels', 'loading', 'selectedElement', 'site'],
+    [
+      'activeModelId',
+      'uploadedModels',
+      'loading',
+      'selectedElement',
+      'site',
+      'sidebarOpen',
+      'activeTab',
+      'drawings',
+      'sunBarOpen',
+    ],
     (state) => render(state)
   );
   render(store.getState());

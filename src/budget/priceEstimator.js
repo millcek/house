@@ -12,11 +12,14 @@
 export function priceItem(item) {
   const n = item.name;
 
-  // 1. Výplně otvorů (okna, HS portály, dveře): dynamická interpolace dle rozměru
-  let m = n.match(/^(HS portál|Okno|Vstupní dveře|Vnitřní dveře)\s+(\d+)\s*×\s*(\d+)\s*mm/);
+  // 1. Výplně otvorů (okna, HS/PSK portály, dveře): dynamická interpolace dle rozměru
+  let m = n.match(/^(Terasový portál PSK|HS portál|Okno|Vstupní dveře|Vnitřní dveře(?:\s+prosklené)?)\s+(\d+)\s*×\s*(\d+)\s*mm/);
   if (m) {
     const [, kind, wStr, hStr] = m;
     const area = (Number(wStr) / 1000) * (Number(hStr) / 1000);
+    if (kind === 'Terasový portál PSK') {
+      return { self: Math.round(24000 + 7500 * area), turnkey: Math.round(32000 + 9800 * area) };
+    }
     if (kind === 'HS portál') {
       return { self: Math.round(42000 + 10500 * area), turnkey: Math.round(54000 + 13500 * area) };
     }
@@ -27,8 +30,9 @@ export function priceItem(item) {
       const wide = Number(wStr) >= 1000;
       return { self: wide ? 46000 : 29000, turnkey: wide ? 62000 : 39000 };
     }
-    if (kind === 'Vnitřní dveře') {
-      return { self: 7800, turnkey: 12200 };
+    if (kind.startsWith('Vnitřní dveře')) {
+      const isGlazed = kind.includes('prosklené') || /stavební pouzdro/.test(n);
+      return isGlazed ? { self: 13500, turnkey: 19800 } : { self: 7800, turnkey: 12200 };
     }
   }
 
@@ -54,6 +58,8 @@ export function priceItem(item) {
     // 01 Zemní práce
     [/Sejmutí ornice/, 140, 310],
     [/Výkop rýh/, 380, 890],
+    [/Odvoz přebytečné zeminy/, 380, 620],
+    [/Zařízení staveniště/, 85000, 145000],
 
     // 02 Základy
     [/Beton základových pasů/, 3400, 4900],
@@ -66,16 +72,19 @@ export function priceItem(item) {
     [/Perimetrická izolace soklu XPS/, 450, 820],
 
     // 03 Svislé konstrukce
-    [/^Zdivo obvodové/, 160, 1050],
-    [/^Tvárnice obvodové/, 142, 142],
+    [/^Zdivo obvodové/, 145, 920],
+    [/^Tvárnice obvodové/, 98, 98],
     [/^Zdivo příčky/, 110, 650],
     [/^Tvárnice příčky/, 76, 76],
+    [/^Zdivo vnitřní nosné tl\. 175/, 125, 760],
+    [/^Tvárnice vnitřní nosné tl\. 175/, 86, 86],
     [/^Zdivo vnitřní nosné tl\. 160/, 120, 740],
     [/^Tvárnice vnitřní nosné tl\. 160/, 82, 82],
     [/^Zdivo vnitřní nosné tl\. 240/, 140, 880],
     [/^Tvárnice vnitřní nosné tl\. 240/, 104, 104],
-    [/^Štítové zdivo/, 180, 1180],
-    [/^Tvárnice štítové/, 142, 142],
+    [/^Akustické SDK příčky/, 690, 1420],
+    [/^Štítové zdivo/, 165, 1020],
+    [/^Tvárnice štítové/, 98, 98],
 
     // 04 Vodorovné konstrukce
     [/Stropní deska.*beton/, 3800, 5600],
@@ -89,6 +98,7 @@ export function priceItem(item) {
     [/Obklad mezipodesty/, 2800, 4600],
 
     // 05 Střecha
+    [/příhradové vazníky/i, 1850, 2650],
     [/krokve$/i, 150, 420],
     [/řezivo krovu celkem/i, 10200, 16800],
     [/pojistná hydroizolace/i, 98, 230],
@@ -112,12 +122,14 @@ export function priceItem(item) {
     [/Venkovní parapet/, 520, 890],
 
     // 07 Otvory doplňky
+    [/Venkovní žaluzie Z90/, 4900, 7400],
     [/Připojovací spára oken/, 95, 250],
     [/Vnitřní parapet/, 460, 820],
 
     // 08 Podlahy
     [/Dřevěná podlaha – dub/, 1450, 2350],
     [/Lepidlo na dřevěné podlahy/, 175, 210],
+    [/^Lepený vinyl/, 920, 1580],
     [/Dlažba keramická/, 740, 1720],
     [/Flexibilní lepidlo C2TE/, 24, 32],
     [/Spárovací hmota/, 98, 130],
@@ -131,7 +143,8 @@ export function priceItem(item) {
     [/Vnitřní omítka stěn/, 175, 540],
     [/Vnitřní omítka stropu/, 195, 590],
     [/Rohové a APU lišty/, 52, 120],
-    [/Vnější omítka fasády/, 420, 1120],
+    [/^Kontaktní zateplovací systém ETICS/, 680, 1550],
+    [/Vnější omítka fasády/, 310, 620],
     [/Vnější omítka ostění/, 310, 790],
     [/Fasádní rohové lišty/, 70, 155],
     [/Soklová omítka/, 460, 1050],
@@ -141,6 +154,7 @@ export function priceItem(item) {
     [/Malba stěn a stropů/, 38, 125],
 
     // 10 Podhledy a izolace stropu
+    [/SDK podhled stropu 1\.NP/, 460, 1080],
     [/SDK podhled stropu 2\.NP – desky/, 260, 860],
     [/SDK podhled – CD profily/, 72, 130],
     [/SDK podhled – UD obvodové profily/, 56, 105],
@@ -161,14 +175,17 @@ export function priceItem(item) {
     [/Vnitřní vodovod/, 42000, 92000],
     [/Vnitřní kanalizace/, 35000, 76000],
     [/Venkovní zahradní ventil/, 1950, 3800],
+    [/Svislý shoz prádla/, 18000, 29000],
 
     // 12 Vytápění a větrání
     [/Tepelné čerpadlo vzduch–voda/, 195000, 275000],
     [/Zásobník teplé vody/, 31000, 44000],
     [/Podlahové topení – systémová deska/, 260, 460],
+    [/Podlahové topení – systém Tacker/, 95, 195],
     [/Podlahové topení – trubka/, 35, 74],
     [/Rozdělovač podlahového topení/, 10500, 18000],
     [/Prostorové termostaty/, 2400, 4200],
+    [/Ekvitermní regulace TČ/, 6500, 11500],
     [/Rekuperační jednotka/, 89000, 134000],
     [/Tlumiče hluku VZT/, 2400, 4800],
     [/Rozdělovací distribuční boxy VZT/, 4500, 8200],
@@ -198,6 +215,7 @@ export function priceItem(item) {
 
     // 15 Terasa a pergola
     [/Zahradní terasa.*terasová prkna/, 1550, 2550],
+    [/velkoformátová betonová dlažba/, 920, 1650],
     [/Terasa – nosný rošt/, 155, 310],
     [/Terasa – rektifikační terče/, 72, 125],
     [/Terasa – skryté spony/, 240, 420],
@@ -220,6 +238,13 @@ export function priceItem(item) {
     [/Podsyp štěrk \+ geotextilie – dílna/, 1050, 1880],
     [/Zpevněná plocha krytého stání/, 640, 1480],
     [/Vnější omítka dílny/, 380, 960],
+    [/Vnitřní omítka \/ nátěr zdiva dílny/, 195, 580],
+    [/Elektroinstalace dílny/, 24000, 42000],
+    [/krokve a vaznice pultové střechy/i, 10500, 17500],
+    [/OSB záklop \+ pojistná hydroizolace/i, 360, 740],
+    [/falcovaná plechová krytina/i, 540, 1180],
+    [/oplechování atiky a závětrné lišty/i, 320, 620],
+    [/podokapní žlab R125 \+ svod/i, 420, 840],
     [/Vrata do dílny/, 31000, 46000],
     [/Dveře \+ okno dílny/, 17500, 26500],
     [/Kryté loubí – střešní plášť/, 920, 1680],
@@ -240,6 +265,10 @@ export function priceItem(item) {
     [/Vjezd ke krytému stání/, 740, 1680],
     [/Vsakovací objekt/, 7200, 12800],
     [/Dešťová kanalizace/, 460, 1250],
+
+    // 18 Projekt a TDI
+    [/Projektová dokumentace/, 185000, 210000],
+    [/Technický dozor investora/, 95000, 110000],
   ];
 
   const matched = table.find(([regex]) => regex.test(n));
@@ -256,8 +285,8 @@ export function computeHouseVolume(design) {
   const w = design.footprint?.width ?? 8.0;
   const l = design.footprint?.length ?? 12.0;
   const footprint = w * l; // 96.0 m²
-  const wallH = (design.roof?.y ?? 5.67) - (design.floor1?.elevation ?? 0); // 5.67 m
-  const roofH = design.roof?.height ?? 2.8; // 2.8 m
+  const wallH = (design.roof?.y ?? 6.12) - (design.floor1?.elevation ?? 0); // 6.12 m
+  const roofH = design.roof?.height ?? 1.9; // 1.9 m
   const plinthH = 0.70; // sokl a základová deska pod terénem
 
   const aboveGroundBody = footprint * wallH; // 544.32 m³

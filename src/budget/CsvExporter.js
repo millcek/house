@@ -51,8 +51,8 @@ export function generateBomCsv(bomResult, options = {}) {
 
   // Hlavička dokumentu
   pushRow([modeLabel]);
-  pushRow(['Projekt', 'Dream House – Novostavba RD + vedlejší stavba']);
-  pushRow(['Varianta', summary.designLabel || summary.designId || '']);
+  pushRow(['Projekt', 'Vojáčkovi Troubelice – Novostavba RD + vedlejší stavba']);
+  pushRow(['Model', summary.designLabel || summary.designId || '']);
   pushRow([
     'Zastavěná plocha domu',
     `${formatNum(summary.builtUpArea, 1)} m²`,
@@ -197,7 +197,7 @@ export function downloadBomCsv(bomResult, filename, options = {}) {
   const dateStr = new Date().toISOString().slice(0, 10);
   const link = document.createElement('a');
   link.href = url;
-  link.download = filename || `dream-house-rozpocet-${id}${modeSuffix}-${dateStr}.csv`;
+  link.download = filename || `vojackovi-troubelice-rozpocet-${id}${modeSuffix}-${dateStr}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

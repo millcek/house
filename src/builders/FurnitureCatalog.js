@@ -48,13 +48,23 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
     case 'shower': {
       const [w = 0.9, h = 2.0, d = 0.9] = size;
       labelType = 'IfcSanitaryTerminal';
-      group.add(createBoxPart(w, h, d, 0, 0, 0, materials.glass, false));
+      const isDogShower = /ps[ií]|pes/i.test(item.name || '');
+      if (isDogShower) {
+        group.add(createBoxPart(w, 0.02, d, 0, 0.01, 0, materials.frame, true));
+      } else {
+        group.add(createBoxPart(w, h, d, 0, 0, 0, materials.glass, false));
+      }
       break;
     }
     case 'kitchenIsland':
     case 'kitchenCounter': {
       const [w = 1.0, h = 0.9, d = 2.2] = size;
       group.add(createBoxPart(w, h, d, 0, 0, 0, materials.kitchenCounter, true));
+      break;
+    }
+    case 'kitchenTall': {
+      const [w = 1.6, h = 2.2, d = 0.6] = size;
+      group.add(createBoxPart(w, h, d, 0, 0, 0, materials.kitchenCounter || materials.furniture, true));
       break;
     }
     case 'diningTable': {

@@ -8,6 +8,11 @@
   --accent-light: rgba(37, 99, 235, 0.18);
   --text-main: #f3f4f6;
   --text-muted: #9ca3af;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --mobile-nav-h: 60px;
   --font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
@@ -28,6 +33,7 @@ body {
   color: var(--text-main);
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
 }
 
 #three-canvas {
@@ -36,7 +42,9 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: block;
+  touch-action: none;
 }
 
 /* Common Glass Panel */
@@ -54,13 +62,13 @@ body {
    ======================================================== */
 .app-header {
   position: absolute;
-  top: 14px;
-  left: 14px;
-  right: 14px;
+  top: calc(14px + var(--safe-top));
+  left: calc(14px + var(--safe-left));
+  right: calc(14px + var(--safe-right));
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   pointer-events: none;
   z-index: 20;
 }
@@ -78,6 +86,15 @@ body {
   pointer-events: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.brand-badge:hover {
+  border-color: var(--panel-border-hover);
+  background: rgba(28, 31, 38, 0.9);
 }
 
 .brand-badge h1 {
@@ -107,6 +124,18 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
+.floor-segment,
+.mode-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.floor-segment .btn,
+.mode-shortcuts .btn {
+  border-radius: 999px;
+}
+
 .toolbar-divider {
   width: 1px;
   height: 18px;
@@ -122,6 +151,57 @@ body {
   gap: 8px;
   pointer-events: auto;
   flex-shrink: 0;
+}
+
+/* Rail & Camera Action Buttons */
+.btn-rail {
+  position: relative;
+  height: 40px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--panel-border);
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-rail:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--panel-border-hover);
+}
+
+.btn-rail.active {
+  background: var(--accent);
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.45);
+}
+
+.btn-rail-icon-only {
+  width: 40px;
+  padding: 0;
+}
+
+.btn-rail .badge-dot {
+  top: 6px;
+  right: 6px;
+}
+
+.rail-icon {
+  font-size: 15px;
+  line-height: 1;
 }
 
 /* Compass HUD Badge */
@@ -189,11 +269,12 @@ body {
 
 /* Sidebar Toggle Button */
 .btn-panel-toggle {
+  height: 40px;
   background: var(--panel-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--panel-border);
-  padding: 8px 14px;
+  padding: 0 14px;
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
@@ -205,6 +286,297 @@ body {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
   transition: all 0.2s ease;
   white-space: nowrap;
+}
+
+/* ========================================================
+   FLOATING LAYERS POPOVER, SUN QUICK BAR, BIM QUICK CARD & MOBILE NAV
+   ======================================================== */
+.layers-popover {
+  position: fixed;
+  top: calc(64px + var(--safe-top));
+  right: calc(14px + var(--safe-right));
+  width: 272px;
+  max-width: calc(100vw - 28px);
+  padding: 12px;
+  background: rgba(20, 22, 27, 0.94);
+  z-index: 34;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layers-popover.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.layers-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.layer-toggle-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  color: var(--text-main);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.layer-toggle-row:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.layer-toggle-row.active {
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.toggle-pill {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease;
+}
+
+.layer-toggle-row.active .toggle-pill {
+  background: var(--accent);
+}
+
+.layer-toggle-row.active .toggle-knob {
+  transform: translateX(14px);
+}
+
+.popover-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 6px 0;
+}
+
+.quick-slice-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.quick-slice-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-link-sm {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-link-sm:hover {
+  background: rgba(59, 130, 246, 0.32);
+  color: #fff;
+}
+
+/* Floating Non-Modal Sun Quick Bar */
+.sun-quick-bar {
+  position: fixed;
+  bottom: calc(18px + var(--safe-bottom));
+  left: 50%;
+  transform: translate(-50%, 18px);
+  width: min(440px, calc(100vw - 24px));
+  padding: 10px 14px;
+  background: rgba(20, 22, 27, 0.92);
+  border-radius: 16px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sun-quick-bar.open {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.sun-bar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sun-bar-seasons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sun-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sun-bar-slider-row {
+  display: flex;
+  align-items: center;
+}
+
+.sun-bar-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.telemetry-sep {
+  opacity: 0.35;
+}
+
+.quick-sun-status {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+/* Floating BIM Quick Card */
+.bim-quick-card {
+  position: fixed;
+  bottom: calc(52px + var(--safe-bottom));
+  left: calc(14px + var(--safe-left));
+  max-width: min(360px, calc(100vw - 28px));
+  padding: 10px 12px;
+  background: rgba(20, 22, 27, 0.94);
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bim-quick-card.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.bim-quick-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bim-quick-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bim-type-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+  flex-shrink: 0;
+}
+
+.bim-quick-name {
+  font-size: 12.5px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bim-quick-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bim-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Mobile Fixed Bottom Navigation Bar (hidden on desktop) */
+.mobile-bottom-nav {
+  display: none;
 }
 
 .btn-panel-toggle:hover {
@@ -978,60 +1350,208 @@ body {
    RESPONSIVE DESIGN & MOBILE FRIENDLY ADAPTATIONS
    ======================================================== */
 
-/* Tablet & Mobile Screens (< 768px) */
-@media (max-width: 768px) {
+/* Small Laptop & Landscape Tablet (< 1160px) */
+@media (max-width: 1160px) {
+  .brand-badge p {
+    display: none;
+  }
+
   .app-header {
-    top: 10px;
-    left: 10px;
-    right: 10px;
+    gap: 8px;
+  }
+}
+
+/* Portrait Tablet & Narrow Desktop (< 960px) */
+@media (max-width: 960px) {
+  .btn-rail .rail-label,
+  .btn-panel-toggle .toggle-text {
+    display: none;
+  }
+
+  .btn-rail,
+  .btn-panel-toggle {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* Mobile Phones (< 768px) */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .app-header {
+    top: calc(10px + var(--safe-top));
+    left: calc(10px + var(--safe-left));
+    right: calc(10px + var(--safe-right));
+    align-items: flex-start;
     gap: 8px;
   }
 
   .brand-badge {
-    padding: 6px 10px;
-    border-radius: 10px;
+    padding: 7px 11px;
+    border-radius: 12px;
   }
 
   .brand-badge h1 {
     font-size: 13px;
   }
 
-  .brand-badge p {
-    font-size: 10px;
+  /* Vertical right-edge 44x44 floating camera & layers rail */
+  .header-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
   }
 
   #compass-badge {
-    width: 38px;
-    height: 38px;
+    order: -1;
+    width: 44px;
+    height: 44px;
   }
 
-  .btn-panel-toggle {
-    padding: 7px 11px;
-    font-size: 12px;
+  .btn-rail,
+  .btn-rail-icon-only {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
   }
 
-  /* Floating Quick Toolbar moves to bottom dock on mobile */
+  .btn-rail .rail-icon {
+    font-size: 17px;
+  }
+
+  .layers-popover {
+    top: calc(10px + var(--safe-top));
+    right: calc(64px + var(--safe-right));
+    width: min(268px, calc(100vw - 76px));
+    max-height: calc(100dvh - var(--mobile-nav-h) - 80px);
+    overflow-y: auto;
+  }
+
+  /* Floating Floor Pill floats cleanly above Mobile Bottom Nav (zero horizontal scroll) */
   .quick-toolbar {
     position: fixed;
     top: auto;
-    bottom: 14px;
+    bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 10px);
     left: 50%;
     transform: translateX(-50%);
-    z-index: 25;
-    max-width: calc(100vw - 20px);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-    scrollbar-width: none;
-    padding: 5px 8px;
-    border-radius: 30px;
+    z-index: 23;
+    padding: 4px;
+    border-radius: 999px;
+    max-width: calc(100vw - 24px);
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
   }
 
-  .quick-toolbar::-webkit-scrollbar {
-    display: none;
+  .floor-segment .btn {
+    min-height: 38px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  body.sidebar-open .quick-toolbar,
+  body.sun-bar-open .quick-toolbar {
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 10px);
+  }
+
+  /* Sun Quick Bar docks right above mobile bottom nav without backdrop */
+  .sun-quick-bar {
+    bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 10px);
+    width: calc(100vw - 20px);
+    padding: 10px 12px;
+  }
+
+  .sun-bar-seasons .btn-sm {
+    padding: 6px 9px;
+    font-size: 12px;
+  }
+
+  /* BIM Quick Card sits neatly above Floor Pill */
+  .bim-quick-card {
+    bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 64px);
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+
+  /* Fixed Mobile Bottom Navigation Bar */
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--mobile-nav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: rgba(18, 20, 25, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--panel-border);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: stretch;
+    z-index: 26;
+  }
+
+  .mobile-nav-item {
+    position: relative;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 6px 2px;
+    font-family: inherit;
+    transition: color 0.15s ease;
+  }
+
+  .mobile-nav-item.active {
+    color: #fff;
+  }
+
+  .mobile-nav-item.active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 22%;
+    right: 22%;
+    height: 2.5px;
+    border-radius: 0 0 3px 3px;
+    background: #3b82f6;
+  }
+
+  .mobile-nav-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .mobile-nav-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .mobile-nav-item .badge-dot {
+    top: 7px;
+    right: 22%;
   }
 
   /* Bottom sheet drawer for mobile */
+  .sidebar-backdrop {
+    z-index: 32;
+  }
+
   .app-sidebar,
   .app-sidebar.wide {
     top: auto;
@@ -1040,12 +1560,13 @@ body {
     right: 0;
     width: 100vw;
     max-width: 100vw;
-    max-height: 84vh;
+    max-height: 82dvh;
     border-radius: 20px 20px 0 0;
     border-bottom: none;
     border-left: none;
     border-right: none;
     transform: translateY(100%);
+    z-index: 35;
   }
 
   .app-sidebar.open {
@@ -1054,50 +1575,82 @@ body {
 
   .sidebar-drag-handle {
     display: block;
-    width: 38px;
-    height: 4px;
+    width: 42px;
+    height: 5px;
     background: rgba(255, 255, 255, 0.35);
     border-radius: 4px;
-    margin: 8px auto 2px auto;
+    margin: 9px auto 3px auto;
+    touch-action: none;
   }
 
-  /* When sidebar drawer is open on mobile, hide floating bottom quick toolbar */
-  .app-sidebar.open ~ .app-header .quick-toolbar {
-    display: none;
+  .sidebar-header {
+    touch-action: none;
+  }
+
+  .sidebar-body {
+    padding-bottom: calc(16px + var(--safe-bottom));
   }
 
   /* Larger touch targets on mobile */
   .btn {
+    min-height: 40px;
     padding: 8px 12px;
     font-size: 13px;
   }
 
   .btn-sm {
+    min-height: 36px;
     padding: 6px 10px;
     font-size: 12px;
   }
 
+  .btn-icon {
+    width: 34px;
+    height: 34px;
+  }
+
   .sidebar-nav-tab {
-    padding: 8px 4px;
+    padding: 9px 4px;
+    min-height: 44px;
+  }
+
+  .room-item {
+    min-height: 40px;
+    padding: 7px 10px;
+  }
+
+  .layer-toggle-row {
+    min-height: 42px;
+  }
+
+  .range-slider {
+    height: 8px;
+  }
+
+  .range-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  .range-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
   }
 
   .status-bar {
-    display: none; /* Hide heavy keyboard hints on touch mobile */
+    display: none;
+  }
+
+  .drawings-svg-stage {
+    padding: 8px;
   }
 }
 
 /* Small mobile devices (< 480px) */
 @media (max-width: 480px) {
-  .brand-badge p {
-    display: none; /* Compact brand on very narrow screens */
-  }
-
-  .btn-panel-toggle .toggle-text {
-    display: none; /* Show only icon on small phones */
-  }
-
-  .btn-panel-toggle {
-    padding: 8px 10px;
+  .card-title {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .season-button-group {
@@ -1108,8 +1661,12 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .floor-button-grid {
+  .architect-exports-grid {
     grid-template-columns: 1fr;
+  }
+
+  .sun-bar-telemetry .quick-sun-status {
+    display: none;
   }
 }
 
@@ -1177,19 +1734,87 @@ body {
 .drawings-segment,
 .drawings-layers,
 .drawings-zoom-group,
-.drawings-actions {
+.drawings-actions,
+.drawings-actions-menu {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 5px;
 }
 
+.drawings-popover-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.drawings-mobile-toggle {
+  display: none;
+}
+
+/* CAD Layer Toggle Chips */
 .layer-chip {
-  opacity: 0.72;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted, #94a3b8);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.layer-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
 .layer-chip.active {
-  opacity: 1;
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(96, 165, 250, 0.45);
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.layer-chip.active:hover {
+  background: rgba(59, 130, 246, 0.26);
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #bfdbfe;
+}
+
+.layer-chip:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.7);
+}
+
+#btn-drawings-units {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px 9px;
+  transition: all 0.15s ease;
+}
+
+#btn-drawings-units:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.drawings-actions-menu .btn {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 10px;
 }
 
 .drawings-viewport {
@@ -1232,17 +1857,241 @@ body {
   background: #ffffff;
 }
 
-@media (max-width: 768px) {
-  .drawings-header {
-    padding: 8px 10px;
-  }
+/* ========================================================
+   2D DRAWINGS INTERACTIVE MEASUREMENT TOOL & HUD STYLES
+   ======================================================== */
+.drawings-measure-group {
+  display: flex;
+  align-items: center;
+}
 
+.drawings-viewport.measure-active {
+  cursor: crosshair !important;
+}
+
+.drawings-measure-hud {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 6px 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  color: #f8fafc;
+  font-size: 13px;
+  pointer-events: auto;
+  user-select: none;
+  max-width: calc(100vw - 32px);
+  flex-wrap: wrap;
+  justify-content: center;
+  animation: hudFadeIn 0.18s ease-out;
+}
+
+@keyframes hudFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.drawings-measure-hud[hidden] {
+  display: none !important;
+}
+
+.measure-hud-modes,
+.measure-hud-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.measure-hud-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.measure-hud-readout {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #38bdf8;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.measure-hud-readout .measure-hud-prompt {
+  color: #94a3b8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 500;
+}
+
+.measure-hud-readout .measure-val-accent {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.cad-measure-overlay {
+  pointer-events: none;
+}
+
+.cad-measure-dist-item text,
+.cad-measure-area-item text,
+.cad-measure-snap-marker text {
+  user-select: none;
+}
+
+/* Responsive Drawings Header (< 1120px & < 960px) */
+@media (max-width: 1120px) {
   .drawings-title-group p {
     display: none;
   }
+}
 
-  .drawings-svg-stage {
-    padding: 8px;
+@media (max-width: 960px) {
+  .drawings-header {
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .drawings-title-group,
+  .drawings-desktop-sep {
+    display: none;
+  }
+
+  .drawings-toolbar {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .drawings-segment .hide-sm {
+    display: none;
+  }
+
+  .drawings-mobile-toggle {
+    display: inline-flex;
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  .drawings-mobile-toggle.active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(96, 165, 250, 0.5);
+    color: #93c5fd;
+  }
+
+  .drawings-layers {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 250px;
+    padding: 10px;
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    flex-wrap: wrap;
+    gap: 6px;
+    z-index: 90;
+  }
+
+  .drawings-layers.open {
+    display: flex;
+  }
+
+  .drawings-layers .layer-chip,
+  .drawings-layers #btn-drawings-units {
+    flex: 1 1 calc(50% - 6px);
+    justify-content: center;
+    text-align: center;
+  }
+
+  .drawings-actions-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 200px;
+    padding: 10px;
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    z-index: 90;
+  }
+
+  .drawings-actions-menu.open {
+    display: flex;
+  }
+
+  .drawings-actions-menu .btn {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .drawings-measure-hud {
+    top: 8px;
+    padding: 5px 8px;
+    gap: 6px;
+    font-size: 11.5px;
+    max-width: calc(100vw - 16px);
+  }
+
+  .measure-hud-readout {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+
+  .measure-hud-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .drawings-measure-hud {
+    top: auto;
+    bottom: calc(56px + var(--safe-bottom));
+    left: 8px;
+    right: 8px;
+    transform: none;
+    max-width: none;
+    border-radius: 10px;
+    padding: 6px 8px;
+    gap: 6px;
+    font-size: 11px;
   }
 }
 
@@ -1431,44 +2280,6 @@ body {
   font-size: 10px;
   color: #93c5fd;
   margin-top: 1px;
-}
-
-.budget-compare-scroll {
-  overflow-x: auto;
-}
-
-.budget-compare-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-
-.budget-compare-table th,
-.budget-compare-table td {
-  padding: 5px 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  text-align: right;
-  white-space: nowrap;
-}
-
-.budget-compare-table th:first-child,
-.budget-compare-table td:first-child {
-  text-align: left;
-  color: var(--text-muted);
-  white-space: normal;
-}
-
-.budget-compare-table th {
-  font-size: 10.5px;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.budget-compare-table th.is-active,
-.budget-compare-table td.is-active {
-  background: rgba(37, 99, 235, 0.14);
-  color: #fff;
-  font-weight: 600;
 }
 
 .budget-search-row {
@@ -1704,4 +2515,54 @@ body {
 
 .budget-assumptions ul {
   margin-top: 6px;
+}
+
+/* Architect & CAD Export Grid */
+.architect-exports-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.architect-exports-grid .btn {
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.architect-openings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5px;
+}
+
+.architect-openings-table th,
+.architect-openings-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.architect-openings-table th {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.architect-openings-table td.num,
+.architect-openings-table th.num {
+  text-align: right;
+}
+
+.architect-openings-mark {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
 }

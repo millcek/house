@@ -1,5 +1,5 @@
 import { computeRoomSchedule } from "../builders/RoomBuilder.js";
-import { getDesignVariant, listDesignVariants } from "../designs/index.js";
+import { defaultDesign } from "../designs/index.js";
 
 /**
  * Manages floor view presets, dynamic Y-clipping slider, room labels toggle,
@@ -9,7 +9,6 @@ export function initFloorPlanController(
   store,
   sceneManager,
   getActiveConceptModel,
-  ifcController,
 ) {
   const btnSidebarAll = document.getElementById("btn-sidebar-all");
   const btnSidebar1np = document.getElementById("btn-sidebar-1np");
@@ -17,28 +16,31 @@ export function initFloorPlanController(
   const btnSidebarTopdown = document.getElementById("btn-sidebar-topdown");
   const btnToggleLabels = document.getElementById("btn-toggle-labels");
   const btnToggleFurniture = document.getElementById("btn-toggle-furniture");
-  const variantSelect = document.getElementById("floorplan-variant-select");
 
   const tabFloor1np = document.getElementById("tab-floor-1np");
   const tabFloor2np = document.getElementById("tab-floor-2np");
   const activeFloorBadge = document.getElementById("active-floor-badge");
   const sliceSlider = document.getElementById("slice-slider");
   const sliceVal = document.getElementById("slice-val");
+  const quickSliceSlider = document.getElementById("quick-slice-slider");
+  const quickSliceVal = document.getElementById("quick-slice-val");
+  const btnQuickSliceReset = document.getElementById("btn-quick-slice-reset");
   const roomScheduleContainer = document.getElementById(
     "room-schedule-container",
   );
 
   function getSchedules() {
-    const { activeModelId } = store.getState();
-    const design = getDesignVariant(activeModelId);
     return {
-      f1: computeRoomSchedule(design.floor1?.rooms || [], design.floor1),
-      f2: computeRoomSchedule(design.floor2?.rooms || [], design.floor2),
+      f1: computeRoomSchedule(defaultDesign.floor1?.rooms || [], defaultDesign.floor1),
+      f2: computeRoomSchedule(defaultDesign.floor2?.rooms || [], defaultDesign.floor2),
     };
   }
 
   function applyVisibilityAndClip(floorMode, labelsVisible, furnitureVisible, sliceHeight) {
     const model = getActiveConceptModel();
+    const c1Y = defaultDesign.ceilingSlab?.y ?? 2.95;
+    const c2Y = defaultDesign.roof?.y ?? defaultDesign.ceiling2Slab?.y ?? 6.12;
+    const maxH = Number((c2Y + (defaultDesign.roof?.height ?? 2.0)).toFixed(1));
 
     if (model) {
       if (model.furniture1np) model.furniture1np.visible = Boolean(furnitureVisible);
@@ -49,8 +51,11 @@ export function initFloorPlanController(
       sceneManager.setClipHeight(sliceHeight);
       if (sliceSlider) sliceSlider.value = String(sliceHeight);
       if (sliceVal) sliceVal.textContent = `${sliceHeight.toFixed(2)} m`;
+      if (quickSliceSlider) quickSliceSlider.value = String(sliceHeight);
+      if (quickSliceVal) quickSliceVal.textContent = `${sliceHeight.toFixed(2)} m`;
+      if (btnQuickSliceReset) btnQuickSliceReset.style.display = "inline-flex";
 
-      if (sliceHeight < 2.95) {
+      if (sliceHeight < c1Y) {
         if (model && model.floor1Group) {
           model.floor1Group.visible = true;
           model.ceiling1Group.visible = false;
@@ -60,7 +65,7 @@ export function initFloorPlanController(
           model.labels2np.visible = false;
         }
         if (activeFloorBadge) activeFloorBadge.textContent = "Řez 1.NP";
-      } else if (sliceHeight < 5.82) {
+      } else if (sliceHeight < c2Y) {
         if (model && model.floor1Group) {
           model.floor1Group.visible = true;
           model.ceiling1Group.visible = true;
@@ -85,22 +90,25 @@ export function initFloorPlanController(
     }
 
     let clipHeight = 100.0;
-    let sliderValue = 8.5;
+    let sliderValue = maxH;
     let sliceLabel = "Vše (bez řezu)";
 
     if (floorMode === "1np") {
-      clipHeight = 2.95;
-      sliderValue = 2.95;
-      sliceLabel = "2.95 m";
+      clipHeight = c1Y;
+      sliderValue = c1Y;
+      sliceLabel = `${c1Y.toFixed(2)} m`;
     } else if (floorMode === "2np") {
-      clipHeight = 5.82;
-      sliderValue = 5.82;
-      sliceLabel = "5.82 m";
+      clipHeight = c2Y;
+      sliderValue = c2Y;
+      sliceLabel = `${c2Y.toFixed(2)} m`;
     }
 
     sceneManager.setClipHeight(clipHeight);
     if (sliceSlider) sliceSlider.value = String(sliderValue);
     if (sliceVal) sliceVal.textContent = sliceLabel;
+    if (quickSliceSlider) quickSliceSlider.value = String(sliderValue);
+    if (quickSliceVal) quickSliceVal.textContent = floorMode === "all" ? "Vše" : sliceLabel;
+    if (btnQuickSliceReset) btnQuickSliceReset.style.display = "none";
 
     if (model && model.floor1Group) {
       if (floorMode === "all") {
@@ -197,28 +205,11 @@ export function initFloorPlanController(
       btnToggleFurniture.classList.toggle("btn-primary", furnitureVisible);
     }
 
-    if (variantSelect) {
-      const variants = listDesignVariants();
-      if (variantSelect.options.length !== variants.length) {
-        variantSelect.innerHTML = variants
-          .map((v) => `<option value="${v.id}">${v.label}</option>`)
-          .join("");
-      }
-      if (variants.some((v) => v.id === state.activeModelId)) {
-        variantSelect.value = state.activeModelId;
-      }
-    }
-
     applyVisibilityAndClip(floorMode, labelsVisible, furnitureVisible, sliceHeight);
     renderSchedule(activeScheduleFloor, activeRoomId);
   }
 
   // Event bindings
-  variantSelect?.addEventListener("change", async (e) => {
-    if (ifcController) {
-      await ifcController.selectModel(e.target.value);
-    }
-  });
   btnSidebarAll?.addEventListener("click", () =>
     store.setState({
       floorMode: "all",
@@ -298,17 +289,28 @@ export function initFloorPlanController(
     if (!room) return;
 
     sceneManager.focusHousePoint(room.pos, 9);
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
     store.setState({
       floorMode: floorKey,
       activeScheduleFloor: floorKey,
       sliceHeight: null,
       activeRoomId: roomId,
+      ...(isMobile ? { sidebarOpen: false } : {}),
     });
   });
 
   sliceSlider?.addEventListener("input", (e) => {
     const h = parseFloat(e.target.value);
     store.setState({ sliceHeight: h });
+  });
+
+  quickSliceSlider?.addEventListener("input", (e) => {
+    const h = parseFloat(e.target.value);
+    store.setState({ sliceHeight: h });
+  });
+
+  btnQuickSliceReset?.addEventListener("click", () => {
+    store.setState({ sliceHeight: null });
   });
 
   store.subscribe(
