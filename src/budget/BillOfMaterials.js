@@ -2024,23 +2024,27 @@ export function computeBillOfMaterials({
       calc: "1 kpl (cca 26 m², dobře zateplená dílna)",
     });
     bom.add(S.auxHeat, {
-      name: "Dílna – odsávání prachu (cyklon + rozvod)",
-      spec: "Mobilní/stacionární odsávání pro dřevoobrábění",
+      name: "Dílna – odsávání prachu (průmyslový vysavač třídy M)",
+      spec: "Mobilní vysavač třídy M s automatikou pro ruční nářadí (bruska, frézka, pila)",
       unit: "kpl",
       qty: 1,
       scope: sc,
       calc: "1 kpl",
     });
     bom.add(S.auxHeat, {
-      name: "Dílna – gumová podlaha na cvičení",
-      spec: "Gumové dlaždice 15 mm, cvičební zóna",
+      name: "Dílna – sportovní PVC podlaha (stolní tenis)",
+      spec: "Sportovní PVC/vinyl 6–7 mm, protiskluzová, pro stolní tenis",
       unit: "m²",
       qty: 12,
       scope: sc,
-      calc: "cca 12 m² cvičební zóna",
+      calc: "cca 12 m² herní zóna kolem stolu na stolní tenis",
     });
     bom.warn(
-      "Dílna je počítána jako vytápěná klimatizací: ETICS, izolace podlahy a střechy, SDK podhled, split, odsávání prachu. Vstupní dveře dílny musí být izolované (dvoukřídlé 1400 mm pro vnášení pinballu a materiálu).",
+      "Dílna je počítána jako vytápěná klimatizací: ETICS, izolace podlahy a střechy, SDK podhled, split, odsávání prachu vysavačem. Vstupní dveře dílny musí být izolované (dvoukřídlé 1400 mm pro vnášení stolu na stolní tenis (2,74 × 1,525 m) a materiálu).",
+    );
+
+    bom.warn(
+      "Dílna 4 × 6,5 m je určena pro stolní tenis (volná plocha kolem stolu) a ruční nářadí na pracovním stole u stěny; pevné stroje (kotoučová pila, protahy) se nepočítají.",
     );
 
     const auxRoofDef = {
