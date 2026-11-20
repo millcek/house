@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { IFCLoader } from "web-ifc-three/IFCLoader";
+import { getAssembly } from "../designs/assemblies.js";
 
 /**
  * Manages IFC file loading/parsing, built-in concept model loading,
@@ -66,17 +67,20 @@ export class IfcController {
     });
   }
 
-  loadConceptModel() {
+  loadConceptModel(assemblyId = "concept") {
     this.clearSelection();
     this._clearCurrentModel();
 
-    const model = this.buildConceptFn();
+    const assembly = getAssembly(assemblyId);
+    const model = this.buildConceptFn(assembly.house);
     this.currentModel = model;
     this.sceneManager.houseContainer.add(model);
     this.sceneManager.applyWallSlice(model);
 
     this.store.setState({
-      activeModelId: "concept",
+      activeModelId: assemblyId,
+      activeAssemblyId: assemblyId,
+      activeDesign: assembly.house,
       selectedElement: null,
     });
 
@@ -154,7 +158,7 @@ export class IfcController {
       await this.loadIfcFromBuffer(buffer, modelId);
       return;
     }
-    this.loadConceptModel();
+    this.loadConceptModel(modelId);
   }
 
   async pickElementAtEvent(event) {

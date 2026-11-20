@@ -7,6 +7,13 @@ import { buildSlab, buildGableRoof } from './SlabAndRoofBuilder.js';
 function assembleFloorGroup(name, floorConfig, materials, floorLabel) {
   const group = new THREE.Group();
   group.name = name;
+  if (!floorConfig) {
+    const furnitureGroup = new THREE.Group();
+    furnitureGroup.name = `furniture-${floorLabel.toLowerCase().replace('.', '')}`;
+    group.add(furnitureGroup);
+    group.furnitureGroup = furnitureGroup;
+    return group;
+  }
 
   const y = floorConfig.elevation ?? 0;
   const finishThickness =
@@ -81,7 +88,7 @@ export function buildHouseModel(designConfig, materials) {
 
   const roofGroup = new THREE.Group();
   roofGroup.name = 'roof-group';
-  if (designConfig.ceiling2Slab) {
+  if (designConfig.ceiling2Slab && !designConfig.roof) {
     roofGroup.add(buildSlab(designConfig.ceiling2Slab, materials));
   }
   if (designConfig.roof) {

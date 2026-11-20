@@ -8,6 +8,8 @@ import { generateFloorPlanSvg } from '../src/builders/FloorPlanSvgGenerator.js';
 import { extractElevationData } from '../src/builders/ElevationSvgGenerator.js';
 import { extractSectionData } from '../src/builders/SectionSvgGenerator.js';
 import { dreamHouseV1 } from '../src/designs/dreamHouseV1.js';
+import { compactHouse5kk } from '../src/designs/compactHouse5kk.js';
+import { bungalowHouse5kk } from '../src/designs/bungalowHouse5kk.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -312,6 +314,44 @@ describe('Výkres půdorysu (Floor Plan CAD Drawings)', () => {
 
       assert.ok(fs.existsSync(pngPath));
       assert.ok(fs.existsSync(svgPath));
+    });
+
+    it('vygeneruje a vyrenderuje výkresy pro kompaktní dům 5+kk (1.NP, 2.NP, both)', () => {
+      const { svg: svg1, png: png1 } = generateFloorPlanImage(compactHouse5kk, { sheet: '1np' }, 2000);
+      assert.match(svg1, /RODINNÝ DŮM 5\+KK · VOJÁČKOVI TROUBELICE/, 'Razítko 1.NP musí obsahovat název 5+kk');
+      assert.match(svg1, /PŮDORYS 1\.NP/i);
+      assert.match(svg1, /class="layer-furniture"/);
+      assert.match(svg1, /class="layer-int-dims"/);
+      assert.equal(png1[0], 0x89);
+      fs.writeFileSync(path.join(OUTPUT_DIR, 'pudorys-5kk-1np.png'), png1);
+
+      const { svg: svg2, png: png2 } = generateFloorPlanImage(compactHouse5kk, { sheet: '2np' }, 2000);
+      assert.match(svg2, /RODINNÝ DŮM 5\+KK · VOJÁČKOVI TROUBELICE/, 'Razítko 2.NP musí obsahovat název 5+kk');
+      assert.match(svg2, /PŮDORYS 2\.NP/i);
+      assert.match(svg2, /class="layer-furniture"/);
+      assert.match(svg2, /class="layer-int-dims"/);
+      assert.equal(png2[0], 0x89);
+      fs.writeFileSync(path.join(OUTPUT_DIR, 'pudorys-5kk-2np.png'), png2);
+
+      const { svg: svgBoth, png: pngBoth } = generateFloorPlanImage(compactHouse5kk, { sheet: 'both' }, 3200);
+      assert.match(svgBoth, /PŮDORYS 1\.NP/i);
+      assert.match(svgBoth, /PŮDORYS 2\.NP/i);
+      assert.equal(pngBoth[0], 0x89);
+      fs.writeFileSync(path.join(OUTPUT_DIR, 'pudorys-5kk-both.png'), pngBoth);
+    });
+
+    it('vygeneruje a vyrenderuje výkres pro přízemní bungalov 5+kk (1.NP)', () => {
+      const { svg, png } = generateFloorPlanImage(bungalowHouse5kk, { sheet: '1np' }, 2400);
+      assert.match(svg, /PŘÍZEMNÍ BUNGALOV 5\+KK · VOJÁČKOVI TROUBELICE/, 'Razítko musí obsahovat název bungalovu');
+      assert.match(svg, /PŮDORYS PŘÍZEMÍ \(BUNGALOV\)/i);
+      assert.match(svg, /class="layer-furniture"/);
+      assert.match(svg, /class="layer-int-dims"/);
+      assert.match(svg, /Rodinná koupelna/);
+      assert.equal(png[0], 0x89);
+      const pngPath = path.join(OUTPUT_DIR, 'pudorys-bungalov-1np.png');
+      fs.writeFileSync(pngPath, png);
+      assert.ok(fs.existsSync(pngPath));
+      assert.ok(png.length > 100000);
     });
   });
 });

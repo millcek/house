@@ -39,7 +39,7 @@ const ifcController = new IfcController({
   materials,
   store,
   auxBuilding,
-  buildConceptFn: () => buildHouseModel(defaultDesign, materials),
+  buildConceptFn: (design = defaultDesign) => buildHouseModel(design, materials),
 });
 
 // Load initial Concept House model

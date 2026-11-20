@@ -86,8 +86,10 @@ export const BOM_SPEC = {
 
   // --------------------------------------------------------- VODOROVNÉ KONSTRUKCE
   slab: {
-    concrete: 'Beton C25/30 XC1',
+    systemDefault: 'Předpjaté dutinové panely Spiroll tl. 200 mm (zálivka spar, věncová výztuž, rychlá montáž bez bednění a stojek)',
+    concrete: 'Beton C25/30 XC1 (zálivka spar Spiroll / věnce; alternativně monolitická ŽB deska)',
     rebarKgPerM3: 110,
+    alternativeMonolith: 'Monolitická ŽB deska tl. 220 mm (vázaná výztuž 110 kg/m³, systémové bednění Doka/Peri)',
   },
 
   // ------------------------------------------------------------------- STŘECHA
@@ -220,5 +222,6 @@ export const BOM_ASSUMPTIONS = [
   'TZB a elektro jsou orientační počty (podlahové topení systémem Tacker, ekvitermní regulace, shoz prádla 2.04→1.02, střešní FVE 7,2 kWp s baterií 10,6 kWh, akumulační nádrž dešťové vody 7 m³ pro WC a zálivku) – nenahrazují prováděcí projekt.',
   'Dveřní kování: u otočných interiérových i vchodových dveří jsou v zárubních uvažovány skryté integrované omezovače otevření (95–100°) proti kolizi křídel s nábytkem.',
   'Vedlejší stavba (zdivo 240 mm, nízká pultová střecha): otvory dílny nejsou v modelu; u samostatně stojící dílny mimo příslušenství RD může finanční úřad posoudit DPH 21 % namísto 12 % (§ 48 ZDPH).',
+  'Optimalizace a etapizace: Výchozím standardem projektu je Etapa 1 Optimalizovaná (kolaudovatelný RD 6+kk za cca 7,95 mil. Kč na klíč / 4,54 mil. Kč svépomocí se systémem Spiroll, SPC rigidním vinylem a obklady mokrých zón). Etapa 2 zahrnuje technologie (FVE, motory žaluzií, terasa, dešťovka) a Etapa 3 vedlejší stavbu (dílna, stání, brána).',
   'Sloupce „Jedn. cena“ a „Cena celkem“ vyplní dodavatel; „Množství k objednání“ zahrnuje prořez.',
 ];

@@ -132,7 +132,8 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
 
   function renderDrawing() {
     if (!stage) return;
-    currentSvgMarkup = generateFloorPlanSvg(defaultDesign, {
+    const activeDesign = store.getState().activeDesign || defaultDesign;
+    currentSvgMarkup = generateFloorPlanSvg(activeDesign, {
       ...viewOpts,
       siteConfig,
       housePos: store.getState().site?.housePos,
@@ -296,7 +297,8 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
     closePopovers();
   });
   btnDownloadDxf?.addEventListener('click', () => {
-    downloadFloorPlanDxf(defaultDesign, {
+    const activeDesign = store.getState().activeDesign || defaultDesign;
+    downloadFloorPlanDxf(activeDesign, {
       ...viewOpts,
       siteConfig,
       auxConfig: auxiliaryBuildingConfig,
@@ -305,7 +307,8 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
     closePopovers();
   });
   btnDownloadDxfAll?.addEventListener('click', () => {
-    downloadFloorPlanDxf(defaultDesign, {
+    const activeDesign = store.getState().activeDesign || defaultDesign;
+    downloadFloorPlanDxf(activeDesign, {
       ...viewOpts,
       sheet: 'complete',
       siteConfig,
@@ -511,8 +514,11 @@ export function initDrawingsController(store, { siteConfig = null, auxiliaryBuil
     }
   });
 
-  store.subscribe(['drawings'], (state) => {
+  store.subscribe(['drawings', 'activeModelId', 'activeDesign'], (state) => {
     applyOpenState(state.drawings?.isOpen, state.drawings);
+    if (isOpen) {
+      renderDrawing();
+    }
   });
 
   const initialDrawings = store.getState().drawings;

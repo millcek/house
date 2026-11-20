@@ -811,18 +811,18 @@ export function buildAreaAndTechnicalSummary({
     },
     {
       code: 'K04',
-      element: 'Stropní konstrukce nad 1.NP',
-      description: `${spec.slab.concrete}, monolitická ŽB deska tl. ${Math.round((design.ceilingSlab?.thickness ?? 0.22) * 1000)} mm s otvorem pro schodiště a šachtu${design.ceiling1Sdk ? ' + SDK podhled (100 mm pro VZT)' : ''}`,
+      element: 'Stropní konstrukce nad 1.NP (Výchozí: Spiroll)',
+      description: `Výchozí standard: předpjaté dutinové panely Spiroll tl. 200 mm se zálivkou spar a ztužujícím věncem (alternativně monolitická ŽB deska tl. 220 mm) s otvorem pro schodiště a šachtu${design.ceiling1Sdk ? ' + SDK podhled (100 mm pro VZT)' : ''}`,
     },
     {
       code: 'K05',
       element: 'Podlaha 1.NP na terénu',
-      description: `Skladba celkem ${Math.round(f1FinishThick * 1000)} mm: tepelná izolace EPS 150 S tl. ${groundInsulMm} mm, anhydritový potěr ${Math.round(spec.floors.screedThickness * 1000)} mm (podlahové vytápění), dub / lepený vinyl / dlažba`,
+      description: `Skladba celkem ${Math.round(f1FinishThick * 1000)} mm: tepelná izolace EPS 150 S tl. ${groundInsulMm} mm, anhydritový potěr ${Math.round(spec.floors.screedThickness * 1000)} mm (podlahové vytápění), výchozí SPC Rigidní vinyl / keramická dlažba (alternativně dub)`,
     },
     {
       code: 'K06',
       element: 'Podlaha 2.NP',
-      description: `Skladba celkem ${Math.round(f2FinishThick * 1000)} mm: kročejová izolace tl. ${upperInsulMm} mm, anhydritový potěr ${Math.round(spec.floors.screedThickness * 1000)} mm (podlahové vytápění), dub / lepený vinyl / dlažba`,
+      description: `Skladba celkem ${Math.round(f2FinishThick * 1000)} mm: kročejová izolace tl. ${upperInsulMm} mm, anhydritový potěr ${Math.round(spec.floors.screedThickness * 1000)} mm (podlahové vytápění), výchozí SPC Rigidní vinyl / keramická dlažba (alternativně dub)`,
     },
     {
       code: 'K07',
@@ -841,8 +841,8 @@ export function buildAreaAndTechnicalSummary({
     },
     {
       code: 'K10',
-      element: 'Hospodaření s dešťovou vodou',
-      description: `Podzemní akumulační nádrž 7,0 m³ s automatickou vodárnou pro zálivku zahrady a splachování toalet v 1.NP, bezpečnostní přepad do vsakovacích boxů`,
+      element: 'Hospodaření s dešťovou vodou (Etapa 1: Zálivka)',
+      description: `Podzemní akumulační nádrž dešťové vody (7,0 m³) s automatickou vodárnou pro zálivku zahrady a mytí zpevněných ploch s přepadem do vsakovacích boxů (v Etapě 2 možnost rozšíření na splachování toalet)`,
     },
     {
       code: 'K11',

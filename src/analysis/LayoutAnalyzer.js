@@ -618,7 +618,7 @@ function getUncoveredFinishHoles(finishes = []) {
   return uncovered;
 }
 
-function buildRoomLookup(floorConfig = {}, designConfig = {}) {
+export function buildRoomLookup(floorConfig = {}, designConfig = {}) {
   const schedule = computeRoomSchedule(floorConfig.rooms || [], floorConfig);
   const interiorRooms = schedule.rooms.filter((r) => r.interior);
   const walls = floorConfig.walls || [];

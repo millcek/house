@@ -1920,71 +1920,80 @@ function renderSitePlanToDxf(
 
   // 3. Auxiliary building (workshop, covered parking, canopy, east walkway)
   const [auxX, , auxZ] = auxConfig.position;
-  const totalAuxW = auxConfig.parkWidth + auxConfig.workshopWidth;
-  const auxD = auxConfig.depth;
+  const isStacked = auxConfig.layout === 'stacked-north-south';
 
-  // Workshop (West part)
-  const wsX = auxX - totalAuxW / 2;
-  dxf.addRect(
-    "A-SITE-BUILD",
-    ...tf.rectToDxf(wsX, auxZ - auxD / 2, auxConfig.workshopWidth, auxD),
-  );
-  for (const o of auxConfig.workshopOpenings ?? []) {
-    const wcx = wsX + auxConfig.workshopWidth / 2;
-    const alongX = o.wall === "S" || o.wall === "N";
-    const ow = alongX ? o.width : 0.12;
-    const od = alongX ? 0.12 : o.width;
-    let cx = wcx;
-    let cz = auxZ;
-    if (o.wall === "S") { cx += o.offset; cz += auxD / 2; }
-    if (o.wall === "N") { cx += o.offset; cz -= auxD / 2; }
-    if (o.wall === "E") { cx += auxConfig.workshopWidth / 2; cz += o.offset; }
-    if (o.wall === "W") { cx -= auxConfig.workshopWidth / 2; cz += o.offset; }
-    dxf.addRect(
-      "A-SITE-BUILD",
-      ...tf.rectToDxf(cx - ow / 2, cz - od / 2, ow, od),
-    );
+  let wsX, wsZ, wsW, wsD, pkX, pkZ, pkW, pkD, totalAuxW, auxD;
+
+  if (isStacked) {
+    wsW = auxConfig.width ?? 6.5;
+    wsD = auxConfig.workshopDepth ?? 4.0;
+    pkW = auxConfig.width ?? 6.5;
+    pkD = auxConfig.parkDepth ?? 6.0;
+    auxD = wsD + pkD;
+    totalAuxW = wsW;
+
+    wsX = auxX - wsW / 2;
+    wsZ = auxZ - auxD / 2;
+
+    pkX = auxX - pkW / 2;
+    pkZ = auxZ - auxD / 2 + wsD;
+
+    dxf.addRect("A-SITE-BUILD", ...tf.rectToDxf(wsX, wsZ, wsW, wsD));
+    for (const o of auxConfig.workshopOpenings ?? []) {
+      const wcx = wsX + wsW / 2;
+      const alongX = o.wall === "S" || o.wall === "N";
+      const ow = alongX ? o.width : 0.12;
+      const od = alongX ? 0.12 : o.width;
+      let cx = wcx;
+      let cz = wsZ + wsD / 2;
+      if (o.wall === "S") { cx += o.offset; cz += wsD / 2; }
+      if (o.wall === "N") { cx += o.offset; cz -= wsD / 2; }
+      if (o.wall === "E") { cx += wsW / 2; cz += o.offset; }
+      if (o.wall === "W") { cx -= wsW / 2; cz += o.offset; }
+      dxf.addRect("A-SITE-BUILD", ...tf.rectToDxf(cx - ow / 2, cz - od / 2, ow, od));
+    }
+    const [wsCX, wsCY] = tf.toDxf(wsX + wsW / 2, wsZ + wsD / 2);
+    dxf.addText("A-TITLE", wsCX, wsCY + 140, "DÍLNA", { height: 200, hAlign: 1, vAlign: 2 });
+    dxf.addText("A-TITLE", wsCX, wsCY - 140, `${wsW}×${wsD} m`, { height: 160, hAlign: 1, vAlign: 2 });
+
+    dxf.addRect("A-SITE-BUILD", ...tf.rectToDxf(pkX, pkZ, pkW, pkD));
+    const [pkCX, pkCY] = tf.toDxf(pkX + pkW / 2, pkZ + pkD / 2);
+    dxf.addText("A-TITLE", pkCX, pkCY + 140, "KRYTÉ STÁNÍ", { height: 190, hAlign: 1, vAlign: 2 });
+    dxf.addText("A-TITLE", pkCX, pkCY - 140, `${pkW}×${pkD} m`, { height: 160, hAlign: 1, vAlign: 2 });
+  } else {
+    totalAuxW = auxConfig.parkWidth + (auxConfig.workshopGap ?? 0) + auxConfig.workshopWidth;
+    auxD = auxConfig.depth;
+    wsX = auxX - totalAuxW / 2;
+    dxf.addRect("A-SITE-BUILD", ...tf.rectToDxf(wsX, auxZ - auxD / 2, auxConfig.workshopWidth, auxD));
+    for (const o of auxConfig.workshopOpenings ?? []) {
+      const wcx = wsX + auxConfig.workshopWidth / 2;
+      const alongX = o.wall === "S" || o.wall === "N";
+      const ow = alongX ? o.width : 0.12;
+      const od = alongX ? 0.12 : o.width;
+      let cx = wcx;
+      let cz = auxZ;
+      if (o.wall === "S") { cx += o.offset; cz += auxD / 2; }
+      if (o.wall === "N") { cx += o.offset; cz -= auxD / 2; }
+      if (o.wall === "E") { cx += auxConfig.workshopWidth / 2; cz += o.offset; }
+      if (o.wall === "W") { cx -= auxConfig.workshopWidth / 2; cz += o.offset; }
+      dxf.addRect("A-SITE-BUILD", ...tf.rectToDxf(cx - ow / 2, cz - od / 2, ow, od));
+    }
+    const [wsCX, wsCY] = tf.toDxf(wsX + auxConfig.workshopWidth / 2, auxZ);
+    dxf.addText("A-TITLE", wsCX, wsCY + 140, "DÍLNA", { height: 200, hAlign: 1, vAlign: 2 });
+    dxf.addText("A-TITLE", wsCX, wsCY - 140, `${auxConfig.workshopWidth}×${auxD} m`, { height: 160, hAlign: 1, vAlign: 2 });
+
+    pkX = auxX + totalAuxW / 2 - auxConfig.parkWidth;
+    dxf.addRect("A-SITE-BUILD", ...tf.rectToDxf(pkX, auxZ - auxD / 2, auxConfig.parkWidth, auxD));
+    const [pkCX, pkCY] = tf.toDxf(pkX + auxConfig.parkWidth / 2, auxZ);
+    dxf.addText("A-TITLE", pkCX, pkCY + 140, "KRYTÉ STÁNÍ", { height: 190, hAlign: 1, vAlign: 2 });
+    dxf.addText("A-TITLE", pkCX, pkCY - 140, `${auxConfig.parkWidth}×${auxD} m`, { height: 160, hAlign: 1, vAlign: 2 });
   }
-  const [wsCX, wsCY] = tf.toDxf(wsX + auxConfig.workshopWidth / 2, auxZ);
-  dxf.addText("A-TITLE", wsCX, wsCY + 140, "DÍLNA", {
-    height: 200,
-    hAlign: 1,
-    vAlign: 2,
-  });
-  dxf.addText(
-    "A-TITLE",
-    wsCX,
-    wsCY - 140,
-    `${auxConfig.workshopWidth}×${auxD} m`,
-    {
-      height: 160,
-      hAlign: 1,
-      vAlign: 2,
-    },
-  );
 
-  // Covered parking (East part)
-  const pkX = auxX + totalAuxW / 2 - auxConfig.parkWidth;
-  dxf.addRect(
-    "A-SITE-BUILD",
-    ...tf.rectToDxf(pkX, auxZ - auxD / 2, auxConfig.parkWidth, auxD),
-  );
-  const [pkCX, pkCY] = tf.toDxf(pkX + auxConfig.parkWidth / 2, auxZ);
-  dxf.addText("A-TITLE", pkCX, pkCY + 140, "KRYTÉ STÁNÍ", {
-    height: 190,
-    hAlign: 1,
-    vAlign: 2,
-  });
-  dxf.addText("A-TITLE", pkCX, pkCY - 140, `${auxConfig.parkWidth}×${auxD} m`, {
-    height: 160,
-    hAlign: 1,
-    vAlign: 2,
-  });
-
-  // Common roof overhang (gable draws ridge line along X; mono omits center ridge)
+  // Common roof overhang (flat / mono / gable)
   const isMono = auxConfig.roofType === "mono";
-  const auxOverX = 0.35;
-  const auxOverZ = isMono ? 0.35 : 0.45;
+  const isFlat = auxConfig.roofType === "flat";
+  const auxOverX = isFlat ? 0.05 : 0.35;
+  const auxOverZ = isFlat ? 0.05 : (isMono ? 0.35 : 0.45);
   dxf.addRect(
     "A-ROOF",
     ...tf.rectToDxf(
@@ -1994,7 +2003,7 @@ function renderSitePlanToDxf(
       auxD + auxOverZ * 2,
     ),
   );
-  if (!isMono) {
+  if (!isMono && !isFlat) {
     const auxRidgeA = tf.toDxf(auxX - totalAuxW / 2 - auxOverX, auxZ);
     const auxRidgeB = tf.toDxf(auxX + totalAuxW / 2 + auxOverX, auxZ);
     dxf.addLine(

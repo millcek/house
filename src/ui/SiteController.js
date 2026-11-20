@@ -95,7 +95,8 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
   });
 
   btnSiteExportDxf?.addEventListener('click', () => {
-    downloadFloorPlanDxf(defaultDesign, {
+    const currentDesign = store.getState().activeDesign || defaultDesign;
+    downloadFloorPlanDxf(currentDesign, {
       sheet: 'site',
       siteConfig,
       auxConfig,
@@ -103,9 +104,9 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
     });
   });
 
-  function render({ site }) {
+  function render({ site, activeDesign }) {
     const { housePos, setbacks, footprintVisible } = site;
-    const houseDesign = defaultDesign;
+    const houseDesign = activeDesign || defaultDesign;
     const metrics = computeBuiltUpArea(siteConfig, auxConfig, houseDesign);
 
     if (valPosX) valPosX.textContent = `${housePos.x}m`;
@@ -175,7 +176,7 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
     }
   }
 
-  store.subscribe(['site'], (state) => render(state));
+  store.subscribe(['site', 'activeDesign', 'activeModelId'], (state) => render(state));
   // Compute initial setbacks & built-up area metrics
   applyHouseTransform({});
 }

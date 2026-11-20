@@ -30,17 +30,19 @@ export function initFloorPlanController(
   );
 
   function getSchedules() {
+    const design = store.getState().activeDesign || defaultDesign;
     return {
-      f1: computeRoomSchedule(defaultDesign.floor1?.rooms || [], defaultDesign.floor1),
-      f2: computeRoomSchedule(defaultDesign.floor2?.rooms || [], defaultDesign.floor2),
+      f1: computeRoomSchedule(design.floor1?.rooms || [], design.floor1),
+      f2: computeRoomSchedule(design.floor2?.rooms || [], design.floor2),
     };
   }
 
   function applyVisibilityAndClip(floorMode, labelsVisible, furnitureVisible, sliceHeight) {
     const model = getActiveConceptModel();
-    const c1Y = defaultDesign.ceilingSlab?.y ?? 2.95;
-    const c2Y = defaultDesign.roof?.y ?? defaultDesign.ceiling2Slab?.y ?? 6.12;
-    const maxH = Number((c2Y + (defaultDesign.roof?.height ?? 2.0)).toFixed(1));
+    const design = store.getState().activeDesign || defaultDesign;
+    const c1Y = design.ceilingSlab?.y ?? 2.95;
+    const c2Y = design.roof?.y ?? design.ceiling2Slab?.y ?? 6.12;
+    const maxH = Number((c2Y + (design.roof?.height ?? 2.0)).toFixed(1));
 
     if (model) {
       if (model.furniture1np) model.furniture1np.visible = Boolean(furnitureVisible);
@@ -137,28 +139,36 @@ export function initFloorPlanController(
   }
 
   function renderSchedule(activeScheduleFloor, activeRoomId) {
+    const design = store.getState().activeDesign || defaultDesign;
+    const hasFloor2 = Boolean(design.floor2);
     const { f1, f2 } = getSchedules();
     if (tabFloor1np)
-      tabFloor1np.textContent = `1.NP (${f1.interiorTotalSqm.toFixed(1)} m²)`;
-    if (tabFloor2np)
-      tabFloor2np.textContent = `2.NP (${f2.interiorTotalSqm.toFixed(1)} m²)`;
+      tabFloor1np.textContent = hasFloor2
+        ? `1.NP (${f1.interiorTotalSqm.toFixed(1)} m²)`
+        : `1.NP Bungalov (${f1.interiorTotalSqm.toFixed(1)} m²)`;
+    if (tabFloor2np) {
+      tabFloor2np.style.display = hasFloor2 ? "" : "none";
+      if (hasFloor2) {
+        tabFloor2np.textContent = `2.NP (${f2.interiorTotalSqm.toFixed(1)} m²)`;
+      }
+    }
 
     [tabFloor1np, tabFloor2np].forEach((t) =>
       t?.classList.remove("btn-primary"),
     );
-    if (activeScheduleFloor === "2np") {
+    if (hasFloor2 && activeScheduleFloor === "2np") {
       tabFloor2np?.classList.add("btn-primary");
     } else {
       tabFloor1np?.classList.add("btn-primary");
     }
 
-    const rooms = activeScheduleFloor === "2np" ? f2.rooms : f1.rooms;
+    const rooms = (hasFloor2 && activeScheduleFloor === "2np") ? f2.rooms : f1.rooms;
     if (!roomScheduleContainer) return;
 
     roomScheduleContainer.innerHTML = rooms
       .map(
         (r) => `
-        <div class="room-item${r.id === activeRoomId ? " active" : ""}" data-id="${r.id}" data-floor="${activeScheduleFloor}" title="${r.desc}">
+        <div class="room-item${r.id === activeRoomId ? " active" : ""}" data-id="${r.id}" data-floor="${hasFloor2 ? activeScheduleFloor : '1np'}" title="${r.desc}">
           <span class="room-item-name">
             <span class="room-item-id">${r.id}</span>
             ${r.name}
@@ -178,6 +188,18 @@ export function initFloorPlanController(
       activeScheduleFloor,
       activeRoomId,
     } = state;
+    const design = store.getState().activeDesign || defaultDesign;
+    const hasFloor2 = Boolean(design.floor2);
+
+    if (btnSidebar2np) {
+      btnSidebar2np.style.display = hasFloor2 ? "" : "none";
+    }
+
+    if (!hasFloor2 && (floorMode === "2np" || activeScheduleFloor === "2np")) {
+      store.setState({ floorMode: "1np", activeScheduleFloor: "1np" });
+      return;
+    }
+
     const { f1, f2 } = getSchedules();
 
     [btnSidebarAll, btnSidebar1np, btnSidebar2np].forEach((b) =>
@@ -185,13 +207,15 @@ export function initFloorPlanController(
     );
     if (floorMode === "all") btnSidebarAll?.classList.add("btn-primary");
     if (floorMode === "1np") btnSidebar1np?.classList.add("btn-primary");
-    if (floorMode === "2np") btnSidebar2np?.classList.add("btn-primary");
+    if (hasFloor2 && floorMode === "2np") btnSidebar2np?.classList.add("btn-primary");
 
     if (activeFloorBadge) {
       if (floorMode === "all") activeFloorBadge.textContent = "Celý dům";
       if (floorMode === "1np")
-        activeFloorBadge.textContent = `1.NP Přízemí (${f1.interiorTotalSqm.toFixed(1)} m²)`;
-      if (floorMode === "2np")
+        activeFloorBadge.textContent = hasFloor2
+          ? `1.NP Přízemí (${f1.interiorTotalSqm.toFixed(1)} m²)`
+          : `Přízemní bungalov (${f1.interiorTotalSqm.toFixed(1)} m²)`;
+      if (hasFloor2 && floorMode === "2np")
         activeFloorBadge.textContent = `2.NP Patro (${f2.interiorTotalSqm.toFixed(1)} m²)`;
     }
 

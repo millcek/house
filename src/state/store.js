@@ -84,9 +84,9 @@ export const INITIAL_STATE = {
     housePos: { x: 4.5, z: 1.0, rotY: 0 },
     setbacks: {
       streetRight: 5.0,
-      houseWorkshopGap: 4.0,
+      houseWorkshopGap: 6.0,
       houseTop: 15.0,
-      workshopTop: 4.0,
+      workshopTop: 5.0,
       houseFront: 13.0,
     },
   },

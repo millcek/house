@@ -270,6 +270,9 @@ export function computeRoomAreasFromWalls(rooms = [], floorConfig = {}) {
  * Renders a 3D floating canvas-texture badge for a room.
  */
 export function createRoomBadge(name, areaText, color = '#ffffff') {
+  if (typeof document === 'undefined') {
+    return new THREE.Group();
+  }
   const cvs = document.createElement('canvas');
   cvs.width = 256;
   cvs.height = 110;

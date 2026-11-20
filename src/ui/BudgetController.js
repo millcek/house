@@ -109,10 +109,10 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
       : 'Nákup materiálu svépomocí za stavební ceny + subdodávky odborných profesí (krov, okna, stříkaný potěr, instalace TČ, revize elektro).';
 
       const workshopArea = auxiliaryBuildingConfig
-        ? Math.round(auxiliaryBuildingConfig.workshopWidth * auxiliaryBuildingConfig.depth)
+        ? Math.round(auxiliaryBuildingConfig.workshopDepth ? auxiliaryBuildingConfig.width * auxiliaryBuildingConfig.workshopDepth : auxiliaryBuildingConfig.workshopWidth * auxiliaryBuildingConfig.depth)
         : 26;
       const parkingArea = auxiliaryBuildingConfig
-        ? Math.round(auxiliaryBuildingConfig.parkWidth * auxiliaryBuildingConfig.depth)
+        ? Math.round(auxiliaryBuildingConfig.parkDepth ? auxiliaryBuildingConfig.width * auxiliaryBuildingConfig.parkDepth : auxiliaryBuildingConfig.parkWidth * auxiliaryBuildingConfig.depth)
         : 39;
 
       costHighlightEl.innerHTML = `
@@ -138,6 +138,33 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
           <span class="budget-breakdown-val">${fmtMoney(isTurnkey ? pricing.scopes.exterior.turnkey : pricing.scopes.exterior.self)}</span>
         </div>
       </div>
+
+      ${pricing.phasing ? `
+      <div class="budget-phasing-box" style="margin-top: 12px; padding: 10px 12px; background: rgba(30, 41, 59, 0.7); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.25);">
+        <div style="font-size: 13px; font-weight: 700; color: #93c5fd; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+          <span>📅 Etapizace výstavby (vč. DPH 12 %)</span>
+          <span style="font-size: 11px; font-weight: 600; color: #34d399; background: rgba(52, 211, 153, 0.15); padding: 2px 6px; border-radius: 4px;">Výchozí: Etapa 1 (opt.)</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.15); padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.35);">
+            <span style="color: #6ee7b7; font-weight: 700;">★ 1. etapa (Výchozí RD 6+kk – Spiroll + SPC vinyl + mokré zóny):</span>
+            <span style="font-weight: 700; font-size: 13px; color: #34d399;">${fmtMoney(isTurnkey ? pricing.phasing.stages.stage1Optimized.turnkeyGross : pricing.phasing.stages.stage1Optimized.selfGross)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-left: 8px; font-size: 11px; color: #94a3b8;">
+            <span>↳ dřívější varianta před optimalizací (monolitický ŽB strop + dubové podlahy):</span>
+            <span style="font-weight: 500; color: #94a3b8; text-decoration: line-through;">${fmtMoney(isTurnkey ? pricing.phasing.stages.stage1.turnkeyGross : pricing.phasing.stages.stage1.selfGross)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-top: 3px;">
+            <span style="color: #cbd5e1;">2. etapa: Technologie & komfort (FVE, žaluzie, dešťovka, terasa):</span>
+            <span style="font-weight: 600; color: #f59e0b;">${fmtMoney(isTurnkey ? pricing.phasing.stages.stage2.turnkeyGross : pricing.phasing.stages.stage2.selfGross)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #cbd5e1;">3. etapa: Vedlejší stavba & areál (dílna, stání, brána, oplocení):</span>
+            <span style="font-weight: 600; color: #a78bfa;">${fmtMoney(isTurnkey ? pricing.phasing.stages.stage3.turnkeyGross : pricing.phasing.stages.stage3.selfGross)}</span>
+          </div>
+        </div>
+      </div>
+      ` : ''}
     `;
 
     // Benchmark karty pro Obestavěný prostor a m3 / m2
@@ -385,20 +412,21 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
   }
 
   function render(state) {
-    const { activeModelId, site } = state;
-    const isCustomIfc = activeModelId !== defaultDesign.id;
+    const { activeModelId, activeDesign, site } = state;
+    const currentDesign = activeDesign || defaultDesign;
+    const isCustomIfc = !activeDesign && activeModelId !== defaultDesign.id;
     if (ifcNoteEl) {
       ifcNoteEl.style.display = isCustomIfc ? 'block' : 'none';
     }
 
     const fullBom = computeBillOfMaterials({
-      design: defaultDesign,
+      design: currentDesign,
       auxConfig: auxiliaryBuildingConfig,
       siteConfig,
       housePos: site?.housePos,
     });
 
-    const pricing = estimateBomPrices(fullBom, defaultDesign);
+    const pricing = estimateBomPrices(fullBom, currentDesign);
     lastPricingResult = pricing;
 
     // Přeneseme naceněné položky do výkazu pro zobrazení a CSV export
@@ -410,12 +438,12 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
     const filteredBom = filterBomByScope(pricedBom, activeScopes);
     lastFilteredBom = filteredBom;
 
-    const openingSchedule = buildOpeningSchedule(defaultDesign, {
+    const openingSchedule = buildOpeningSchedule(currentDesign, {
       siteConfig,
       housePos: site?.housePos,
     });
     const techSummary = buildAreaAndTechnicalSummary({
-      design: defaultDesign,
+      design: currentDesign,
       siteConfig,
       auxConfig: auxiliaryBuildingConfig,
       housePos: site?.housePos,
@@ -440,7 +468,8 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
   // Event handlers
   btnExportOpeningsCsv?.addEventListener('click', () => {
     if (!lastOpeningSchedule) return;
-    downloadOpeningsCsv(lastOpeningSchedule, defaultDesign);
+    const currentDesign = store.getState().activeDesign || defaultDesign;
+    downloadOpeningsCsv(lastOpeningSchedule, currentDesign);
   });
 
   btnExportTechCsv?.addEventListener('click', () => {
@@ -454,7 +483,8 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
   });
 
   btnExportCadDxf?.addEventListener('click', () => {
-    downloadFloorPlanDxf(defaultDesign, {
+    const currentDesign = store.getState().activeDesign || defaultDesign;
+    downloadFloorPlanDxf(currentDesign, {
       sheet: 'complete',
       siteConfig,
       auxConfig: auxiliaryBuildingConfig,

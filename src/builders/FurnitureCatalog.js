@@ -40,6 +40,7 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
       group.add(createBoxPart(w, h, d, 0, 0, 0, materials.furniture, true));
       break;
     }
+    case 'shelving':
     case 'wardrobe': {
       const [w = 0.6, h = 2.1, d = 1.6] = size;
       group.add(createBoxPart(w, h, d, 0, 0, 0, materials.frame, true));
@@ -56,6 +57,7 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
       }
       break;
     }
+    case 'kitchen':
     case 'kitchenIsland':
     case 'kitchenCounter': {
       const [w = 1.0, h = 0.9, d = 2.2] = size;
@@ -77,10 +79,10 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
       group.add(createBoxPart(w, h, d, 0, 0, 0, materials.furniture, false));
       break;
     }
+    case 'sofa':
     case 'lSofa': {
       const parts = item.parts || [
-        { size: [2.6, 0.45, 1.0], offset: [0, 0] },
-        { size: [1.0, 0.45, 1.8], offset: [-0.8, -1.4] },
+        { size: [item.size?.[0] || 2.2, 0.45, item.size?.[2] || 1.0], offset: [0, 0] },
       ];
       for (const part of parts) {
         const [pw, ph, pd] = part.size;
@@ -503,6 +505,7 @@ export function buildFurnitureItem(item, materials, floorY = 0, floorName = '1.N
       );
       break;
     }
+    case 'tvUnit':
     case 'tvStand': {
       const [w = 1.6, h = 1.3, d = 0.45] = size;
       const consoleH = 0.45;

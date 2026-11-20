@@ -12,6 +12,7 @@ Tento dokument zachycuje kompletní akční plán nápravy technických, dispozi
 - [x] **Bod 4:** Pročištění 1.NP, komfortnější schodiště a oprava parkování / exteriéru
 - [x] **Bod 5:** Zlevnění vedlejší stavby & kompletní narovnání rozpočtu, BOM, UI a testů
 - [x] **Bod 6:** Zapracování FVE, hospodaření s dešťovou vodou a dveřních omezovačů
+- [x] **Bod 7:** Finanční optimalizace, materiálové úspory a etapizace výstavby (Úspora 1,6 – 2,2 mil. Kč)
 
 ---
 
@@ -183,3 +184,49 @@ Tento dokument zachycuje kompletní akční plán nápravy technických, dispozi
    - Zaznamenáno do architektonických směrnic projektu `AGENTS.md` (Pravidlo 4), specifikace kování `src/budget/specifications.js` i technického listu `src/exports/ProjectSchedules.js`.
    - Všech 7 kolizních dveří (vchodové `1.01`, koupelna `1.03`, zádveří `1.05`, obývák `1.07`, pokoj `2.03`, dětské pokoje `2.07` a `2.08`) má v kování specifikovány skryté integrované omezovače úhlu otevření (95–100°) v horním pantu či zárubni.
    - Zabraňuje nárazu křídla do nábytku, sanity či sousedních dveří při průvanu nebo prudkém otevření.
+
+---
+
+## Bod 7: Finanční optimalizace, materiálové úspory a etapizace výstavby
+**Stav:** ✅ Hotovo
+
+**Kontext a analýza úspor (Otázka šikmin a střechy):**
+1. **Šikminy v patře (podkroví):**
+   - Hloubková analýza prokázala, že zavedení šikmin s nízkou nadezdívkou v patře **peníze neušetří**.
+   - Úspora na obvodovém zdivu a fasádě činí pouze cca 90–120 tis. Kč, zatímco vícenáklady na atypický obytný krov/vazníky, pracné křížové rošty se zateplením v šikmině a nutná střešní okna přesahují 150–220 tis. Kč. Navíc dochází k citelné ztrátě užitné plochy u obvodových stěn pro šatní skříně.
+   - Současná kombinace **plného 2.NP se svislými stěnami výšky 2,95 m + lehkých příhradových vazníků se zatepleným rovným stropem** je staticky i ekonomicky nejoptimálnějším řešením na trhu.
+2. **Střešní konstrukce:**
+   - Sedlová střecha z dřevěných vazníků se skládanou betonovou taškou (cca 604 tis. Kč na klíč / 366 tis. Kč svépomocí) je podstatně levnější než těžká plochá střecha s ŽB deskou a PVC fólií.
+   - Úspory se dosahuje volbou standardní matné povrchové úpravy tašek namísto drahých glazur a lakovaného pozinkovaného plechu klempířských prvků namísto titanzinku.
+
+**Tříetapový plán výstavby (Etapizace cash-flow – Výchozí standard: Etapa 1 opt.):**
+- **Etapa 1 (VÝCHOZÍ STANDARD): Kolaudovatelný rodinný dům (RD 6+kk):**
+  - Plnohodnotná hrubá stavba, střecha, okna s trojskly, zateplení fasády, vnitřní omítky, anhydrit, podlahy, koupelny a WC, tepelné čerpadlo s podlahovkou, elektroinstalace a napojení na inženýrské sítě.
+  - Výchozí materiálové řešení zahrnuje strop z předpjatých panelů Spiroll tl. 200 mm, SPC Rigidní vinyl a obklady pouze v mokrých zónách koupelen.
+  - Ponechána příprava na FVE (chránička na střechu) a příprava na žaluzie Z90 (podomítkové kastlíky a elektro).
+  - Výchozí rozpočet Etapy 1: **7,95 mil. Kč s DPH na klíč** (cca **4,54 mil. Kč svépomocí**). *(Dřívější varianta před materiálovou optimalizací činila 8,21 mil. Kč na klíč / 4,68 mil. Kč svépomocí).*
+- **Etapa 2: Technologie a komfort po nastěhování:**
+  - Montáž FVE 7,2 kWp s baterií 10,6 kWh (využití dotačního programu NZÚ zpětně po kolaudaci).
+  - Montáž motorů a lamel předokenních žaluzií Z90 (odklad 75 % nákladů stínění).
+  - Akumulační nádrž dešťové vody 7,0 m³, zahradní terasa a pergola, svislý shoz prádla.
+  - Rozpočet Etapy 2: **0,83 mil. Kč s DPH na klíč** (cca **0,59 mil. Kč svépomocí**).
+- **Etapa 3: Vedlejší stavba a areál:**
+  - Samostatná zděná dílna (26 m²), kryté stání pro 2 auta (39 m²), zateplení a klima dílny.
+  - Trvalé oplocení pozemku s podezdívkou a posuvná vjezdová brána s pohonem (dočasně stavební pletivo).
+  - Rozpočet Etapy 3: **1,74 mil. Kč s DPH na klíč** (cca **0,95 mil. Kč svépomocí**).
+
+**Materiálové záměny v Etapě 1 (Další úspora cca 261 tis. Kč s DPH):**
+1. **Strop nad 1.NP:** Záměna monolitické ŽB desky za **předpjaté panely Spiroll tl. 200 mm** (úspora **98 000 Kč na klíč / 50 000 Kč svépomocí** a eliminace měsíční technologické pauzy bednění).
+2. **Podlahové krytiny:** Sjednocení obytných částí na **SPC Rigidní vinyl** namísto dubového masivu (úspora **55 000 Kč na klíč / 35 000 Kč svépomocí** + nižší tepelný odpor pro podlahové topení).
+3. **Obklady koupelen:** Obkládání pouze bezprostředních **mokrých zón** – sprchový kout, vana, pruh za umyvadlem (úspora **48 000 Kč na klíč / 22 000 Kč svépomocí**).
+4. **Dešťová voda:** Zjednodušení na čistou zahradní zálivku bez zdvojeného potrubí pro toalety (úspora **32 000 Kč na klíč / 18 500 Kč svépomocí**).
+
+*Výsledná cena optimalizované Etapy 1 k okamžitému bydlení:*
+* **Na klíč:** **cca 7,95 mil. Kč s DPH**
+* **Svépomocí / přímé řízení řemesel:** **cca 4,54 mil. Kč s DPH**
+
+**Implementace v kódu:**
+- Doplněna funkce `computeOptimizationPhasing` a integrace do `estimateBomPrices` v `src/budget/priceEstimator.js`.
+- Doplněny skladby Spiroll a popis etapizace v `src/budget/specifications.js`.
+- Interaktivní panel doporučené etapizace zabudován do rozpočtového přehledu `src/ui/BudgetController.js`.
+- Vytvořen ucelený manuál optimalizace a etapizace `ETAPIZACE_A_USPORNY_PLAN.md`.

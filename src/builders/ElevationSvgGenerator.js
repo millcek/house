@@ -1412,7 +1412,12 @@ function renderElevTitleBlock(x, y, width, designConfig, units) {
   parts.push(`<line x1="${width * 0.78}" y1="104" x2="${width * 0.78}" y2="${h}" stroke="#334155" stroke-width="1.1" />`);
 
   parts.push(`<text class="cad-title-label" x="14" y="16">PROJEKT / OBJEKT</text>`);
-  parts.push(`<text class="cad-title-main" x="14" y="40">RODINNÝ DŮM 6+KK · VOJÁČKOVI TROUBELICE</text>`);
+  const projectTitle = String(
+    designConfig.projectTitle ||
+    designConfig.title ||
+    (designConfig.id === "compact-5kk" ? "RODINNÝ DŮM 5+KK · VOJÁČKOVI TROUBELICE" : "RODINNÝ DŮM 6+KK · VOJÁČKOVI TROUBELICE")
+  ).toUpperCase();
+  parts.push(`<text class="cad-title-main" x="14" y="40">${esc(projectTitle)}</text>`);
 
   parts.push(`<text class="cad-title-label" x="14" y="71">OBSAH VÝKRESU</text>`);
   parts.push(`<text class="cad-title-sub" x="14" y="92">POHLEDY — VÝCHODNÍ, JIŽNÍ, ZÁPADNÍ, SEVERNÍ (${wM} × ${lM} m)</text>`);

@@ -1,4 +1,9 @@
 import { defaultDesign } from '../designs/index.js';
+import {
+  listAssemblies,
+  exportAssemblyAsJson,
+  getAssembly,
+} from '../designs/assemblies.js';
 
 /**
  * Manages Model selection, IFC upload & drag-and-drop, scene helper toggles,
@@ -9,6 +14,7 @@ export function initModelAndBimController(store, sceneManager, ifcController, gr
   const modelStatus = document.getElementById('model-status');
   const fileInput = document.getElementById('file-input');
   const btnUpload = document.getElementById('btn-upload');
+  const btnExportAssembly = document.getElementById('btn-export-assembly');
   const dropOverlay = document.getElementById('drop-overlay');
   const loadingOverlay = document.getElementById('loading-overlay');
   const loadingText = document.getElementById('loading-text');
@@ -45,6 +51,20 @@ export function initModelAndBimController(store, sceneManager, ifcController, gr
   }
 
   btnUpload?.addEventListener('click', () => fileInput?.click());
+
+  btnExportAssembly?.addEventListener('click', () => {
+    const activeModelId = store.getState().activeModelId || 'concept';
+    const jsonStr = exportAssemblyAsJson(activeModelId);
+    const assembly = getAssembly(activeModelId);
+    const filename = `${assembly.code || activeModelId}.house.json`;
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
 
   fileInput?.addEventListener('change', (e) => {
     const file = e.target.files?.[0];
@@ -115,9 +135,10 @@ export function initModelAndBimController(store, sceneManager, ifcController, gr
 
   function renderVersionSelect(activeModelId, uploadedModels) {
     if (!versionSelect) return;
-    const options = [
-      `<option value="${defaultDesign.id}">${defaultDesign.label}</option>`,
-    ];
+    const assemblies = listAssemblies();
+    const options = assemblies.map(
+      (a) => `<option value="${a.id}">${a.label}</option>`
+    );
 
     if (uploadedModels.length === 0) {
       options.push('<option value="upload" disabled>-- Drop or load .ifc --</option>');

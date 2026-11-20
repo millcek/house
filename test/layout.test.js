@@ -11,6 +11,16 @@ import {
 } from '../src/analysis/LayoutAnalyzer.js';
 import { generateFloorPlanSvg } from '../src/builders/FloorPlanSvgGenerator.js';
 import { dreamHouseV1 } from '../src/designs/dreamHouseV1.js';
+import { compactHouse5kk } from '../src/designs/compactHouse5kk.js';
+import { bungalowHouse5kk } from '../src/designs/bungalowHouse5kk.js';
+import {
+  ASSEMBLY_6KK,
+  ASSEMBLY_5KK,
+  ASSEMBLY_BUNGALOW_5KK,
+  getAssembly,
+  listAssemblies,
+  exportAssemblyAsJson,
+} from '../src/designs/assemblies.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -557,6 +567,105 @@ describe('Analýza dispozice domu (LayoutAnalyzer)', () => {
         assert.ok(fs.existsSync(pngPath));
         assert.ok(fs.existsSync(svgPath));
       }
+    });
+  });
+
+  describe('Sestavy projektu (ProjectAssembly) a úsporná varianta domu 5+kk (compactHouse5kk)', () => {
+    it('analyzuje kompaktní dům 5+kk: projde s 0 chybami a 0 varováními', () => {
+      const rep = analyzeDesignLayout(compactHouse5kk);
+      assert.equal(rep.summary.errors, 0, `Očekáváno 0 chyb, nalezeno: ${rep.summary.errors}`);
+      assert.equal(rep.summary.warnings, 0, `Očekáváno 0 varování, nalezeno: ${rep.summary.warnings}`);
+    });
+
+    it('ověří plnou průchodnost všech místností v 1.NP i 2.NP u 5+kk (≥ 70 cm)', () => {
+      const rep = analyzeDesignLayout(compactHouse5kk);
+      const rooms1 = rep.floor1.circulation.rooms;
+      const rooms2 = rep.floor2.circulation.rooms;
+
+      for (const r of [...rooms1, ...rooms2]) {
+        assert.ok(r.reachable, `Místnost ${r.roomId} (${r.roomName}) musí být dosažitelná`);
+        assert.ok(r.bottleneckM >= 0.70, `Místnost ${r.roomId} (${r.roomName}) má úzké hrdlo: ${r.bottleneckM} m (min 0.70 m)`);
+      }
+    });
+
+    it('ověří parametry schodiště u 5+kk podle Lehmannova vzorce (600–630 mm)', () => {
+      const rep = analyzeDesignLayout(compactHouse5kk);
+      const stairs = rep.floor1.stairsMetrics;
+      assert.ok(stairs, 'Schodiště musí být v analýze 1.NP přítomno');
+      assert.ok(stairs.lehmannMm >= 600 && stairs.lehmannMm <= 630, `Lehmann ${stairs.lehmannMm} mm mimo normu`);
+      assert.equal(stairs.totalRisers, 18, 'Celkový počet stupňů musí být 18');
+    });
+
+    it('ověří sestavy projektu a přepínání sestav (listAssemblies, getAssembly)', () => {
+      const assemblies = listAssemblies();
+      assert.ok(assemblies.length >= 2, 'Musí existovat alespoň 2 sestavy');
+      
+      const a6 = getAssembly('concept');
+      assert.equal(a6.id, 'concept');
+      assert.equal(a6.code, 'RD-6KK-TROUBELICE');
+      assert.ok(a6.projectInfo.parcelNumber, 'Musí obsahovat parcelní číslo');
+      assert.ok(a6.site.width > 0, 'Musí obsahovat rozměry pozemku');
+      assert.ok(a6.aux.depth > 0, 'Musí obsahovat vedlejší stavbu');
+      assert.ok(a6.house.floor1, 'Musí obsahovat dům 6+kk');
+
+      const a5 = getAssembly('compact-5kk');
+      assert.equal(a5.id, 'compact-5kk');
+      assert.equal(a5.code, 'RD-5KK-COMPACT');
+      assert.equal(a5.costSummary.savingsPercent, 30.1);
+      assert.ok(a5.house.floor1, 'Musí obsahovat dům 5+kk');
+    });
+
+    it('vyexportuje sestavu do platného .house.json formátu se všemi informacemi o projektu', () => {
+      const jsonStr = exportAssemblyAsJson('compact-5kk');
+      assert.ok(typeof jsonStr === 'string' && jsonStr.length > 500);
+
+      const parsed = JSON.parse(jsonStr);
+      assert.equal(parsed.schema, 'house.project.assembly.v1');
+      assert.equal(parsed.id, 'compact-5kk');
+      assert.equal(parsed.code, 'RD-5KK-COMPACT');
+      assert.ok(parsed.projectInfo.name.includes('Vojáčkovi'));
+      assert.equal(parsed.projectInfo.locality, 'Troubelice, Olomoucký kraj');
+      assert.ok(parsed.site.areaSqm > 0);
+      assert.ok(parsed.aux.width > 0);
+      assert.ok(parsed.house.floor1.walls.length > 0);
+      assert.ok(parsed.costSummary.savingsPercent > 25);
+      assert.ok(parsed.specifications.masonry);
+    });
+
+    it('ověří dispozici a ergonomii přízemního bungalovu 5+kk (bez schodů, bez 2.NP, 0 chyb, 0 varování)', () => {
+      const rep = analyzeDesignLayout(bungalowHouse5kk);
+      assert.equal(rep.summary.errors, 0, `Bungalov 5+kk má ${rep.summary.errors} chyb`);
+      assert.equal(rep.summary.warnings, 0, `Bungalov 5+kk má ${rep.summary.warnings} varování`);
+
+      // Musí být ryze přízemní (bez 2.NP)
+      assert.equal(bungalowHouse5kk.floor2, null, 'Bungalov nesmí mít 2.NP');
+      assert.equal(rep.floor2, null, 'Analýza 2.NP musí být null');
+
+      // Všechny místnosti musí mít volný průchod min. 70 cm
+      const rooms = rep.floor1.circulation.rooms;
+      assert.ok(rooms.length >= 10, 'Bungalov musí mít alespoň 10 místností (5 pokojů + zázemí)');
+      for (const r of rooms) {
+        assert.ok(r.reachable, `Místnost ${r.roomId} (${r.roomName}) musí být dosažitelná`);
+        assert.ok(r.bottleneckM >= 0.65, `Místnost ${r.roomId} (${r.roomName}) má úzké hrdlo: ${r.bottleneckM} m (min 0.65 m)`);
+      }
+
+      // Žádné schodiště
+      assert.ok(!rep.floor1.stairsMetrics, 'Bungalov nesmí obsahovat schodiště');
+    });
+
+    it('ověří sestavu přízemního bungalovu 5+kk (ASSEMBLY_BUNGALOW_5KK, úspora 34 %)', () => {
+      const aBung = getAssembly('bungalow-5kk');
+      assert.equal(aBung.id, 'bungalow-5kk');
+      assert.equal(aBung.code, 'RD-5KK-BUNGALOW');
+      assert.equal(aBung.costSummary.savingsPercent, 34.0);
+      assert.equal(aBung.costSummary.optimizedPhase1Czk, 5050000);
+      assert.equal(aBung.house.floor2, null);
+      assert.ok(aBung.projectInfo.disposition.includes('5+kk'));
+
+      const jsonStr = exportAssemblyAsJson('bungalow-5kk');
+      const parsed = JSON.parse(jsonStr);
+      assert.equal(parsed.id, 'bungalow-5kk');
+      assert.equal(parsed.house.floor2, null);
     });
   });
 });

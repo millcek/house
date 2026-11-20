@@ -29,6 +29,7 @@ import {
   generateTechnicalReportHtml,
   generateTechnicalSummaryCsv,
 } from "../src/exports/ScheduleExporters.js";
+import { buildHouseModel } from "../src/builders/HouseBuilder.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -551,10 +552,10 @@ describe("Exporty pro projektanty a architekty (DXF, Výpisy, Bilance TZ)", () =
       });
 
       assert.equal(summary.site.plotAreaSqm, 1076);
-      assert.equal(summary.site.totalBuiltUpSqm, 184.3);
-      assert.equal(summary.site.totalRatioPct, 17.1);
+      assert.equal(summary.site.totalBuiltUpSqm, 176.8);
+      assert.equal(summary.site.totalRatioPct, 16.4);
       assert.equal(summary.setbacks.streetRight, 5.0);
-      assert.equal(summary.setbacks.houseWorkshopGap, 4.0);
+      assert.equal(summary.setbacks.houseWorkshopGap, 6.0);
       assert.equal(summary.setbacks.neighborWest, 14.0);
 
       const expectedVol = computeHouseVolume(dreamHouseV1);
@@ -594,8 +595,8 @@ describe("Exporty pro projektanty a architekty (DXF, Výpisy, Bilance TZ)", () =
         "Bilance CSV musí obsahovat Excel vzorce pro součty ploch",
       );
       assert.ok(techCsv.includes("URBANISTICKÁ BILANCE POZEMKU"));
-      assert.ok(techCsv.includes("184,3"));
-      assert.ok(techCsv.includes("17,1"));
+      assert.ok(techCsv.includes("176,8"));
+      assert.ok(techCsv.includes("16,4"));
 
       const html = generateTechnicalReportHtml(techSummary, openingSchedule);
       assert.ok(html.includes("<!DOCTYPE html>"));
@@ -739,16 +740,8 @@ describe("Exporty pro projektanty a architekty (DXF, Výpisy, Bilance TZ)", () =
         bz2 > hz1 + 1e-4;
 
       const { canopy, eastWalkway } = auxiliaryBuildingConfig;
-      assert.ok(canopy);
-      const cx1 = ax + canopy.pos[0] - canopy.size[0] / 2;
-      const cx2 = ax + canopy.pos[0] + canopy.size[0] / 2;
-      const cz1 = az + canopy.pos[2] - canopy.size[2] / 2;
-      const cz2 = az + canopy.pos[2] + canopy.size[2] / 2;
-      assert.equal(
-        overlapsHouse(cx1, cx2, cz1, cz2),
-        false,
-        "Krytý chodník nesmí zasahovat do půdorysu domu",
-      );
+      assert.equal(canopy, null, "Krytý chodník odpadá – stání přiléhá k domu");
+      assert.equal(az + auxiliaryBuildingConfig.depth / 2, hz1, "Vedlejší stavba přiléhá k severní stěně domu");
 
       assert.ok(eastWalkway);
       const ex1 = ax + eastWalkway.pos[0] - eastWalkway.size[0] / 2;
@@ -759,6 +752,20 @@ describe("Exporty pro projektanty a architekty (DXF, Výpisy, Bilance TZ)", () =
         overlapsHouse(ex1, ex2, ez1, ez2),
         false,
         "Východní chodník nesmí zasahovat do půdorysu domu",
+      );
+    });
+
+    it("model domu se sedlovou střechou nevytváří přečnívající desku stropu (ceiling2Slab)", () => {
+      const dummyMat = {};
+      const model = buildHouseModel(dreamHouseV1, dummyMat);
+      assert.ok(model.roofGroup, "Model musí mít roofGroup");
+      const slabsInRoof = model.roofGroup.children.filter(
+        (c) => c.userData?.bim?.type === "IfcSlab",
+      );
+      assert.equal(
+        slabsInRoof.length,
+        0,
+        "Při existenci sedlové střechy nesmí roofGroup obsahovat plochou desku IfcSlab (procházela by střechou)",
       );
     });
   });

@@ -531,7 +531,9 @@
               <div class="form-row">
                 <label for="version-select" class="field-label">Zvolený model:</label>
                 <select id="version-select" class="select-custom" style="width: 100%;">
-                  <option value="concept">Concept Massing (Built-in)</option>
+                  <option value="concept">Rodinný dům 6+kk · Vojáčkovi Troubelice (147 m²)</option>
+                  <option value="compact-5kk">Rodinný dům 5+kk · Úsporná varianta -30 % (111 m²)</option>
+                  <option value="bungalow-5kk">Přízemní bungalov 5+kk · Bezbariérový dům bez schodů (102 m²)</option>
                   <option value="upload" disabled>-- Drop or load .ifc --</option>
                 </select>
               </div>
@@ -540,6 +542,9 @@
                 <input type="file" id="file-input" accept=".ifc" style="display: none;" />
                 <button id="btn-upload" class="btn btn-primary btn-full">
                   📁 Nahrát vlastní .IFC soubor
+                </button>
+                <button id="btn-export-assembly" class="btn btn-secondary btn-full" style="margin-top: 6px;">
+                  📦 Exportovat sestavu projektu (.house.json)
                 </button>
               </div>
 

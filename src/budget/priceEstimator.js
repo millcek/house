@@ -242,10 +242,12 @@ export function priceItem(item) {
     [/Vnější omítka dílny/, 380, 960],
     [/Vnitřní omítka \/ nátěr zdiva dílny/, 195, 580],
     [/Elektroinstalace dílny/, 24000, 42000],
-    [/krokve a vaznice pultové střechy/i, 10500, 17500],
+    [/krokve a vaznice/i, 10500, 17500],
     [/OSB záklop \+ pojistná hydroizolace/i, 360, 740],
-    [/falcovaná plechová krytina/i, 540, 1180],
-    [/oplechování atiky a závětrné lišty/i, 320, 620],
+    [/hydroizolační souvrství ploché střechy|SBS modifikovaný|falcovaná plechová krytina/i, 380, 780],
+    [/Lamelová dřevěná zástěna/i, 18000, 32000],
+    [/Wallbox pro elektromobil/i, 14000, 22000],
+    [/stěnové dilatační oplechování|oplechování atiky a závětrné lišty/i, 320, 620],
     [/podokapní žlab R125 \+ svod/i, 420, 840],
     [/Vrata do dílny/, 31000, 46000],
     [/Dílna – zateplení stěn ETICS/, 680, 1550],
@@ -387,5 +389,155 @@ export function estimateBomPrices(bomResult, design) {
       turnkeyPerM2: Math.round(scopes.house.turnkey / interiorArea),
     },
     sections,
+    phasing: computeOptimizationPhasing({ totals: { selfNet: totalSelf, turnkeyNet: totalTurnkey }, scopes, sections }),
+  };
+}
+
+/**
+ * Spočítá etapizaci a materiálové optimalizace pro úsporu nákladů.
+ *
+ * Rozděluje celkový rozpočet do 3 logických etap výstavby:
+ * - Etapa 1: Kolaudovatelný rodinný dům (RD 6+kk s čistou obálkou, kompletním TČ, podlahovkou, podlahami a sanitou)
+ * - Etapa 2: Technologie a komfort (FVE, motory žaluzií, dešťovka pro WC, terasa s pergolou, shoz prádla)
+ * - Etapa 3: Vedlejší stavba a areál (zděná dílna, kryté stání, trvalé oplocení pozemku a vjezdová brána)
+ */
+export function computeOptimizationPhasing(priced) {
+  const VAT_RATE = 0.12;
+
+  let s2Turnkey = 0;
+  let s2Self = 0;
+  let s3Turnkey = 0;
+  let s3Self = 0;
+
+  const stage2Items = [];
+  const stage3Items = [];
+
+  for (const s of priced.sections) {
+    for (const it of s.items) {
+      if (/FVE|Fotovoltaická/i.test(it.name)) {
+        const tCost = Math.max(0, it.costTurnkey - 15000);
+        const sCost = Math.max(0, it.costSelf - 10000);
+        s2Turnkey += tCost;
+        s2Self += sCost;
+        stage2Items.push({ name: 'FVE 7,2 kWp + 10,6 kWh baterie (při stavbě jen příprava)', costTurnkey: tCost, costSelf: sCost });
+      } else if (/Venkovní žaluzie Z90/i.test(it.name)) {
+        // Ponechána 25% investice na podomítkové kastlíky a elektro v etapě 1, odloženo 75% na motory a lamely
+        const tCost = Math.round(it.costTurnkey * 0.75);
+        const sCost = Math.round(it.costSelf * 0.75);
+        s2Turnkey += tCost;
+        s2Self += sCost;
+        stage2Items.push({ name: 'Venkovní žaluzie Z90 – motory a lamely (ponechány kastlíky)', costTurnkey: tCost, costSelf: sCost });
+      } else if (/nádrž na dešťovou|Rozvod užitkové/i.test(it.name)) {
+        s2Turnkey += it.costTurnkey;
+        s2Self += it.costSelf;
+        stage2Items.push({ name: it.name, costTurnkey: it.costTurnkey, costSelf: it.costSelf });
+      } else if (/shoz prádla/i.test(it.name)) {
+        s2Turnkey += it.costTurnkey;
+        s2Self += it.costSelf;
+        stage2Items.push({ name: it.name, costTurnkey: it.costTurnkey, costSelf: it.costSelf });
+      } else if (it.scope === 'exterior' && /Krytá pergola|Zahradní terasa.*dlažba|Terasa – nosný|Terasa – rektifikační|Terasa – skryté|Terasa – geotextilie/i.test(it.name)) {
+        s2Turnkey += it.costTurnkey;
+        s2Self += it.costSelf;
+        stage2Items.push({ name: it.name, costTurnkey: it.costTurnkey, costSelf: it.costSelf });
+      } else if (it.scope === 'aux') {
+        s3Turnkey += it.costTurnkey;
+        s3Self += it.costSelf;
+        stage3Items.push({ name: it.name, costTurnkey: it.costTurnkey, costSelf: it.costSelf });
+      } else if (/Oplocení pozemku|Sloupky oplocení|Vjezdová brána|Branka|Vjezd ke krytému stání/i.test(it.name)) {
+        s3Turnkey += it.costTurnkey;
+        s3Self += it.costSelf;
+        stage3Items.push({ name: it.name, costTurnkey: it.costTurnkey, costSelf: it.costSelf });
+      }
+    }
+  }
+
+  const totalTurnkey = priced.totals.turnkeyNet;
+  const totalSelf = priced.totals.selfNet;
+
+  const s1Turnkey = totalTurnkey - s2Turnkey - s3Turnkey;
+  const s1Self = totalSelf - s2Self - s3Self;
+
+  const materialOptimizations = [
+    {
+      id: 'spiroll',
+      name: 'Strop nad 1.NP: předpjaté panely Spiroll tl. 200 mm namísto monolitického ŽB',
+      desc: 'Rychlá montáž jeřábem za 1 den bez týdnů systémového bednění, stojek a armování. Okamžitá úspora na pronájmu bednění a výztuži.',
+      savingsTurnkey: 98000,
+      savingsSelf: 50000,
+    },
+    {
+      id: 'spc-vinyl',
+      name: 'Podlahy obytné části: sjednocení na kvalitní SPC Rigidní vinyl namísto dubu',
+      desc: 'Nižší tepelný odpor pro podlahové vytápění, 100% voděodolnost, vysoká zátěžová třída a nižší pořizovací i kladečské náklady.',
+      savingsTurnkey: 55000,
+      savingsSelf: 35000,
+    },
+    {
+      id: 'bath-wet-zones',
+      name: 'Koupelny: obklady pouze v přímých mokrých zónách (sprcha, vana, pruh za umyvadlem)',
+      desc: 'Místo celoplošného obkladu do stropu (67 m²) se obloží exponované zóny (cca 38 m²), zbytek omyvatelná hydrofobní malba.',
+      savingsTurnkey: 48000,
+      savingsSelf: 22000,
+    },
+    {
+      id: 'rainwater-simple',
+      name: 'Dešťová voda: zjednodušení na čistou zahradní zálivku (bez zdvojeného rozvodu k WC)',
+      desc: 'Odpadá zdvojené potrubí užitkové vody, jemná vícestupňová filtrace a automatická dopouštěcí jednotka.',
+      savingsTurnkey: 32000,
+      savingsSelf: 18500,
+    },
+  ];
+
+  const totalMatSavingsTurnkey = materialOptimizations.reduce((acc, m) => acc + m.savingsTurnkey, 0);
+  const totalMatSavingsSelf = materialOptimizations.reduce((acc, m) => acc + m.savingsSelf, 0);
+
+  return {
+    stages: {
+      stage1: {
+        id: 'stage1',
+        title: 'Etapa 1: Kolaudovatelný rodinný dům (RD 6+kk)',
+        desc: 'Kompletní hrubá stavba, střecha, okna, zateplení fasády, vnitřní omítky, podlahy, sanita, TČ s podlahovkou, elektro a inženýrské přípojky nutné ke kolaudaci.',
+        turnkeyNet: s1Turnkey,
+        turnkeyGross: Math.round(s1Turnkey * (1 + VAT_RATE)),
+        selfNet: s1Self,
+        selfGross: Math.round(s1Self * (1 + VAT_RATE)),
+      },
+      stage1Optimized: {
+        id: 'stage1Optimized',
+        title: 'Etapa 1 Optimalizovaná (se záměnou materiálů: Spiroll + SPC vinyl + obklady)',
+        desc: 'Kolaudovatelný RD 6+kk při uplatnění materiálových úspor (panely Spiroll, SPC rigidní vinyl a obklady mokrých zón).',
+        turnkeyNet: s1Turnkey - totalMatSavingsTurnkey,
+        turnkeyGross: Math.round((s1Turnkey - totalMatSavingsTurnkey) * (1 + VAT_RATE)),
+        selfNet: s1Self - totalMatSavingsSelf,
+        selfGross: Math.round((s1Self - totalMatSavingsSelf) * (1 + VAT_RATE)),
+      },
+      stage2: {
+        id: 'stage2',
+        title: 'Etapa 2: Technologie a komfort (FVE, žaluzie, terasa, dešťovka)',
+        desc: 'Dokončení pokročilých technologií a zahrady po nastěhování (využití dotací NZÚ pro FVE, montáž motorů žaluzií, dešťová nádrž, terasa s pergolou).',
+        turnkeyNet: s2Turnkey,
+        turnkeyGross: Math.round(s2Turnkey * (1 + VAT_RATE)),
+        selfNet: s2Self,
+        selfGross: Math.round(s2Self * (1 + VAT_RATE)),
+        items: stage2Items,
+      },
+      stage3: {
+        id: 'stage3',
+        title: 'Etapa 3: Vedlejší stavba a areál (dílna, kryté stání, trvalé oplocení)',
+        desc: 'Realizace samostatné zděné dílny (26 m²), krytého parkovacího stání (39 m²), finálního vjezdu a trvalého oplocení pozemku s pojezdovou bránou.',
+        turnkeyNet: s3Turnkey,
+        turnkeyGross: Math.round(s3Turnkey * (1 + VAT_RATE)),
+        selfNet: s3Self,
+        selfGross: Math.round(s3Self * (1 + VAT_RATE)),
+        items: stage3Items,
+      },
+    },
+    materialOptimizations,
+    totalMaterialSavings: {
+      turnkeyNet: totalMatSavingsTurnkey,
+      turnkeyGross: Math.round(totalMatSavingsTurnkey * (1 + VAT_RATE)),
+      selfNet: totalMatSavingsSelf,
+      selfGross: Math.round(totalMatSavingsSelf * (1 + VAT_RATE)),
+    },
   };
 }

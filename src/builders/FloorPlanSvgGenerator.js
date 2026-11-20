@@ -624,6 +624,7 @@ function renderSingleFurnitureItem(item, floorKey) {
       break;
     }
 
+    case "shelving":
     case "wardrobe": {
       // Storage under stairs in 1.05 drawn subtly dashed so stairs remain primary
       const isUnderStairs =
@@ -665,6 +666,7 @@ function renderSingleFurnitureItem(item, floorKey) {
       break;
     }
 
+    case "kitchen":
     case "kitchenCounter": {
       out.push(
         `<rect class="cad-furn-subtle" x="${m2svg(x)}" y="${m2svg(z)}" width="${m2svg(w)}" height="${m2svg(d)}" />`,
@@ -746,14 +748,21 @@ function renderSingleFurnitureItem(item, floorKey) {
       break;
     }
 
+    case "sofa":
     case "lSofa": {
-      for (const part of item.parts || []) {
-        const [pw, , pd] = part.size;
-        const [ox, oz] = part.offset;
-        const px = cx + ox - pw / 2;
-        const pz = cz + oz - pd / 2;
+      if (item.parts && item.parts.length > 0) {
+        for (const part of item.parts) {
+          const [pw, , pd] = part.size;
+          const [ox, oz] = part.offset;
+          const px = cx + ox - pw / 2;
+          const pz = cz + oz - pd / 2;
+          out.push(
+            `<rect class="cad-furn" x="${m2svg(px)}" y="${m2svg(pz)}" width="${m2svg(pw)}" height="${m2svg(pd)}" rx="4" />`,
+          );
+        }
+      } else {
         out.push(
-          `<rect class="cad-furn" x="${m2svg(px)}" y="${m2svg(pz)}" width="${m2svg(pw)}" height="${m2svg(pd)}" rx="4" />`,
+          `<rect class="cad-furn" x="${m2svg(x)}" y="${m2svg(z)}" width="${m2svg(w)}" height="${m2svg(d)}" rx="4" />`,
         );
       }
       break;
@@ -766,6 +775,7 @@ function renderSingleFurnitureItem(item, floorKey) {
       break;
     }
 
+    case "tvUnit":
     case "tvStand": {
       out.push(
         `<rect class="cad-furn" x="${m2svg(x)}" y="${m2svg(z)}" width="${m2svg(w)}" height="${m2svg(d)}" rx="2" />`,
@@ -2303,12 +2313,13 @@ function renderLegend(x, y, width, units, showHatches = true) {
 function renderTitleBlock(x, y, width, designConfig, sheet, units) {
   const h = 152;
   const parts = [];
+  const hasFloor2 = Boolean(designConfig.floor2);
   const docTitle =
     sheet === "both"
-      ? "PŮDORYS 1.NP A 2.NP"
+      ? (hasFloor2 ? "PŮDORYS 1.NP A 2.NP" : "PŮDORYS PŘÍZEMÍ (BUNGALOV)")
       : sheet === "2np"
         ? "PŮDORYS 2.NP (PATRO)"
-        : "PŮDORYS 1.NP (PŘÍZEMÍ)";
+        : (hasFloor2 ? "PŮDORYS 1.NP (PŘÍZEMÍ)" : "PŮDORYS PŘÍZEMÍ (BUNGALOV)");
 
   const wM = (designConfig.footprint?.width ?? 8).toFixed(1).replace(".", ",");
   const lM = (designConfig.footprint?.length ?? 12)
@@ -2335,8 +2346,13 @@ function renderTitleBlock(x, y, width, designConfig, sheet, units) {
   parts.push(
     `<text class="cad-title-label" x="14" y="16">PROJEKT / OBJEKT</text>`,
   );
+  const projectTitle = String(
+    designConfig.projectTitle ||
+    designConfig.title ||
+    (designConfig.id === "compact-5kk" ? "RODINNÝ DŮM 5+KK · VOJÁČKOVI TROUBELICE" : "RODINNÝ DŮM 6+KK · VOJÁČKOVI TROUBELICE")
+  ).toUpperCase();
   parts.push(
-    `<text class="cad-title-main" x="14" y="40">RODINNÝ DŮM 6+KK · VOJÁČKOVI TROUBELICE</text>`,
+    `<text class="cad-title-main" x="14" y="40">${esc(projectTitle)}</text>`,
   );
 
   parts.push(
@@ -2631,27 +2647,32 @@ export function generateFloorPlanSvg(designConfig, options = {}) {
   curY += compass.height + 14;
 
   if (isBoth) {
+    const hasFloor2 = Boolean(designConfig.floor2);
     const t1 = renderRoomScheduleTable(
       sidebarX,
       curY,
       sidebarW,
-      "MÍSTNOSTI 1.NP (PŘÍZEMÍ)",
+      hasFloor2 ? "MÍSTNOSTI 1.NP (PŘÍZEMÍ)" : "TABULKA MÍSTNOSTÍ",
       designConfig.floor1,
     );
     parts.push(t1.svg);
     curY += t1.height + 12;
 
-    const t2 = renderRoomScheduleTable(
-      sidebarX,
-      curY,
-      sidebarW,
-      "MÍSTNOSTI 2.NP (PATRO)",
-      designConfig.floor2,
-    );
-    parts.push(t2.svg);
-    curY += t2.height + 12;
+    let t2Total = 0;
+    if (hasFloor2) {
+      const t2 = renderRoomScheduleTable(
+        sidebarX,
+        curY,
+        sidebarW,
+        "MÍSTNOSTI 2.NP (PATRO)",
+        designConfig.floor2,
+      );
+      parts.push(t2.svg);
+      curY += t2.height + 12;
+      t2Total = t2.interiorTotalSqm;
+    }
 
-    const totalInterior = (t1.interiorTotalSqm + t2.interiorTotalSqm)
+    const totalInterior = (t1.interiorTotalSqm + t2Total)
       .toFixed(1)
       .replace(".", ",");
     parts.push(

@@ -1830,19 +1830,24 @@ export function computeBillOfMaterials({
   // ============================================================ 16 VEDLEJŠÍ STAVBA
   if (auxConfig) {
     const A = spec.aux;
+    const isStacked = auxConfig.layout === 'stacked-north-south';
+    const totalWidth = isStacked ? (auxConfig.width ?? 6.5) : (auxConfig.parkWidth + auxConfig.workshopWidth);
+    const depth = auxConfig.depth;
+    const wsW = isStacked ? (auxConfig.width ?? 6.5) : auxConfig.workshopWidth;
+    const wsD = isStacked ? (auxConfig.workshopDepth ?? 4.0) : auxConfig.depth;
+    const pkW = isStacked ? (auxConfig.width ?? 6.5) : auxConfig.parkWidth;
+    const parkWidth = pkW;
+    const workshopWidth = wsW;
+    const pkD = isStacked ? (auxConfig.parkDepth ?? 6.0) : auxConfig.depth;
     const {
-      parkWidth,
-      workshopWidth,
-      depth,
       wallHeight,
       roofType = "gable",
       roofHeight,
       canopy,
       eastWalkway,
     } = auxConfig;
-    const totalWidth = parkWidth + workshopWidth;
-    const workshopPerim = 2 * (workshopWidth + depth);
-    const wallLen = workshopPerim + parkWidth;
+    const workshopPerim = 2 * (wsW + wsD);
+    const wallLen = workshopPerim + (isStacked ? pkD : pkW);
     const rule = masonryRule(spec, A.wallThickness);
     const pcs = 1 / (rule.format[0] * rule.format[1]);
     const gableA = depth * roofHeight; // u pultu dva klíny nad dílnou; u sedlové dva štíty
@@ -1896,11 +1901,11 @@ export function computeBillOfMaterials({
     });
     bom.add(S.aux, {
       name: "Sloupy krytého stání",
-      spec: `ŽB / zděné ${mm(A.pillarSection)}×${mm(A.pillarSection)} mm, výška ${fmt(wallHeight)} m`,
+      spec: `Ocelové / ŽB ${mm(A.pillarSection)}×${mm(A.pillarSection)} mm, výška ${fmt(wallHeight)} m`,
       unit: "ks",
-      qty: 3,
+      qty: isStacked ? 6 : 3,
       scope: sc,
-      calc: "3 ks dle modelu",
+      calc: isStacked ? "6 ks (3 východ + 3 západ pro volný průchod do zahrady)" : "3 ks dle modelu",
     });
     bom.add(S.aux, {
       name: "Ztužující věnec dílny – beton + výztuž",
@@ -1915,10 +1920,10 @@ export function computeBillOfMaterials({
       name: "Podlahová deska dílny – beton",
       spec: `C25/30 drátkobeton, tl. ${mm(A.floorSlabThickness)} mm, hlazený`,
       unit: "m³",
-      qty: workshopWidth * depth * A.floorSlabThickness,
+      qty: wsW * wsD * A.floorSlabThickness,
       waste: 0.03,
       scope: sc,
-      calc: `${fmt(workshopWidth)} × ${fmt(depth)} × ${fmt(A.floorSlabThickness)}`,
+      calc: `${fmt(wsW)} × ${fmt(wsD)} × ${fmt(A.floorSlabThickness)}`,
     });
     bom.add(S.aux, {
       name: "Podsyp štěrk + geotextilie – dílna a stání",
@@ -1933,10 +1938,10 @@ export function computeBillOfMaterials({
       name: "Zpevněná plocha krytého stání",
       spec: "Betonová zámková dlažba tl. 80 mm",
       unit: "m²",
-      qty: parkWidth * depth,
+      qty: pkW * pkD,
       waste: 0.05,
       scope: sc,
-      calc: `${fmt(parkWidth)} × ${fmt(depth)}`,
+      calc: `${fmt(pkW)} × ${fmt(pkD)}`,
     });
     bom.add(S.aux, {
       name: "Vnější omítka dílny",
@@ -1992,16 +1997,16 @@ export function computeBillOfMaterials({
       name: "Dílna – XPS pod podlahovou deskou tl. 100 mm",
       spec: "XPS 300 kPa + PE fólie, okrajový dilatační pás",
       unit: "m²",
-      qty: workshopWidth * depth,
+      qty: wsW * wsD,
       waste: 0.05,
       scope: sc,
-      calc: `${fmt(workshopWidth)} × ${fmt(depth)}`,
+      calc: `${fmt(wsW)} × ${fmt(wsD)}`,
     });
     bom.add(S.auxHeat, {
       name: "Dílna – izolace střechy minerální vata 200 mm + parozábrana",
       spec: "Minerální vata mezi krokve 200 mm, parozábrana, větraná mezera pod plechem",
       unit: "m²",
-      qty: workshopWidth * depth * 1.08,
+      qty: wsW * wsD * 1.08,
       waste: 0.05,
       scope: sc,
       calc: `${fmt(workshopWidth)} × ${fmt(depth)} × 1,08 (jen část nad dílnou)`,
@@ -2010,10 +2015,10 @@ export function computeBillOfMaterials({
       name: "Dílna – SDK podhled (požárně odolný) vč. roštu",
       spec: "SDK RF 12,5 mm + CD/UD profily, nátěr",
       unit: "m²",
-      qty: workshopWidth * depth,
+      qty: wsW * wsD,
       waste: 0.07,
       scope: sc,
-      calc: `${fmt(workshopWidth)} × ${fmt(depth)}`,
+      calc: `${fmt(wsW)} × ${fmt(wsD)}`,
     });
     bom.add(S.auxHeat, {
       name: "Dílna – split klimatizace topení/chlazení 3,5 kW vč. montáže",
@@ -2047,6 +2052,10 @@ export function computeBillOfMaterials({
       "Dílna 4 × 6,5 m je určena pro stolní tenis (volná plocha kolem stolu) a ruční nářadí na pracovním stole u stěny; pevné stroje (kotoučová pila, protahy) se nepočítají.",
     );
 
+    bom.warn(
+      "Uspořádání v ose S–J: kryté stání (6,5 × 6,0 m) je oboustranně otevřené a plně průchozí do zahrady. Funguje jako akustický/požární nárazník (6 m odstup). Dílna (6,5 × 4,0 m, 26 m²) má vlastní zahradní dveře na západ. Celý blok je sjednocen pod moderní plochou střechou s atikou a hydroizolací 2× SBS pás s břidličným posypem.",
+    );
+
     const auxRoofDef = {
       width: totalWidth,
       length: depth,
@@ -2055,55 +2064,79 @@ export function computeBillOfMaterials({
       eaveOverhang: A.eaveOverhang,
       gableOverhang: A.gableOverhang,
     };
-    if (roofType === "mono") {
-      const auxGeo = monoRoofGeometry(auxRoofDef);
+    if (roofType === "flat" || roofType === "mono") {
+      const roofArea = totalWidth * depth;
       const R = spec.roof;
-      const rafters = Math.ceil(auxGeo.span / R.rafterSpacing - EPS) + 1;
-      const rafterVol = rafters * auxGeo.slopeLen * 0.08 * 0.20;
-      const purlinVol = 2 * auxGeo.span * 0.16 * 0.16;
+      const rafters = Math.ceil(depth / R.rafterSpacing - EPS) + 1;
+      const rafterVol = rafters * totalWidth * 0.08 * 0.20;
+      const purlinVol = 2 * depth * 0.16 * 0.16;
       bom.add(S.aux, {
-        name: "Střecha dílny a stání – krokve a vaznice pultové střechy (C24)",
-        spec: `Řezivo C24, sklon ${fmt(auxGeo.pitchDeg, 1)}° ke severu (${rafters} krokví)`,
+        name: "Střecha dílny a stání – nosná konstrukce ploché střechy (krokve a vaznice C24)",
+        spec: `Řezivo C24, spád 2 % vč. ztužení (${rafters} prvků)`,
         unit: "m³",
         qty: rafterVol + purlinVol,
         waste: 0.1,
         scope: sc,
-        calc: `${rafters} krokví × ${fmt(auxGeo.slopeLen)} m + 2 vaznice ${fmt(auxGeo.span)} m`,
+        calc: `${rafters} trámů × ${fmt(totalWidth)} m + 2 vaznice ${fmt(depth)} m`,
       });
       bom.add(S.aux, {
         name: "Střecha dílny a stání – OSB záklop + pojistná hydroizolace",
-        spec: "OSB3 22 mm / bednění + difuzní fólie",
+        spec: "OSB3 22 mm pero-drážka + podkladní SBS pás",
         unit: "m²",
-        qty: auxGeo.area * 1.08,
+        qty: roofArea * 1.05,
         scope: sc,
-        calc: `${fmt(auxGeo.area)} m² × 1,08`,
+        calc: `${fmt(roofArea)} m² × 1,05`,
       });
       bom.add(S.aux, {
-        name: "Střecha dílny a stání – falcovaná plechová krytina (pultová)",
-        spec: `Falcovaný/klik plech pro nízký sklon (${fmt(auxGeo.pitchDeg, 1)}°)`,
+        name: "Střecha dílny a stání – hydroizolační souvrství ploché střechy (2× SBS modifikovaný pás s posypem / fólie)",
+        spec: "2× SBS modifikovaný asfaltový pás tl. 4,0+4,2 mm s hrubozrnným břidličným posypem v antracitu (odolný UV záření a krupobití)",
         unit: "m²",
-        qty: auxGeo.area,
-        waste: 0.08,
+        qty: roofArea,
+        waste: 0.05,
         scope: sc,
-        calc: `${fmt(auxGeo.span)} × ${fmt(auxGeo.slopeLen)} m`,
+        calc: `${fmt(totalWidth)} × ${fmt(depth)} m`,
+      });
+      bom.add(S.aux, {
+        name: "Lamelová dřevěná zástěna do zahrady",
+        spec: "Sibiřský modřín / thermowood 40×60 mm na ocelovém rámu, š. 3,6 m × v. 2,7 m",
+        unit: "kpl",
+        qty: 1,
+        scope: sc,
+        calc: "1 kpl (optická clona zahrady s integrací Wallboxu v ose stání)",
+      });
+      bom.add(S.aux, {
+        name: "Wallbox pro elektromobil 11–22 kW na zástěně stání",
+        spec: "Chytrý nástěnný wallbox Type 2, 3×16A (11 kW) / 3×32A (22 kW), RFID/App, vedení stropem z TM 1.02",
+        unit: "kpl",
+        qty: 1,
+        scope: sc,
+        calc: "1 kpl na západní zástěně stání v ose středové uličky mezi auty",
       });
       bom.add(S.aux, {
         name: "Střecha dílny a stání – oplechování atiky a závětrné lišty",
-        spec: "Poplastovaný / titanzinkový plech",
+        spec: "Atikové plechy v antracitu, r.š. 330 mm",
         unit: "m",
-        qty: auxGeo.span + 2 * auxGeo.slopeLen,
+        qty: 2 * (totalWidth + depth),
         waste: 0.05,
         scope: sc,
-        calc: `jižní hrana ${fmt(auxGeo.span)} + 2 boky ${fmt(auxGeo.slopeLen)} m`,
+        calc: `obvod atiky 2 × (${fmt(totalWidth)} + ${fmt(depth)}) m`,
+      });
+      bom.add(S.aux, {
+        name: "Střecha dílny a stání – stěnové dilatační oplechování u domu",
+        spec: "Přítlačná AL lišta s trvale pružným PU tmelem + dilatační krycí plech vytažený 200 mm na fasádu domu",
+        unit: "m",
+        qty: totalWidth,
+        waste: 0.05,
+        scope: sc,
+        calc: `${fmt(totalWidth)} m styku se severní fasádou domu`,
       });
       bom.add(S.aux, {
         name: "Střecha dílny a stání – podokapní žlab R125 + svod Ø90",
-        spec: "Na severní okapové hraně vč. háků, kotlíku a kolen",
+        spec: "Chrliče a vnitřní/vnější svody s lapačem splavenin",
         unit: "m",
-        qty: auxGeo.span + 2 * (wallHeight + 0.3),
-        waste: 0.05,
+        qty: 10,
         scope: sc,
-        calc: `žlab ${fmt(auxGeo.span)} m + 2 svody ${fmt(wallHeight + 0.3)} m`,
+        calc: "10 m",
       });
     } else {
       const auxGeo = gableRoofGeometry(auxRoofDef);
@@ -2257,9 +2290,10 @@ export function computeBillOfMaterials({
     });
 
     if (auxConfig) {
+      const isStackedAux = auxConfig.layout === 'stacked-north-south';
       const auxMaxX =
         auxConfig.position[0] +
-        (auxConfig.parkWidth + auxConfig.workshopWidth) / 2;
+        (isStackedAux ? (auxConfig.width ?? 6.5) : (auxConfig.parkWidth + (auxConfig.workshopGap ?? 0) + auxConfig.workshopWidth)) / 2;
       const driveLen = sw / 2 - auxMaxX;
       if (driveLen > 0.2) {
         bom.add(S.site, {
@@ -2278,7 +2312,7 @@ export function computeBillOfMaterials({
       (roofGeo?.planArea ?? 0) +
       (auxConfig
         ? (auxConfig.roofType === "mono" ? monoRoofGeometry : gableRoofGeometry)({
-            width: auxConfig.parkWidth + auxConfig.workshopWidth,
+            width: auxConfig.layout === 'stacked-north-south' ? (auxConfig.width ?? 6.5) : (auxConfig.parkWidth + auxConfig.workshopWidth),
             length: auxConfig.depth,
             height: auxConfig.roofHeight,
             ridgeAxis: "x",

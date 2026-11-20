@@ -122,197 +122,369 @@ export function buildAuxiliaryBuilding(auxConfig, materials) {
     position,
     canopy,
     eastWalkway,
+    workshopGap = 0,
+    layout = 'east-west',
   } = auxConfig;
-  const totalWidth = parkWidth + workshopWidth;
 
-  // 1. Workshop (West section)
-  const workshopRelX = -totalWidth / 2 + workshopWidth / 2;
-  const workshop = new THREE.Mesh(
-    new THREE.BoxGeometry(workshopWidth, wallHeight, depth),
-    materials.auxWall
-  );
-  workshop.position.set(workshopRelX, wallHeight / 2, 0);
-  workshop.castShadow = true;
-  workshop.receiveShadow = true;
-  workshop.userData.bim = {
-    type: 'IfcBuilding (Dílna)',
-    name: 'Zahradní dílna',
-    floor: 'Pozemek',
-    description: 'Zděná dílna navazující na kryté stání',
-    parameters: {
-      Rozměry: `${workshopWidth} × ${depth} m (${workshopWidth * depth} m²)`,
-      Výška: `${wallHeight} m`,
-    },
-  };
-  group.add(workshop);
+  const isStacked = layout === 'stacked-north-south';
 
-  // 1b. Otvory dílny (vrata, dveře, okna) jako panely mírně předsazené před líc zdi
-  const openingMats = {
-    gate: new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.5 }),
-    door: new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.5 }),
-    window: materials.glass,
-  };
-  for (const o of auxConfig.workshopOpenings ?? []) {
-    const t = 0.06;
-    const alongX = o.wall === 'S' || o.wall === 'N';
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(alongX ? o.width : t, o.height, alongX ? t : o.width),
-      openingMats[o.kind] ?? openingMats.door
-    );
-    const y = o.sill + o.height / 2;
-    const half = (alongX ? depth : workshopWidth) / 2 + t / 2 - 0.01;
-    if (o.wall === 'S') mesh.position.set(workshopRelX + o.offset, y, half);
-    if (o.wall === 'N') mesh.position.set(workshopRelX + o.offset, y, -half);
-    if (o.wall === 'E') mesh.position.set(workshopRelX + half, y, o.offset);
-    if (o.wall === 'W') mesh.position.set(workshopRelX - half, y, o.offset);
-    mesh.userData.bim = {
-      type: o.kind === 'window' ? 'IfcWindow' : 'IfcDoor',
-      name: o.name,
-      floor: 'Pozemek',
-      description: `Otvor dílny ${o.id}`,
-      parameters: {
-        Rozměr: `${Math.round(o.width * 1000)} × ${Math.round(o.height * 1000)} mm`,
-        Parapet: `${Math.round(o.sill * 1000)} mm`,
-      },
-    };
-    group.add(mesh);
-  }
+  if (isStacked) {
+    const width = auxConfig.width ?? 6.5;
+    const parkDepth = auxConfig.parkDepth ?? 6.0;
+    const wsDepth = auxConfig.workshopDepth ?? 4.0;
+    const totalDepth = parkDepth + wsDepth; // 10.0m
 
-  // 2. Covered Parking (East section)
-  const parkRelX = totalWidth / 2 - parkWidth / 2;
+    const wsRelZ = -totalDepth / 2 + wsDepth / 2; // -3.0
+    const parkRelZ = totalDepth / 2 - parkDepth / 2; // +2.0
 
-  const parkFloor = new THREE.Mesh(
-    new THREE.BoxGeometry(parkWidth, 0.08, depth),
-    materials.auxFloor
-  );
-  parkFloor.position.set(parkRelX, 0.04, 0);
-  parkFloor.receiveShadow = true;
-  parkFloor.userData.bim = {
-    type: 'IfcSlab (Parkování)',
-    name: 'Kryté parkovací stání',
-    floor: 'Pozemek',
-    description: 'Zastřešené parkování pro 2 vozy',
-    parameters: {
-      Rozměry: `${parkWidth} × ${depth} m (${parkWidth * depth} m²)`,
-    },
-  };
-  group.add(parkFloor);
-
-  const backWall = new THREE.Mesh(
-    new THREE.BoxGeometry(parkWidth, wallHeight, 0.25),
-    materials.auxWall
-  );
-  backWall.position.set(parkRelX, wallHeight / 2, -depth / 2 + 0.125);
-  backWall.castShadow = true;
-  backWall.receiveShadow = true;
-  group.add(backWall);
-
-  const pillars = [
-    [parkRelX + parkWidth / 2 - 0.15, depth / 2 - 0.15],
-    [parkRelX + parkWidth / 2 - 0.15, -depth / 2 + 0.15],
-    [parkRelX - parkWidth / 2 + 0.15, depth / 2 - 0.15],
-  ];
-  for (const [px, pz] of pillars) {
-    const colH =
-      roofType === 'mono'
-        ? wallHeight + roofHeight * ((pz + depth / 2) / depth)
-        : wallHeight;
-    const col = new THREE.Mesh(new THREE.BoxGeometry(0.25, colH, 0.25), materials.auxPillar);
-    col.position.set(px, colH / 2, pz);
-    col.castShadow = true;
-    group.add(col);
-  }
-
-  // 3. Common roof (low mono-pitch sloping North or traditional gable ridge along X)
-  if (roofType === 'mono') {
-    const roofGroup = new THREE.Group();
-    roofGroup.name = 'Střecha dílny a stání (pultová)';
-    const over = 0.35;
-    const slopeAngle = Math.atan2(roofHeight, depth);
-    const slopeLen = (depth + over * 2) / Math.cos(slopeAngle);
-    const roofSlab = new THREE.Mesh(
-      new THREE.BoxGeometry(totalWidth + over * 2, 0.22, slopeLen),
-      materials.auxRoof
-    );
-    roofSlab.position.set(0, wallHeight + roofHeight / 2 + 0.11, 0);
-    roofSlab.rotation.x = -slopeAngle;
-    roofSlab.castShadow = true;
-    roofSlab.receiveShadow = true;
-    roofSlab.userData.bim = {
-      type: 'IfcRoof',
-      name: 'Pultová střecha dílny a stání',
-      floor: 'Pozemek',
-      description: 'Nízká pultová střecha se spádem k severu',
-      parameters: {
-        Rozměry: `${(totalWidth + over * 2).toFixed(1)} × ${slopeLen.toFixed(1)} m`,
-        Sklon: `${((slopeAngle * 180) / Math.PI).toFixed(1)}°`,
-      },
-    };
-    roofGroup.add(roofSlab);
-
-    // Zděný klín nad dílnou pod zvednutou jižní hranou pultové střechy
-    const wedgeShape = new THREE.Shape();
-    wedgeShape.moveTo(-depth / 2, 0);
-    wedgeShape.lineTo(depth / 2, 0);
-    wedgeShape.lineTo(depth / 2, roofHeight);
-    wedgeShape.closePath();
-    const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, {
-      depth: workshopWidth,
-      bevelEnabled: false,
-    });
-    wedgeGeo.translate(0, 0, -workshopWidth / 2);
-    const wedgeMesh = new THREE.Mesh(wedgeGeo, materials.auxWall);
-    wedgeMesh.rotation.y = -Math.PI / 2;
-    wedgeMesh.position.set(workshopRelX, wallHeight, 0);
-    wedgeMesh.castShadow = true;
-    wedgeMesh.receiveShadow = true;
-    roofGroup.add(wedgeMesh);
-
-    group.add(roofGroup);
-  } else {
-    const roof = buildGableRoof(
-      {
-        width: totalWidth,
-        length: depth,
-        height: roofHeight,
-        y: wallHeight,
-        ridgeAxis: 'x',
-        name: 'Střecha dílny a stání',
-      },
-      materials.auxRoof,
+    // 1. Workshop (North section: 6.5 x 4.0 m)
+    const workshop = new THREE.Mesh(
+      new THREE.BoxGeometry(width, wallHeight, wsDepth),
       materials.auxWall
     );
-    group.add(roof);
-  }
+    workshop.position.set(0, wallHeight / 2, wsRelZ);
+    workshop.castShadow = true;
+    workshop.receiveShadow = true;
+    workshop.userData.bim = {
+      type: 'IfcBuilding (Dílna)',
+      name: 'Zahradní dílna',
+      floor: 'Pozemek',
+      description: 'Zděná dílna na severní straně krytého stání',
+      parameters: {
+        Rozměry: `${width} × ${wsDepth} m (${width * wsDepth} m²)`,
+        Výška: `${wallHeight} m`,
+      },
+    };
+    group.add(workshop);
 
-  // 4. Covered walkway / canopy connecting parking to house
-  if (canopy) {
-    const [cw, ch, cd] = canopy.size;
-    const [cx, cy, cz] = canopy.pos;
-    const canopyMesh = new THREE.Mesh(new THREE.BoxGeometry(cw, ch, cd), materials.auxRoof);
-    canopyMesh.position.set(cx, cy, cz);
-    canopyMesh.castShadow = true;
-    canopyMesh.receiveShadow = true;
-    group.add(canopyMesh);
+    // Otvory dílny
+    const openingMats = {
+      gate: new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.5 }),
+      door: new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.5 }),
+      window: materials.glass,
+    };
+    for (const o of auxConfig.workshopOpenings ?? []) {
+      const t = 0.06;
+      const alongX = o.wall === 'S' || o.wall === 'N';
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(alongX ? o.width : t, o.height, alongX ? t : o.width),
+        openingMats[o.kind] ?? openingMats.door
+      );
+      const y = o.sill + o.height / 2;
+      const half = (alongX ? wsDepth : width) / 2 + t / 2 - 0.01;
+      if (o.wall === 'S') mesh.position.set(o.offset, y, wsRelZ + half);
+      if (o.wall === 'N') mesh.position.set(o.offset, y, wsRelZ - half);
+      if (o.wall === 'E') mesh.position.set(half, y, wsRelZ + o.offset);
+      if (o.wall === 'W') mesh.position.set(-half, y, wsRelZ + o.offset);
+      mesh.userData.bim = {
+        type: o.kind === 'window' ? 'IfcWindow' : 'IfcDoor',
+        name: o.name,
+        floor: 'Pozemek',
+        description: `Otvor dílny ${o.id}`,
+        parameters: {
+          Rozměr: `${Math.round(o.width * 1000)} × ${Math.round(o.height * 1000)} mm`,
+          Parapet: `${Math.round(o.sill * 1000)} mm`,
+        },
+      };
+      group.add(mesh);
+    }
 
-    const walkway = new THREE.Mesh(
-      new THREE.BoxGeometry(canopy.walkWidth, 0.04, cd),
+    // 2. Covered Parking (South section: 6.5 x 6.0 m)
+    const parkFloor = new THREE.Mesh(
+      new THREE.BoxGeometry(width, 0.08, parkDepth),
       materials.auxFloor
     );
-    walkway.position.set(cx, 0.02, cz);
-    walkway.receiveShadow = true;
-    group.add(walkway);
+    parkFloor.position.set(0, 0.04, parkRelZ);
+    parkFloor.receiveShadow = true;
+    parkFloor.userData.bim = {
+      type: 'IfcSlab (Parkování)',
+      name: 'Kryté parkovací stání',
+      floor: 'Pozemek',
+      description: 'Zastřešené parkování pro 2 vozy navazující na dům',
+      parameters: {
+        Rozměry: `${width} × ${parkDepth} m (${width * parkDepth} m²)`,
+      },
+    };
+    group.add(parkFloor);
 
-    const canopyPillarGeo = new THREE.BoxGeometry(0.14, 2.5, 0.14);
-    for (const [px, pz] of canopy.pillars) {
-      const pMesh = new THREE.Mesh(canopyPillarGeo, materials.auxPillar);
-      pMesh.position.set(px, 1.25, pz);
-      pMesh.castShadow = true;
-      group.add(pMesh);
+    // Sloupky krytého stání (oboustranně otevřené – průchozí z předního dvora přímo do zahrady)
+    const pillars = [
+      // Východní strana (vjezd pro auta)
+      [width / 2 - 0.15, parkRelZ + parkDepth / 2 - 0.15],
+      [width / 2 - 0.15, parkRelZ],
+      [width / 2 - 0.15, parkRelZ - parkDepth / 2 + 0.15],
+      // Západní strana (volný průchod do zahrady)
+      [-width / 2 + 0.15, parkRelZ + parkDepth / 2 - 0.15],
+      [-width / 2 + 0.15, parkRelZ],
+      [-width / 2 + 0.15, parkRelZ - parkDepth / 2 + 0.15],
+    ];
+    for (const [px, pz] of pillars) {
+      const col = new THREE.Mesh(new THREE.BoxGeometry(0.22, wallHeight, 0.22), materials.auxPillar);
+      col.position.set(px, wallHeight / 2, pz);
+      col.castShadow = true;
+      group.add(col);
     }
+
+    // 3. Plochá střecha s atikou a hydroizolací (2× SBS pás s břidličným posypem / fólie)
+    const roofGroup = new THREE.Group();
+    roofGroup.name = 'Plochá střecha s atikou (hydroizolace SBS / lepenka)';
+
+    const roofSlab = new THREE.Mesh(
+      new THREE.BoxGeometry(width, 0.22, totalDepth),
+      materials.auxRoof
+    );
+    roofSlab.position.set(0, wallHeight + 0.11, 0);
+    roofSlab.castShadow = true;
+    roofSlab.receiveShadow = true;
+    roofGroup.add(roofSlab);
+
+    // Povrch hydroizolace ploché střechy (antracitový břidličný posyp / UV ochrana)
+    const membraneMat = new THREE.MeshStandardMaterial({
+      color: 0x22262e,
+      roughness: 0.88,
+    });
+    const membraneRoof = new THREE.Mesh(
+      new THREE.BoxGeometry(width - 0.24, 0.05, totalDepth - 0.24),
+      membraneMat
+    );
+    membraneRoof.position.set(0, wallHeight + 0.22 + 0.025, 0);
+    membraneRoof.receiveShadow = true;
+    roofGroup.add(membraneRoof);
+
+    // Obvodová atika v antracitu
+    const atikaMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.4,
+    });
+    const atikaH = 0.22;
+    const atikaT = 0.12;
+    const atikaY = wallHeight + 0.22 + atikaH / 2;
+
+    const atikaN = new THREE.Mesh(new THREE.BoxGeometry(width, atikaH, atikaT), atikaMat);
+    atikaN.position.set(0, atikaY, -totalDepth / 2 + atikaT / 2);
+    roofGroup.add(atikaN);
+
+    const atikaW = new THREE.Mesh(new THREE.BoxGeometry(atikaT, atikaH, totalDepth), atikaMat);
+    atikaW.position.set(-width / 2 + atikaT / 2, atikaY, 0);
+    roofGroup.add(atikaW);
+
+    const atikaE = new THREE.Mesh(new THREE.BoxGeometry(atikaT, atikaH, totalDepth), atikaMat);
+    atikaE.position.set(width / 2 - atikaT / 2, atikaY, 0);
+    roofGroup.add(atikaE);
+
+    // Stěnové dilatační oplechování na styku se severní fasádou domu (ČSN 73 1901)
+    const wallFlashingMat = new THREE.MeshStandardMaterial({
+      color: 0x334155, // Antracitový poplastovaný plech
+      roughness: 0.35,
+      metalness: 0.3,
+    });
+    const wallFlashingH = 0.20;
+    const wallFlashingT = 0.06;
+    const wallFlashing = new THREE.Mesh(
+      new THREE.BoxGeometry(width, wallFlashingH, wallFlashingT),
+      wallFlashingMat
+    );
+    wallFlashing.position.set(0, wallHeight + 0.22 + wallFlashingH / 2, totalDepth / 2 - wallFlashingT / 2);
+    wallFlashing.castShadow = true;
+    roofGroup.add(wallFlashing);
+
+    roofGroup.userData.bim = {
+      type: 'IfcRoof',
+      name: 'Plochá střecha s atikou (hydroizolace 2× SBS pás)',
+      floor: 'Pozemek',
+      description: 'Plochá střecha s atikou nad dílnou a krytým stáním',
+      parameters: {
+        Rozměry: `${width.toFixed(1)} × ${totalDepth.toFixed(1)} m (${(width * totalDepth).toFixed(1)} m²)`,
+        Skladba: 'Trámový strop C24 + OSB záklop 22 mm + 2× SBS modifikovaný asfaltový pás s ochranným břidličným posypem + oplechování atiky 220 mm v antracitu',
+      },
+    };
+    group.add(roofGroup);
+
+    // 2b. Částečná dřevěná lamelová zástěna do zahrady (střední pole 3,6 m mezi západními sloupy)
+    const screenGroup = new THREE.Group();
+    screenGroup.name = 'carport-garden-screen';
+    const screenW = 0.08;
+    const screenH = wallHeight;
+    const screenLen = 3.6;
+    const screenMat = new THREE.MeshStandardMaterial({
+      color: 0x92400e, // Sibiřský modřín / thermowood
+      roughness: 0.75,
+    });
+    const screenBase = new THREE.Mesh(new THREE.BoxGeometry(screenW, screenH, screenLen), screenMat);
+    screenBase.position.set(-width / 2 + 0.15, screenH / 2, parkRelZ);
+    screenBase.castShadow = true;
+    screenBase.receiveShadow = true;
+    screenGroup.add(screenBase);
+
+    screenGroup.userData.bim = {
+      type: 'IfcCovering (Zástěna)',
+      name: 'Dřevěná lamelová zástěna do zahrady',
+      floor: 'Pozemek',
+      description: 'Pohledová clona ze sibiřského modřínu oddělující parkování od zahrady, nesoucí Wallbox v ose stání',
+      parameters: {
+        Rozměry: `Délka 3,6 m, výška ${wallHeight} m`,
+        Materiál: 'Vertikální dřevěné lamely 40×60 mm (sibiřský modřín / thermowood) na ocelovém rámu',
+        Funkce: 'Pohledová clona ze zahrady, ochrana před západním větrem a nosná stěna pro Wallbox v ose středové uličky',
+        Průchody: '2× volný průchod do zahrady šířky 1,2 m (severní u dílny a jižní u domu)',
+      },
+    };
+    group.add(screenGroup);
+
+    // 4. Wallbox pro nabíjení elektromobilu – osazen v ose stání na vnitřním líci západní zástěny
+    const wallboxGroup = new THREE.Group();
+    wallboxGroup.name = 'wallbox-ev-charger';
+    const wallboxGeo = new THREE.BoxGeometry(0.26, 0.38, 0.13);
+    const wallboxMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.4 });
+    const wallboxBody = new THREE.Mesh(wallboxGeo, wallboxMat);
+    wallboxBody.castShadow = true;
+    wallboxGroup.add(wallboxBody);
+
+    // Stavový LED indikátor nabíjení
+    const ledMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+    const ledMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.01), ledMat);
+    ledMesh.position.set(0, 0.08, 0.07);
+    wallboxGroup.add(ledMesh);
+
+    // Zásuvka / konektor Typ 2
+    const plugMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
+    const plugMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.04, 16), plugMat);
+    plugMesh.rotation.x = Math.PI / 2;
+    plugMesh.position.set(0, -0.08, 0.07);
+    wallboxGroup.add(plugMesh);
+
+    // Umístění: na vnitřním líci západní zástěny přímo v čele středové uličky mezi oběma vozy
+    wallboxGroup.rotation.y = Math.PI / 2; // natočeno čelem na východ do středové uličky
+    wallboxGroup.position.set(-width / 2 + 0.15 + screenW / 2 + 0.07, 1.35, parkRelZ);
+    wallboxGroup.userData.bim = {
+      type: 'IfcElectricAppliance (Wallbox)',
+      name: 'Nástěnný Wallbox 11/22 kW na západní zástěně stání',
+      floor: 'Pozemek',
+      description: 'Chytrá nástěnná nabíjecí stanice osazená v čele středové uličky mezi auty na dřevěné zástěně do zahrady',
+      parameters: {
+        Umístění: 'Vnitřní líc západní lamelové zástěny (přesně v ose mezi oběma stáními)',
+        Výkon: '11 kW (3×16A) až 22 kW (3×32A)',
+        Konektor: 'Integrovaný kabel Typ 2 délky 6,5 m (obslouží obě auta středovou uličkou)',
+        Napájení: 'Vedení stropem přístřešku z TM 1.02 přímo na západní střední sloup/zástěnu',
+        Integrace: 'Dynamické řízení přebytků ze střešní FVE 7,2 kWp a baterie 10,6 kWh',
+      },
+    };
+    group.add(wallboxGroup);
+
+    // 5. Zaparkované elektromobily (prostorová zkouška: Peugeot e-208 + VW ID. Buzz)
+    const carsGroup = new THREE.Group();
+    carsGroup.name = 'parked-electric-cars';
+
+    // A) Peugeot e-208 (Jižní stání u zdi domu)
+    const e208Group = new THREE.Group();
+    e208Group.name = 'car-peugeot-e208';
+    const e208Z = parkRelZ + 1.45; // Jižní stání u domu
+    const e208X = 0.25;
+    const e208BodyMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.3, metalness: 0.7 });
+    const e208GlassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 0.8 });
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
+
+    const e208Lower = new THREE.Mesh(new THREE.BoxGeometry(4.06, 0.70, 1.75), e208BodyMat);
+    e208Lower.position.y = 0.14 + 0.35;
+    e208Lower.castShadow = true;
+    e208Group.add(e208Lower);
+
+    const e208Cabin = new THREE.Mesh(new THREE.BoxGeometry(2.30, 0.59, 1.50), e208GlassMat);
+    e208Cabin.position.set(-0.25, 0.14 + 0.70 + 0.295, 0);
+    e208Cabin.castShadow = true;
+    e208Group.add(e208Cabin);
+
+    const wheelGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.22, 16);
+    wheelGeo.rotateX(Math.PI / 2);
+    [[-1.25, 0.78], [-1.25, -0.78], [1.25, 0.78], [1.25, -0.78]].forEach(([wx, wz]) => {
+      const w = new THREE.Mesh(wheelGeo, wheelMat);
+      w.position.set(wx, 0.31, wz);
+      e208Group.add(w);
+    });
+
+    e208Group.position.set(e208X, 0, e208Z);
+    e208Group.userData.bim = {
+      type: 'IfcTransportElement (Automobil)',
+      name: 'Peugeot e-208 GT (50 kWh)',
+      floor: 'Pozemek',
+      description: 'Městský elektromobil zaparkovaný na jižním stání u domu',
+      parameters: {
+        Rozměry: '4 055 × 1 745 × 1 430 mm',
+        'Nabíjecí port': 'Typ 2 / CCS vlevo vzadu (u řidiče)',
+        'Vzdálenost k Wallboxu': '1,4 m (pohodlný přímý dosah kabelu)',
+        'Kapacita baterie': '50 kWh (dojezd cca 350 km WLTP)',
+        'Palubní nabíječka': '11 kW 3-fázová (doba nabíjení 20–80 % cca 2,5 h)',
+      },
+    };
+    carsGroup.add(e208Group);
+
+    // B) Volkswagen ID. Buzz (Severní stání u dílny)
+    const buzzGroup = new THREE.Group();
+    buzzGroup.name = 'car-vw-id-buzz';
+    const buzzZ = parkRelZ - 1.45; // Severní stání u dílny
+    const buzzX = 0.05;
+    const buzzLowerMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.35, metalness: 0.6 });
+    const buzzUpperMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.1 });
+
+    const buzzLower = new THREE.Mesh(new THREE.BoxGeometry(4.71, 0.95, 1.99), buzzLowerMat);
+    buzzLower.position.y = 0.18 + 0.475;
+    buzzLower.castShadow = true;
+    buzzGroup.add(buzzLower);
+
+    const buzzUpper = new THREE.Mesh(new THREE.BoxGeometry(4.40, 0.81, 1.88), buzzUpperMat);
+    buzzUpper.position.set(-0.08, 0.18 + 0.95 + 0.405, 0);
+    buzzUpper.castShadow = true;
+    buzzGroup.add(buzzUpper);
+
+    const buzzGlass = new THREE.Mesh(new THREE.BoxGeometry(4.25, 0.48, 1.90), e208GlassMat);
+    buzzGlass.position.set(-0.05, 0.18 + 0.95 + 0.30, 0);
+    buzzGroup.add(buzzGlass);
+
+    const buzzWheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.24, 16);
+    buzzWheelGeo.rotateX(Math.PI / 2);
+    [[-1.48, 0.89], [-1.48, -0.89], [1.48, 0.89], [1.48, -0.89]].forEach(([wx, wz]) => {
+      const w = new THREE.Mesh(buzzWheelGeo, wheelMat);
+      w.position.set(wx, 0.38, wz);
+      buzzGroup.add(w);
+    });
+
+    buzzGroup.position.set(buzzX, 0, buzzZ);
+    buzzGroup.userData.bim = {
+      type: 'IfcTransportElement (Automobil)',
+      name: 'Volkswagen ID. Buzz Pro (77 kWh)',
+      floor: 'Pozemek',
+      description: 'Rodinný MPV van zaparkovaný na severním stání u dílny',
+      parameters: {
+        Rozměry: '4 712 × 1 985 × 1 937 mm',
+        'Nabíjecí port': 'Typ 2 / CCS vpravo vzadu (u spolujezdce)',
+        'Vzdálenost k Wallboxu': 'Cca 4,5 m při couvání / 5,2 m popředu (kabel 6,5 m dosáhne)',
+        'Kapacita baterie': '77 kWh (dojezd cca 420 km WLTP)',
+        'Palubní nabíječka': '11 kW 3-fázová (doba nabíjení 20–80 % cca 4,5 h)',
+      },
+    };
+    carsGroup.add(buzzGroup);
+    group.add(carsGroup);
+  } else {
+    const totalWidth = parkWidth + workshopGap + workshopWidth;
+    const workshopRelX = -totalWidth / 2 + workshopWidth / 2;
+    const workshop = new THREE.Mesh(
+      new THREE.BoxGeometry(workshopWidth, wallHeight, depth),
+      materials.auxWall
+    );
+    workshop.position.set(workshopRelX, wallHeight / 2, 0);
+    workshop.castShadow = true;
+    workshop.receiveShadow = true;
+    group.add(workshop);
+
+    const parkRelX = totalWidth / 2 - parkWidth / 2;
+    const parkFloor = new THREE.Mesh(
+      new THREE.BoxGeometry(parkWidth, 0.08, depth),
+      materials.auxFloor
+    );
+    parkFloor.position.set(parkRelX, 0.04, 0);
+    group.add(parkFloor);
   }
 
-  // 5. Paved walkway connecting carport canopy to main East entrance (1.01)
+  // Paved walkway connecting carport canopy to main East entrance (1.01)
   if (eastWalkway) {
     const [ew, eh, ed] = eastWalkway.size;
     const [ex, ey, ez] = eastWalkway.pos;
@@ -364,11 +536,17 @@ export function computeSiteSetbacks(
   const houseMinZ = housePos.z - halfExtZ;
   const houseMaxZ = housePos.z + halfExtZ;
 
-  const auxTotalWidth = auxConfig.parkWidth + auxConfig.workshopWidth;
+  const isStacked = auxConfig.layout === 'stacked-north-south';
+  const auxTotalWidth = isStacked
+    ? (auxConfig.width ?? 6.5)
+    : auxConfig.parkWidth + (auxConfig.workshopGap ?? 0) + auxConfig.workshopWidth;
+  const auxTotalDepth = isStacked
+    ? (auxConfig.depth ?? (auxConfig.parkDepth + auxConfig.workshopDepth))
+    : auxConfig.depth;
   const auxMinX = auxConfig.position[0] - auxTotalWidth / 2;
   const auxMaxX = auxConfig.position[0] + auxTotalWidth / 2;
-  const auxMinZ = auxConfig.position[2] - auxConfig.depth / 2;
-  const auxMaxZ = auxConfig.position[2] + auxConfig.depth / 2;
+  const auxMinZ = auxConfig.position[2] - auxTotalDepth / 2;
+  const auxMaxZ = auxConfig.position[2] + auxTotalDepth / 2;
 
   let terraceNeighborWest = null;
   const terraceFinish = houseDesign?.floor1?.finishes?.find((f) => f.material === 'terrace');
@@ -387,7 +565,15 @@ export function computeSiteSetbacks(
 
   return {
     streetRight: Number((hw - houseMaxX).toFixed(1)),
-    houseWorkshopGap: Number((houseMinZ - auxMaxZ).toFixed(1)),
+    houseWorkshopGap: Number(
+      (isStacked
+        ? (auxConfig.parkDepth ?? 6.0)
+        : Math.hypot(
+            Math.max(0, houseMinX - (auxMinX + auxConfig.workshopWidth), auxMinX - houseMaxX),
+            Math.max(0, houseMinZ - auxMaxZ, auxMinZ - houseMaxZ)
+          )
+      ).toFixed(1)
+    ),
     houseTop: Number((houseMinZ - -hd).toFixed(1)),
     workshopTop: Number((auxMinZ - -hd).toFixed(1)),
     houseFront: Number((hd - houseMaxZ).toFixed(1)),
@@ -474,8 +660,13 @@ export function computeBuiltUpArea(siteConfig, auxConfig, houseDesign) {
   const houseLength = houseDesign?.footprint?.length ?? 12;
   const houseSqm = Number((houseWidth * houseLength).toFixed(1));
 
-  const workshopSqm = Number((auxConfig.workshopWidth * auxConfig.depth).toFixed(1));
-  const parkingSqm = Number((auxConfig.parkWidth * auxConfig.depth).toFixed(1));
+  const isStackedMet = auxConfig.layout === 'stacked-north-south';
+  const workshopSqm = isStackedMet
+    ? Number(((auxConfig.width ?? 6.5) * (auxConfig.workshopDepth ?? 4.0)).toFixed(1))
+    : Number((auxConfig.workshopWidth * auxConfig.depth).toFixed(1));
+  const parkingSqm = isStackedMet
+    ? Number(((auxConfig.width ?? 6.5) * (auxConfig.parkDepth ?? 6.0)).toFixed(1))
+    : Number((auxConfig.parkWidth * auxConfig.depth).toFixed(1));
 
   const terraceRoom = houseDesign?.floor1?.rooms?.find(
     (r) => r.id === '1.08' || r.interior === false
@@ -638,7 +829,8 @@ export function updateFootprintOverlay(
   footprintGroup.add(houseOverlayGroup);
 
   // Auxiliary building parts (Workshop, Covered Parking, Canopy)
-  const totalAuxWidth = auxConfig.parkWidth + auxConfig.workshopWidth;
+  const totalAuxWidth =
+    auxConfig.parkWidth + (auxConfig.workshopGap ?? 0) + auxConfig.workshopWidth;
   const workshopRelX = -totalAuxWidth / 2 + auxConfig.workshopWidth / 2;
   const parkRelX = totalAuxWidth / 2 - auxConfig.parkWidth / 2;
   const [auxX, , auxZ] = auxConfig.position;
