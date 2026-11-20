@@ -130,7 +130,7 @@ export function initBudgetController(store, { siteConfig, auxiliaryBuildingConfi
           <span class="budget-breakdown-val">${fmtMoney(isTurnkey ? pricing.scopes.house.turnkey : pricing.scopes.house.self)}</span>
         </div>
         <div class="budget-breakdown-row">
-          <span class="budget-breakdown-label">🔧 Vedlejší stavba (dílna ${workshopArea} m² + stání ${parkingArea} m² + loubí):</span>
+          <span class="budget-breakdown-label">🔧 Vedlejší stavba (dílna ${workshopArea} m² + stání ${parkingArea} m² + krytý chodník):</span>
           <span class="budget-breakdown-val">${fmtMoney(isTurnkey ? pricing.scopes.aux.turnkey : pricing.scopes.aux.self)}</span>
         </div>
         <div class="budget-breakdown-row">

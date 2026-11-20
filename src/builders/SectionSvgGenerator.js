@@ -1103,7 +1103,11 @@ function renderSlabsStairsAndShaftSvg(data, sec, showHatches) {
       [m2svg(st.xLanding), e2svgY(st.yLanding)],
       ...f2StepsPts,
       [m2svg(f2End.uMax), e2svgY(st.yTop)],
-      [m2svg(f2End.uMax), e2svgY(L.f2StructY)],
+      // Soffit parallel to the nosing line (constant waist thickness)
+      [
+        m2svg(f2End.uMax),
+        e2svgY(st.yLanding - st.landingThickness + (st.stepRun ? ((f2End.uMax - f2Start.uMin) * st.riserH) / st.stepRun : 0)),
+      ],
       [m2svg(f2Start.uMin), e2svgY(st.yLanding - st.landingThickness)],
       [m2svg(st.xEnd), e2svgY(st.yLanding - st.landingThickness)],
     ]

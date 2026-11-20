@@ -724,7 +724,7 @@ describe("Exporty pro projektanty a architekty (DXF, Výpisy, Bilance TZ)", () =
       assert.equal(audit.summary.warnings, 0);
     });
 
-    it("vedlejší stavba má plné dvojstání ≥ 6 m a loubí s chodníkem nekolidují s půdorysem domu", () => {
+    it("vedlejší stavba má plné dvojstání ≥ 6 m a krytý chodník nekolidují s půdorysem domu", () => {
       assert.ok(auxiliaryBuildingConfig.parkWidth >= 6.0);
       const [ax, , az] = auxiliaryBuildingConfig.position;
       const hx1 = 0.5;
@@ -747,7 +747,7 @@ describe("Exporty pro projektanty a architekty (DXF, Výpisy, Bilance TZ)", () =
       assert.equal(
         overlapsHouse(cx1, cx2, cz1, cz2),
         false,
-        "Kryté loubí nesmí zasahovat do půdorysu domu",
+        "Krytý chodník nesmí zasahovat do půdorysu domu",
       );
 
       assert.ok(eastWalkway);

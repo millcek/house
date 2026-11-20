@@ -673,7 +673,7 @@ export function updateFootprintOverlay(
         width: auxConfig.canopy.size[0],
         depth: auxConfig.canopy.size[2],
         color: 0xa855f7,
-        label: 'Kryté loubí',
+        label: 'Krytý chodník',
         areaText: `${metrics.canopySqm.toFixed(1)} m² (${metrics.canopyRatioPct.toFixed(1)} %)`,
         x: auxX + auxConfig.canopy.pos[0],
         z: auxZ + auxConfig.canopy.pos[2],

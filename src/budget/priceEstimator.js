@@ -256,9 +256,9 @@ export function priceItem(item) {
     [/Dílna – odsávání prachu/, 18000, 26000],
     [/Dílna – gumová podlaha/, 780, 1250],
     [/Dveře \+ okno dílny/, 17500, 26500],
-    [/Kryté loubí – střešní plášť/, 920, 1680],
-    [/Kryté loubí – sloupky/, 3500, 6200],
-    [/Kryté loubí – patky/, 1350, 2650],
+    [/Krytý chodník – střešní plášť/, 920, 1680],
+    [/Krytý chodník – sloupky/, 3500, 6200],
+    [/Krytý chodník – patky/, 1350, 2650],
 
     // 17 Venkovní úpravy
     [/Chodník/, 640, 1480],

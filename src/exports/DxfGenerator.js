@@ -2017,7 +2017,7 @@ function renderSitePlanToDxf(
       ...tf.rectToDxf(auxX + cx - cw / 2, auxZ + cz - cd / 2, cw, cd),
     );
     const [canX, canY] = tf.toDxf(auxX + cx, auxZ + cz);
-    dxf.addText("A-TITLE", canX, canY, "LOUBÍ", {
+    dxf.addText("A-TITLE", canX, canY, "KRYTÝ CHODNÍK", {
       height: 140,
       rotation: 90,
       hAlign: 1,
@@ -2165,7 +2165,7 @@ function renderSitePlanToDxf(
       `${metrics.terraceSqm.toFixed(1).replace(".", ",")} m² (${metrics.terraceRatioPct.toFixed(1).replace(".", ",")} %)`,
     ],
     [
-      "Kryté vstupní loubí",
+      "Krytý vstupní chodník",
       `${metrics.canopySqm.toFixed(1).replace(".", ",")} m² (${metrics.canopyRatioPct.toFixed(1).replace(".", ",")} %)`,
     ],
     [

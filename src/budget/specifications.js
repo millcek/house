@@ -22,7 +22,7 @@ export const BOM_SPEC = {
     waterproofUpturn: 0.30, // vytažení hydroizolace na sokl
     perimeterInsulationHeight: 1.0, // XPS perimetr (sokl + pod terén)
     padFootingSize: 0.80, // patka pod sloupek (krychle a × a × a)
-    smallPadSize: 0.40, // patka pod sloupek pergoly / loubí
+    smallPadSize: 0.40, // patka pod sloupek pergoly / krytý chodník
   },
 
   // ------------------------------------------------------------- SVISLÉ KONSTRUKCE
@@ -169,7 +169,7 @@ export const BOM_SPEC = {
     socketsPerM2: 1 / 5, // zásuvky – odhad 1 ks / 5 m², min. 2
     socketsMin: 2,
     extraSockets: { drez: 5, pracka: 2, umyvadlo: 1, dvojumyvadlo: 2, umyvatko: 1 },
-    exteriorLights: 4, // vstup, terasa, loubí, dílna
+    exteriorLights: 4, // vstup, terasa, krytý chodník, dílna
     fixtures: {
       wc: { label: 'WC závěsné + předstěnový modul + tlačítko', unit: 'ks' },
       umyvadlo: { label: 'Umyvadlo + baterie + sifon', unit: 'ks' },

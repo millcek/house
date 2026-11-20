@@ -277,7 +277,7 @@ export function generateTechnicalSummaryCsv(techSummary) {
     pushRow(['Kryté parkovací stání', fmtNum(site.parkingSqm, 1), fmtNum(site.parkingRatioPct, 1)]);
     pushRow(['Stavby pod střechou celkem', fmtNum(site.buildingsSqm, 1), fmtNum(site.buildingsRatioPct, 1)]);
     pushRow(['Zahradní terasa (JZ)', fmtNum(site.terraceSqm, 1), fmtNum(site.terraceRatioPct, 1)]);
-    pushRow(['Kryté vstupní loubí', fmtNum(site.canopySqm, 1), fmtNum(site.canopyRatioPct, 1)]);
+    pushRow(['Krytý vstupní chodník', fmtNum(site.canopySqm, 1), fmtNum(site.canopyRatioPct, 1)]);
     pushRow(['Zastavěná plocha celkem (KZP)', fmtNum(site.totalBuiltUpSqm, 1), fmtNum(site.totalRatioPct, 1)]);
     pushRow(['Volná nezastavěná zahrada (zeleň)', fmtNum(site.freeGardenSqm, 1), fmtNum(site.freeRatioPct, 1)]);
     pushRow([]);
@@ -593,7 +593,7 @@ export function generateTechnicalReportHtml(techSummary, openingSchedule) {
           ${site ? `
             <tr><td>Výměra pozemku (+${fmtNum(site.parcelRotationDeg, 1)}° od S)</td><td>${fmtNum(site.plotAreaSqm, 0)} m² (${site.widthM}×${site.depthM} m)</td></tr>
             <tr><td>Stavby pod střechou (dům + dílna + stání)</td><td>${fmtNum(site.buildingsSqm, 1)} m² (${fmtNum(site.buildingsRatioPct, 1)} %)</td></tr>
-            <tr><td>Terasa + kryté vstupní loubí</td><td>${fmtNum(site.accessoriesSqm, 1)} m² (${fmtNum(site.accessoriesRatioPct, 1)} %)</td></tr>
+            <tr><td>Terasa + krytý vstupní chodník</td><td>${fmtNum(site.accessoriesSqm, 1)} m² (${fmtNum(site.accessoriesRatioPct, 1)} %)</td></tr>
             <tr><td>Zastavěná plocha celkem (KZP)</td><td>${fmtNum(site.totalBuiltUpSqm, 1)} m² (${fmtNum(site.totalRatioPct, 1)} %)</td></tr>
             <tr><td>Volná nezastavěná zahrada</td><td>${fmtNum(site.freeGardenSqm, 1)} m² (${fmtNum(site.freeRatioPct, 1)} %)</td></tr>
           ` : ''}

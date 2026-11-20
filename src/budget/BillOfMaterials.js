@@ -1617,7 +1617,7 @@ export function computeBillOfMaterials({
   });
   bom.add(S.elec, {
     name: "Venkovní svítidla",
-    spec: "Vstup, terasa, loubí, dílna",
+    spec: "Vstup, terasa, krytý chodník, dílna",
     unit: "ks",
     qty: TZ.exteriorLights,
     scope: "exterior",
@@ -2117,8 +2117,8 @@ export function computeBillOfMaterials({
     if (canopy) {
       const [cw, , cd] = canopy.size;
       bom.add(S.aux, {
-        name: "Kryté loubí – střešní plášť",
-        spec: "Shodně se střechou stání / polykarbonát",
+        name: "Krytý chodník – střešní plášť",
+        spec: "Polykarbonát komůrkový 16 mm, sklon shodný se střechou stání",
         unit: "m²",
         qty: cw * cd,
         waste: 0.08,
@@ -2126,7 +2126,7 @@ export function computeBillOfMaterials({
         calc: `${fmt(cw)} × ${fmt(cd)}`,
       });
       bom.add(S.aux, {
-        name: "Kryté loubí – sloupky 140×140 + nosníky",
+        name: "Krytý chodník – sloupky 140×140 + nosníky",
         spec: "Ocel žár. zinek / BSH, výška 2,5 m",
         unit: "ks",
         qty: canopy.pillars.length,
@@ -2134,7 +2134,7 @@ export function computeBillOfMaterials({
         calc: `${canopy.pillars.length} sloupků`,
       });
       bom.add(S.aux, {
-        name: "Kryté loubí – patky",
+        name: "Krytý chodník – patky",
         spec: `C20/25 ${mm(F.smallPadSize)}³ mm`,
         unit: "ks",
         qty: canopy.pillars.length,
@@ -2142,7 +2142,7 @@ export function computeBillOfMaterials({
         calc: `${canopy.pillars.length} ks`,
       });
       bom.add(S.site, {
-        name: "Chodník pod loubím",
+        name: "Chodník pod krytým chodníkem",
         spec: "Betonová dlažba 60 mm + lože + štěrk",
         unit: "m²",
         qty: canopy.walkWidth * cd,

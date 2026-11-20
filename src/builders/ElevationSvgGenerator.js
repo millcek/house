@@ -1302,7 +1302,7 @@ function renderMaterialsPanel(x, y, width) {
     ['Střešní krytina', 'Skládaná betonová / keramická taška, antracit'],
     ['Klempířské prvky', 'Lakovaný pozink / hliník antracit (žlaby, svody, oplech.)'],
     ['Okna a HS portál', 'Dřevohliník / plast antracit, izolační trojsklo Uw ≤ 0,8'],
-    ['Pergola & loubí', 'KVH smrkové dřevo ošetřené lazurou / sklo VSG + ocel'],
+    ['Pergola & krytý chodník', 'KVH smrkové dřevo ošetřené lazurou / sklo VSG + ocel'],
   ];
   const headerH = 28;
   const rowH = 34;

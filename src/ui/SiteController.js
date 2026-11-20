@@ -146,7 +146,7 @@ export function initSiteController(store, sceneManager, siteConfig, auxConfig) {
     }
     if (barSegAccessories) {
       barSegAccessories.style.width = `${metrics.accessoriesRatioPct}%`;
-      barSegAccessories.title = `Terasa & loubí: ${metrics.accessoriesSqm.toFixed(1)} m² (${metrics.accessoriesRatioPct.toFixed(1)} %)`;
+      barSegAccessories.title = `Terasa & krytý chodník: ${metrics.accessoriesSqm.toFixed(1)} m² (${metrics.accessoriesRatioPct.toFixed(1)} %)`;
     }
     if (barSegFree) {
       barSegFree.style.width = `${metrics.freeRatioPct}%`;
